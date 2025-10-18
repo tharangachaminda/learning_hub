@@ -26,13 +26,15 @@ LearningHub AI is a comprehensive educational platform designed specifically for
 This monorepo contains all project documentation and specifications:
 
 ### Core Documentation
+
 - **[PRD](docs/prd-learninghub-ai.md)**: Complete Product Requirements Document
-- **[Project Brief](docs/project-brief.md)**: High-level project overview  
+- **[Project Brief](docs/project-brief.md)**: High-level project overview
 - **[Architecture](docs/technical/architecture.md)**: System architecture design
 - **[Frontend Spec](docs/technical/mdb5-frontend-specification.md)**: MDB 5 UI implementation guide
 - **[Brainstorming](AI_Powered_Education_App_Brainstorming.md)**: Original project ideation
 
 ### Requirements & Stories
+
 - **[User Stories](requirements/user-stories/)**: Complete epic and story breakdown
 - **[Acceptance Criteria](requirements/acceptance-criteria/)**: Feature validation criteria
 - **[Wireframes](requirements/wireframes/)**: UI/UX design mockups
@@ -41,7 +43,7 @@ This monorepo contains all project documentation and specifications:
 
 ### Monorepo Structure
 
-```
+````
 learning-hub/
 ├── docs/                     # Project documentation
 │   ├── prd-learninghub-ai.md        # Product Requirements Document
@@ -55,7 +57,7 @@ learning-hub/
 │   └── wireframes/                  # UI/UX wireframes
 ├── apps/                     # Applications
 │   ├── student-app/                 # Angular app for students (MDB 5)
-│   ├── parent-app/                  # Angular app for parents/teachers (MDB 5)  
+│   ├── parent-app/                  # Angular app for parents/teachers (MDB 5)
 │   └── api/                         # NestJS backend API
 ├── libs/                     # Shared libraries
 │   ├── shared-ui/                   # Shared UI components library
@@ -94,7 +96,7 @@ learning-hub/
 git clone <repository-url>
 cd learning-hub
 npm install --legacy-peer-deps
-```
+````
 
 ### 2. Start Development Environment
 
