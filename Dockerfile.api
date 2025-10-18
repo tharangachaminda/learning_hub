@@ -1,0 +1,57 @@
+# Multi-stage build for NestJS API
+FROM node:20-alpine AS base
+
+# Install dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY nx.json ./
+COPY tsconfig.base.json ./
+
+# Development stage
+FROM base AS development
+RUN npm ci --include=dev
+COPY . .
+EXPOSE 3000 9229
+CMD ["npm", "run", "start:dev"]
+
+# Build stage
+FROM base AS build
+RUN npm ci --include=dev
+COPY . .
+RUN npx nx build api --prod
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=build /app/dist/api ./dist
+COPY --from=build /app/api/src/assets ./dist/assets
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+
+# Change ownership of the app directory
+RUN chown -R nestjs:nodejs /app
+USER nestjs
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["node", "dist/main.js"]

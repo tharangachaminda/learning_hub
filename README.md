@@ -1,101 +1,235 @@
-# LearningHub
+# 🚀 LearningHub AI - Educational Platform
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> **AI-powered educational platform for Grade 3 students (ages 7-9) with Angular MDB 5 frontend, NestJS backend, and local Ollama LLM integration.**
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node.js](https://img.shields.io/badge/node.js-20.x-green.svg)
+![Angular](https://img.shields.io/badge/angular-20.x-red.svg)
+![NestJS](https://img.shields.io/badge/nestjs-11.x-ea2845.svg)
+![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## 📖 Overview
 
-## Run tasks
+LearningHub AI is a comprehensive educational platform designed specifically for elementary school students. It features AI-generated questions, real-time progress tracking, and separate interfaces for students and parents/teachers.
 
-To run the dev server for your app, use:
+### ✨ Key Features
 
-```sh
-npx nx serve learning-hub
+- 🎯 **AI-Generated Questions**: Dynamic math problems using local Ollama LLM
+- 👶 **Child-Friendly Interface**: Touch-optimized design for tablets and young users
+- 📊 **Parent Dashboard**: Comprehensive progress tracking and analytics
+- 🏠 **Local-First**: All data and AI processing stays on your device
+- 📱 **Responsive Design**: Works perfectly on tablets, phones, and desktops
+- 🔒 **Privacy-Focused**: No external API calls, complete data control
+
+## 📚 Project Documentation
+
+This monorepo contains all project documentation and specifications:
+
+### Core Documentation
+- **[PRD](docs/prd-learninghub-ai.md)**: Complete Product Requirements Document
+- **[Project Brief](docs/project-brief.md)**: High-level project overview  
+- **[Architecture](docs/technical/architecture.md)**: System architecture design
+- **[Frontend Spec](docs/technical/mdb5-frontend-specification.md)**: MDB 5 UI implementation guide
+- **[Brainstorming](AI_Powered_Education_App_Brainstorming.md)**: Original project ideation
+
+### Requirements & Stories
+- **[User Stories](requirements/user-stories/)**: Complete epic and story breakdown
+- **[Acceptance Criteria](requirements/acceptance-criteria/)**: Feature validation criteria
+- **[Wireframes](requirements/wireframes/)**: UI/UX design mockups
+
+## 🏗️ Architecture
+
+### Monorepo Structure
+
+```
+learning-hub/
+├── docs/                     # Project documentation
+│   ├── prd-learninghub-ai.md        # Product Requirements Document
+│   ├── project-brief.md             # Project overview and brief
+│   └── technical/                   # Technical specifications
+│       ├── architecture.md          # System architecture
+│       └── mdb5-frontend-specification.md
+├── requirements/             # Detailed requirements and user stories
+│   ├── acceptance-criteria/         # Acceptance criteria definitions
+│   ├── user-stories/               # Epic and story breakdowns
+│   └── wireframes/                  # UI/UX wireframes
+├── apps/                     # Applications
+│   ├── student-app/                 # Angular app for students (MDB 5)
+│   ├── parent-app/                  # Angular app for parents/teachers (MDB 5)  
+│   └── api/                         # NestJS backend API
+├── libs/                     # Shared libraries
+│   ├── shared-ui/                   # Shared UI components library
+│   └── shared-data/                 # Shared data models and services
+├── docker/                   # Docker configurations
+│   ├── nginx/                       # Nginx configurations
+│   ├── mongodb-init/                # Database initialization scripts
+│   └── scripts/                     # Docker utility scripts
+├── scripts/                  # Development and deployment scripts
+└── AI_Powered_Education_App_Brainstorming.md  # Original brainstorming document
+```### Technology Stack
+
+| Component            | Technology              | Purpose                      |
+| -------------------- | ----------------------- | ---------------------------- |
+| **Frontend**         | Angular 20 + MDB 5      | Student & parent interfaces  |
+| **Backend**          | NestJS 11               | RESTful API server           |
+| **Database**         | MongoDB 7.0             | Primary data storage         |
+| **Vector DB**        | OpenSearch 2.11         | Semantic search & embeddings |
+| **AI Engine**        | Ollama (Local)          | LLM for question generation  |
+| **Containerization** | Docker + Docker Compose | Development & deployment     |
+| **Monorepo**         | Nx Workspace            | Code organization & tooling  |
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 20.x or later
+- **Docker Desktop** (with Docker Compose)
+- **Git**
+- At least **8GB RAM** (for AI models)
+- **10GB+ free disk space** (for models and containers)
+
+### 1. Clone & Setup
+
+```bash
+git clone <repository-url>
+cd learning-hub
+npm install --legacy-peer-deps
 ```
 
-To create a production bundle:
+### 2. Start Development Environment
 
-```sh
-npx nx build learning-hub
+```bash
+# Quick start (recommended for first-time setup)
+npm run start:dev
+
+# Or run the script directly
+./scripts/start-dev.sh
 ```
 
-To see all available targets to run for a project, run:
+### 3. Access Applications
 
-```sh
-npx nx show project learning-hub
+After startup completes (~2-3 minutes):
+
+| Application           | URL                       | Description                       |
+| --------------------- | ------------------------- | --------------------------------- |
+| **Student App**       | http://localhost:4201     | Child-friendly learning interface |
+| **Parent Dashboard**  | http://localhost:4202     | Progress tracking & analytics     |
+| **API Documentation** | http://localhost:3001/api | Swagger/OpenAPI docs              |
+
+### 4. Setup AI Models
+
+```bash
+# Pull and configure all required AI models
+npm run setup:ollama
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 🔧 Development
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Available Scripts
 
-## Add new projects
+```bash
+# Development
+npm run start:dev          # Start full development environment
+npm run start:student      # Start only student app
+npm run start:parent       # Start only parent app
+npm run start:api          # Start only API server
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+# Building & Testing
+npm run build:all          # Build all apps in parallel
+npm run test:all          # Run tests for all projects
 
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/angular:app demo
+# Docker Management
+npm run docker:dev         # Start development containers
+npm run docker:stop        # Stop all containers
+npm run docker:clean       # Clean up containers and volumes
 ```
 
-To generate a new library, use:
+## 🏭 Production Deployment
 
-```sh
-npx nx g @nx/angular:lib mylib
+```bash
+# Build and start production environment
+npm run start:prod
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+Access at: http://localhost (with nginx reverse proxy)
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🗄️ Services & Databases
 
-## Set up CI!
+### Development URLs
 
-### Step 1
+- **MongoDB**: localhost:27018
+- **OpenSearch**: localhost:9201
+- **Ollama AI**: localhost:11435
+- **Redis**: localhost:6380
 
-To connect to Nx Cloud, run the following command:
+### AI Models
 
-```sh
-npx nx connect
+- **llama3.1**: General language model
+- **qwen2.5:14b**: Educational content model
+- **nomic-embed-text**: Text embeddings
+
+## 🎨 Design System
+
+- **Student App**: Bright, child-friendly MDB 5 theme with large touch targets
+- **Parent Dashboard**: Professional interface with data visualization
+- **Responsive**: Optimized for tablets (primary) and mobile devices
+- **Accessibility**: Large text options and keyboard navigation
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+```bash
+# Docker not running
+./scripts/start-dev.sh
+# Error: Docker is not running
+
+# AI models taking too long
+# Ensure 8GB+ RAM available, check disk space
+
+# Port conflicts
+# Stop conflicting services or modify docker-compose.dev.yml
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+### Useful Commands
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+# Check container status
+docker-compose -f docker-compose.dev.yml ps
 
-### Step 2
+# View logs
+docker-compose -f docker-compose.dev.yml logs -f
 
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+# Test AI models
+docker exec -it learning-hub-ollama-dev ollama run llama3.1 "What is 2+2?"
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 📝 Development Workflow
 
-## Install Nx Console
+1. **Start Environment**: `npm run start:dev`
+2. **Make Changes**: Edit code with hot reload
+3. **Run Tests**: `npm run test:all`
+4. **Check Build**: `npm run build:all`
+5. **Commit**: Follow conventional commits
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+## 🎯 Roadmap
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Version 1.0 (Current - MVP)
 
-## Useful links
+- ✅ Basic math question generation
+- ✅ Student practice interface
+- ✅ Parent progress dashboard
+- ✅ Local data storage
 
-Learn more:
+### Version 1.1 (Next)
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- 🔲 Multiple choice questions
+- 🔲 Achievement system
+- 🔲 Step-by-step solutions
+- 🔲 Weekly reports
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
+
+**Made with ❤️ for young learners and their families**
+
+Built using [Nx](https://nx.dev) monorepo architecture.

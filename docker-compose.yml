@@ -1,0 +1,163 @@
+version: '3.8'
+
+networks:
+  learning-hub-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  opensearch-data:
+  ollama-data:
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: learning-hub-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: learning_hub
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+      - ./docker/mongodb-init:/docker-entrypoint-initdb.d
+    networks:
+      - learning-hub-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OpenSearch for Vector Search
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: learning-hub-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    networks:
+      - learning-hub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cat/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Ollama AI Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: learning-hub-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - learning-hub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # NestJS API Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: learning-hub-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://root:password123@mongodb:27017/learning_hub?authSource=admin
+      - OPENSEARCH_HOST=http://opensearch:9200
+      - OLLAMA_HOST=http://ollama:11434
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - learning-hub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Student App Frontend
+  student-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.student-app
+    container_name: learning-hub-student-app
+    restart: unless-stopped
+    ports:
+      - "4201:80"
+    environment:
+      - API_URL=http://api:3000/api
+    depends_on:
+      - api
+    networks:
+      - learning-hub-network
+
+  # Parent App Frontend
+  parent-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.parent-app
+    container_name: learning-hub-parent-app
+    restart: unless-stopped
+    ports:
+      - "4202:80"
+    environment:
+      - API_URL=http://api:3000/api
+    depends_on:
+      - api
+    networks:
+      - learning-hub-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: learning-hub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - student-app
+      - parent-app
+      - api
+    networks:
+      - learning-hub-network

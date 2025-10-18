@@ -1,0 +1,364 @@
+/* You can add global styles to this file, and also import other style files */
+
+// Import MDB 5 Angular styles
+@import '~mdb-angular-ui-kit/assets/scss/mdb.scss';
+
+// Professional theme for parents/teachers
+:root {
+  // Professional color scheme
+  --primary-color: #1976d2;      // Material Design Blue
+  --secondary-color: #388e3c;    // Material Design Green
+  --accent-color: #f57c00;       // Material Design Orange
+  --error-color: #d32f2f;        // Material Design Red
+  
+  // Status colors
+  --success-color: #2e7d32;      // Success green
+  --warning-color: #f57c00;      // Warning orange
+  --info-color: #1976d2;         // Info blue
+  
+  // Background colors
+  --bg-primary: #fafafa;         // Light gray
+  --bg-secondary: #f5f5f5;       // Slightly darker gray
+  --bg-card: #ffffff;            // White cards
+  --bg-sidebar: #263238;         // Dark sidebar
+  
+  // Text colors
+  --text-primary: #212121;       // Primary text
+  --text-secondary: #757575;     // Secondary text
+  --text-hint: #9e9e9e;          // Hint text
+  --text-inverse: #ffffff;       // Inverse text
+  
+  // Border and shadows
+  --border-color: #e0e0e0;
+  --border-radius: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+  
+  // Spacing
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+// Global styles
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Dashboard layout
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  
+  .sidebar {
+    width: 280px;
+    background: var(--bg-sidebar);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-md);
+    
+    .sidebar-header {
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+    }
+    
+    .nav-item {
+      padding: var(--spacing-md) var(--spacing-lg);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      
+      &:hover {
+        background: rgba(255,255,255,0.1);
+      }
+      
+      &.active {
+        background: rgba(25,118,210,0.3);
+        border-right: 3px solid var(--primary-color);
+      }
+    }
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+  }
+}
+
+// Professional cards
+.card-parent {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  margin: var(--spacing-md) 0;
+  transition: box-shadow 0.2s ease;
+  
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .card-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-top: var(--spacing-xs);
+    }
+  }
+  
+  .card-body {
+    padding: var(--spacing-lg);
+  }
+  
+  .card-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+  }
+}
+
+// Progress tracking components
+.progress-overview {
+  .metric-card {
+    @extend .card-parent;
+    text-align: center;
+    
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary-color);
+      line-height: 1;
+    }
+    
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: var(--spacing-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .metric-change {
+      font-size: 11px;
+      margin-top: var(--spacing-xs);
+      
+      &.positive {
+        color: var(--success-color);
+      }
+      
+      &.negative {
+        color: var(--error-color);
+      }
+    }
+  }
+}
+
+// Data visualization
+.chart-container {
+  @extend .card-parent;
+  
+  .chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .chart-content {
+    height: 300px;
+    position: relative;
+  }
+}
+
+// Tables
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  
+  th {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  tr:hover {
+    background: rgba(25,118,210,0.04);
+  }
+}
+
+// Buttons
+.btn-parent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  
+  &.btn-primary {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+    
+    &:hover {
+      background: darken(#1976d2, 10%);
+    }
+  }
+  
+  &.btn-secondary {
+    background: transparent;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    
+    &:hover {
+      background: var(--primary-color);
+      color: var(--text-inverse);
+    }
+  }
+  
+  &.btn-success {
+    background: var(--success-color);
+    color: var(--text-inverse);
+    
+    &:hover {
+      background: darken(#2e7d32, 10%);
+    }
+  }
+}
+
+// Status indicators
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  
+  &.success {
+    background: rgba(46,125,50,0.1);
+    color: var(--success-color);
+  }
+  
+  &.warning {
+    background: rgba(245,124,0,0.1);
+    color: var(--warning-color);
+  }
+  
+  &.info {
+    background: rgba(25,118,210,0.1);
+    color: var(--info-color);
+  }
+  
+  &.error {
+    background: rgba(211,47,47,0.1);
+    color: var(--error-color);
+  }
+}
+
+// Form elements
+.form-group {
+  margin-bottom: var(--spacing-md);
+  
+  label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(25,118,210,0.1);
+    }
+  }
+  
+  .help-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+    
+    .sidebar {
+      width: 100%;
+      position: static;
+    }
+  }
+  
+  .card-parent {
+    margin: var(--spacing-sm) 0;
+    
+    .card-header, .card-body, .card-footer {
+      padding: var(--spacing-md);
+    }
+  }
+}

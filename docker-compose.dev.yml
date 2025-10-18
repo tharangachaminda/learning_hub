@@ -1,0 +1,143 @@
+version: '3.8'
+
+networks:
+  learning-hub-dev:
+    driver: bridge
+
+volumes:
+  mongodb-dev-data:
+  opensearch-dev-data:
+  ollama-dev-data:
+
+services:
+  # MongoDB Database - Development
+  mongodb-dev:
+    image: mongo:7.0
+    container_name: learning-hub-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dev
+      MONGO_INITDB_ROOT_PASSWORD: dev123
+      MONGO_INITDB_DATABASE: learning_hub_dev
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-dev-data:/data/db
+    networks:
+      - learning-hub-dev
+
+  # OpenSearch for Vector Search - Development
+  opensearch-dev:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: learning-hub-opensearch-dev
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"
+    ports:
+      - "9201:9200"
+    volumes:
+      - opensearch-dev-data:/usr/share/opensearch/data
+    networks:
+      - learning-hub-dev
+
+  # Ollama AI Service - Development
+  ollama-dev:
+    image: ollama/ollama:latest
+    container_name: learning-hub-ollama-dev
+    restart: unless-stopped
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama-dev-data:/root/.ollama
+      - ./scripts:/scripts
+    networks:
+      - learning-hub-dev
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 10 &&
+        ollama pull llama3.1 &&
+        ollama pull qwen2.5:14b &&
+        ollama pull nomic-embed-text &&
+        wait
+      "
+
+  # Redis for Session Management - Development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: learning-hub-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - learning-hub-dev
+
+  # Development API with Hot Reload
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: development
+    container_name: learning-hub-api-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+      - "9229:9229" # Debug port
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://dev:dev123@mongodb-dev:27017/learning_hub_dev?authSource=admin
+      - OPENSEARCH_HOST=http://opensearch-dev:9200
+      - OLLAMA_HOST=http://ollama-dev:11434
+      - REDIS_URL=redis://redis-dev:6379
+      - JWT_SECRET=dev-jwt-secret
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb-dev
+      - opensearch-dev
+      - redis-dev
+    networks:
+      - learning-hub-dev
+    command: npm run start:dev
+
+  # Hot Module Replacement for Angular Apps
+  student-app-dev:
+    image: node:20-alpine
+    container_name: learning-hub-student-app-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "4201:4200"
+    environment:
+      - API_URL=http://localhost:3001/api
+    command: >
+      sh -c "
+        npm install &&
+        npx nx serve student-app --host=0.0.0.0 --port=4200
+      "
+    networks:
+      - learning-hub-dev
+
+  parent-app-dev:
+    image: node:20-alpine
+    container_name: learning-hub-parent-app-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "4202:4200"
+    environment:
+      - API_URL=http://localhost:3001/api
+    command: >
+      sh -c "
+        npm install &&
+        npx nx serve parent-app --host=0.0.0.0 --port=4200
+      "
+    networks:
+      - learning-hub-dev

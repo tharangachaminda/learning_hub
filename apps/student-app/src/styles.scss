@@ -1,0 +1,272 @@
+/* You can add global styles to this file, and also import other style files */
+
+// Import MDB 5 Angular styles
+@import '~mdb-angular-ui-kit/assets/scss/mdb.scss';
+
+// Educational theme for students (Grade 3, ages 7-9)
+:root {
+  // Primary colors - bright and friendly
+  --primary-color: #4285f4;      // Google Blue - familiar and trustworthy
+  --secondary-color: #34a853;    // Green - positive and encouraging
+  --accent-color: #fbbc04;       // Yellow - cheerful and attention-grabbing
+  --warning-color: #ea4335;      // Red - for important alerts
+  
+  // Educational colors
+  --correct-color: #34a853;      // Green for correct answers
+  --incorrect-color: #ea4335;    // Red for incorrect answers
+  --neutral-color: #9aa0a6;     // Gray for neutral states
+  
+  // Background colors
+  --bg-primary: #f8f9fa;        // Light gray background
+  --bg-card: #ffffff;           // White for content cards
+  --bg-fun: linear-gradient(135deg, #667eea 0%, #764ba2 100%); // Fun gradient
+  
+  // Text colors
+  --text-primary: #202124;      // Dark text for readability
+  --text-secondary: #5f6368;    // Secondary text
+  --text-light: #ffffff;        // Light text for dark backgrounds
+  
+  // Interactive elements
+  --border-radius: 16px;        // Rounded corners for friendliness
+  --shadow-soft: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-medium: 0 4px 16px rgba(0,0,0,0.15);
+  
+  // Animation timing
+  --animation-fast: 0.2s;
+  --animation-normal: 0.3s;
+  --animation-slow: 0.5s;
+}
+
+// Global styles for child-friendly interface
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Large, touch-friendly buttons for tablets
+.btn-student {
+  min-height: 56px;
+  min-width: 120px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  padding: 16px 24px;
+  border: none;
+  cursor: pointer;
+  transition: all var(--animation-normal) ease;
+  box-shadow: var(--shadow-soft);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-primary-student {
+  @extend .btn-student;
+  background: var(--primary-color);
+  color: var(--text-light);
+  
+  &:hover {
+    background: darken(#4285f4, 10%);
+  }
+}
+
+.btn-success-student {
+  @extend .btn-student;
+  background: var(--correct-color);
+  color: var(--text-light);
+  
+  &:hover {
+    background: darken(#34a853, 10%);
+  }
+}
+
+// Fun card styles
+.card-student {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-soft);
+  padding: 24px;
+  margin: 16px 0;
+  border: none;
+  transition: all var(--animation-normal) ease;
+  
+  &:hover {
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-1px);
+  }
+}
+
+// Question card specific styles
+.question-card {
+  @extend .card-student;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-left: 4px solid var(--primary-color);
+  
+  .question-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  
+  .option-button {
+    @extend .btn-student;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 2px solid #e8eaed;
+    width: 100%;
+    margin: 8px 0;
+    text-align: left;
+    font-size: 16px;
+    
+    &:hover {
+      border-color: var(--primary-color);
+      background: #f1f3f4;
+    }
+    
+    &.selected {
+      border-color: var(--primary-color);
+      background: #e8f0fe;
+    }
+    
+    &.correct {
+      border-color: var(--correct-color);
+      background: #e6f4ea;
+      color: var(--correct-color);
+    }
+    
+    &.incorrect {
+      border-color: var(--incorrect-color);
+      background: #fce8e6;
+      color: var(--incorrect-color);
+    }
+  }
+}
+
+// Progress indicators
+.progress-bar-student {
+  height: 12px;
+  background: #e8eaed;
+  border-radius: 6px;
+  overflow: hidden;
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    transition: width var(--animation-slow) ease;
+    border-radius: 6px;
+  }
+}
+
+// Achievement badges
+.badge-achievement {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  
+  &.gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  }
+  
+  &.silver {
+    background: linear-gradient(135deg, #c0c0c0 0%, #e5e5e5 100%);
+  }
+  
+  &.bronze {
+    background: linear-gradient(135deg, #cd7f32 0%, #deb887 100%);
+  }
+}
+
+// Fun animations
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s ease infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+// Responsive design for tablets and phones
+@media (max-width: 768px) {
+  .btn-student {
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 20px;
+  }
+  
+  .question-card .question-text {
+    font-size: 18px;
+  }
+  
+  .card-student {
+    margin: 12px 0;
+    padding: 20px;
+  }
+}
+
+// Large text mode for accessibility
+.large-text {
+  .question-card .question-text {
+    font-size: 24px;
+  }
+  
+  .btn-student {
+    font-size: 20px;
+    min-height: 60px;
+  }
+  
+  .option-button {
+    font-size: 18px;
+  }
+}
