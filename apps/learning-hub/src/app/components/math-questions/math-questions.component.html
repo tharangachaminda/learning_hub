@@ -1,0 +1,143 @@
+<div class="math-questions-container">
+  <!-- Header Section -->
+  <header class="app-header">
+    <h1>🧮 Grade 3 Math Practice</h1>
+    <p>Let's practice addition problems together!</p>
+  </header>
+
+  <!-- Control Panel -->
+  <div class="control-panel">
+    <button
+      class="generate-btn"
+      (click)="generateQuestions()"
+      [disabled]="isLoading"
+    >
+      <span *ngIf="!isLoading">✨ Generate New Questions</span>
+      <span *ngIf="isLoading">🔄 Loading...</span>
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="error-message">
+    <span>❌ {{ error }}</span>
+  </div>
+
+  <!-- Questions Display -->
+  <div *ngIf="questions.length > 0 && !isLoading" class="questions-section">
+    <!-- Question Navigation -->
+    <div class="question-nav">
+      <span class="question-counter">
+        Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+      </span>
+
+      <div class="nav-buttons">
+        <button
+          class="nav-btn prev-btn"
+          (click)="previousQuestion()"
+          [disabled]="currentQuestionIndex === 0"
+        >
+          ← Previous
+        </button>
+
+        <button
+          class="nav-btn next-btn"
+          (click)="nextQuestion()"
+          [disabled]="currentQuestionIndex === questions.length - 1"
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+
+    <!-- Current Question Display -->
+    <div *ngIf="currentQuestion" class="question-card">
+      <div class="question-text">
+        <h2>{{ currentQuestion.question }}</h2>
+      </div>
+
+      <!-- Answer Options (Multiple Choice) -->
+      <div *ngIf="!showSolution" class="answer-options">
+        <h3>Choose your answer:</h3>
+        <div class="options-grid">
+          <button
+            *ngFor="let option of getAnswerOptions()"
+            class="option-btn"
+            (click)="submitAnswer(option)"
+          >
+            {{ option }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Answer Feedback -->
+      <div *ngIf="showSolution" class="answer-feedback">
+        <div
+          class="feedback-header"
+          [ngClass]="{
+            correct: isAnswerCorrect,
+            incorrect: !isAnswerCorrect
+          }"
+        >
+          <span *ngIf="isAnswerCorrect" class="feedback-icon">✅</span>
+          <span *ngIf="!isAnswerCorrect" class="feedback-icon">❌</span>
+
+          <div class="feedback-text">
+            <p *ngIf="isAnswerCorrect" class="correct-message">
+              Great job! Your answer {{ selectedAnswer }} is correct! 🎉
+            </p>
+            <p *ngIf="!isAnswerCorrect" class="incorrect-message">
+              Not quite right. You answered {{ selectedAnswer }}, but the
+              correct answer is {{ currentQuestion.answer }}.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Solution -->
+        <div class="solution-steps">
+          <h4>📝 Here's how to solve it:</h4>
+          <ol class="steps-list">
+            <li *ngFor="let step of currentQuestion.stepByStepSolution">
+              {{ step }}
+            </li>
+          </ol>
+        </div>
+
+        <!-- Try Again Button -->
+        <div class="action-buttons">
+          <button class="try-again-btn" (click)="resetQuestionState()">
+            🔄 Try Again
+          </button>
+
+          <button
+            *ngIf="currentQuestionIndex < questions.length - 1"
+            class="next-question-btn"
+            (click)="nextQuestion()"
+          >
+            ➡️ Next Question
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Generating your math questions...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    *ngIf="questions.length === 0 && !isLoading && !error"
+    class="empty-state"
+  >
+    <div class="empty-content">
+      <h3>👋 Welcome to Math Practice!</h3>
+      <p>
+        Click "Generate New Questions" to start practicing Grade 3 addition
+        problems.
+      </p>
+      <p>You'll get step-by-step solutions to help you learn! 📚</p>
+    </div>
+  </div>
+</div>

@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import {
   MathQuestion,
   OperationType,
@@ -14,6 +15,7 @@ import {
  * const questions = await generator.generateAdditionQuestions(DifficultyLevel.GRADE_3, 10);
  * ```
  */
+@Injectable()
 export class MathQuestionGenerator {
   /**
    * Generates addition questions for specified difficulty level and count
