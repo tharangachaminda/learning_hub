@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { NxWelcome } from './nx-welcome';
+import { HttpClientModule } from '@angular/common/http';
+import { MathQuestionsComponent } from './components/math-questions/math-questions.component';
 
 @Component({
-  imports: [NxWelcome, RouterModule],
+  imports: [RouterModule, HttpClientModule, MathQuestionsComponent],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.scss',
