@@ -67,17 +67,12 @@ else
     print_warning "OpenSearch might still be starting up..."
 fi
 
-# Start Ollama and pull required models
-print_status "Starting Ollama service..."
-docker-compose -f docker-compose.dev.yml up -d ollama-dev
-
-print_status "Waiting for Ollama to start..."
-sleep 15
-
-print_status "Pulling required AI models (this may take a while)..."
-docker exec learning-hub-ollama-dev ollama pull llama3.1 &
-docker exec learning-hub-ollama-dev ollama pull qwen2.5:14b &
-docker exec learning-hub-ollama-dev ollama pull nomic-embed-text &
+# Ollama setup skipped - using local Ollama installation
+print_status "Skipping Ollama Docker container (using local Ollama)..."
+print_warning "Make sure Ollama is running locally with required models:"
+print_warning "  - llama3.1"
+print_warning "  - qwen2.5:14b" 
+print_warning "  - nomic-embed-text"
 
 # Install dependencies if node_modules doesn't exist
 if [ ! -d "node_modules" ]; then
@@ -112,7 +107,7 @@ echo ""
 echo "🗄️ Development Services:"
 echo "   MongoDB:     mongodb://localhost:27018"
 echo "   OpenSearch:  http://localhost:9201"
-echo "   Ollama:      http://localhost:11435"
+echo "   Ollama:      http://localhost:11434 (local)"
 echo "   Redis:       redis://localhost:6380"
 echo ""
 echo "🔧 Useful Commands:"
