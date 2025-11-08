@@ -100,6 +100,53 @@ export const ValidationResultSchema = z.object({
 export type ValidationResult = z.infer<typeof ValidationResultSchema>;
 
 /**
+ * Explanation style enum for different teaching approaches
+ */
+export const ExplanationStyleSchema = z.enum([
+  'visual', // Uses diagrams, counting aids, visual references
+  'verbal', // Conversational, friendly tone
+  'step-by-step', // Procedural breakdown with numbered steps
+  'story', // Narrative-based explanation with context
+]);
+
+export type ExplanationStyle = z.infer<typeof ExplanationStyleSchema>;
+
+/**
+ * Explanation generation request schema
+ */
+export const ExplanationRequestSchema = z.object({
+  question: z.string().min(1),
+  answer: z.number(),
+  studentAnswer: z.number().optional(),
+  grade: z.number().int().min(1).max(12),
+  style: ExplanationStyleSchema.default('step-by-step'),
+  country: CountrySchema.default('NZ'),
+});
+
+export type ExplanationRequest = z.infer<typeof ExplanationRequestSchema>;
+
+/**
+ * Generated explanation response schema
+ */
+export const GeneratedExplanationSchema = z.object({
+  explanation: z.string().min(10),
+  style: ExplanationStyleSchema,
+  grade_level: z.number(),
+  vocabulary_level: z.enum(['simple', 'moderate', 'complex']),
+  encouragement: z.string().optional(),
+  visual_aids: z.array(z.string()).optional(),
+  metadata: z.object({
+    generation_time: z.number(),
+    word_count: z.number(),
+    sentence_count: z.number(),
+    avg_sentence_length: z.number(),
+    educational_appropriate: z.boolean(),
+  }),
+});
+
+export type GeneratedExplanation = z.infer<typeof GeneratedExplanationSchema>;
+
+/**
  * Ollama health check response schema
  */
 export const HealthCheckSchema = z.object({
@@ -173,6 +220,37 @@ export const COUNTRY_CONTEXTS = {
     ],
   },
   // Add more countries as needed
+} as const;
+
+/**
+ * Grade-level vocabulary and complexity patterns
+ */
+export const GRADE_LEVEL_PATTERNS = {
+  GRADE_3: {
+    vocabularyLevel: 'simple',
+    maxSyllablesPerWord: 2,
+    targetSentenceLength: 6, // 5-8 words
+    encouragingPhrases: [
+      "Let's try together!",
+      "You're doing great!",
+      "Let's count it out!",
+      "Great effort!",
+      "Let's figure this out!",
+    ],
+    visualAidsKeywords: [
+      'count on your fingers',
+      'use blocks',
+      'draw circles',
+      'make groups',
+      'count together',
+    ],
+    teachingApproaches: [
+      'Start with what you know',
+      'Count step by step',
+      'Use your fingers to help',
+      'Think of it like...',
+    ],
+  },
 } as const;
 
 /**

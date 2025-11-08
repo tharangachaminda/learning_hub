@@ -173,4 +173,165 @@ describe('OllamaService', () => {
       });
     });
   });
+
+  describe('generateExplanation', () => {
+    it('should generate grade-appropriate explanation with step-by-step style', async () => {
+      // Mock successful AI explanation response
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Let's count together! Start with 7. Now add 5 more: 8, 9, 10, 11, 12. The answer is 12! Great job!`,
+        },
+      });
+
+      const explanationRequest = {
+        question: '7 + 5 = ?',
+        answer: 12,
+        studentAnswer: 10,
+        grade: 3,
+        style: 'step-by-step' as const,
+        country: 'NZ',
+      };
+
+      const result = await service.generateExplanation(explanationRequest);
+
+      expect(result).toEqual({
+        explanation: expect.any(String),
+        style: 'step-by-step',
+        grade_level: 3,
+        vocabulary_level: expect.stringMatching(/simple|moderate|complex/),
+        encouragement: expect.any(String),
+        visual_aids: expect.any(Array),
+        metadata: {
+          generation_time: expect.any(Number),
+          word_count: expect.any(Number),
+          sentence_count: expect.any(Number),
+          avg_sentence_length: expect.any(Number),
+          educational_appropriate: expect.any(Boolean),
+        },
+      });
+
+      expect(result.explanation.length).toBeGreaterThan(10);
+      expect(result.metadata.generation_time).toBeLessThan(2500); // <2.5s for some margin
+    });
+
+    it('should generate visual style explanation with counting aids', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Use your fingers to count! Hold up 7 fingers. Now add 5 more fingers. Count them all: 12 fingers!`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'visual',
+        country: 'NZ',
+      });
+
+      expect(result.style).toBe('visual');
+      expect(result.explanation.toLowerCase()).toMatch(/finger|count|draw|picture|blocks/);
+    });
+
+    it('should generate verbal style explanation with conversational tone', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Hey! Let's figure this out together. You have 7, and you need to add 5 more. Let's count up from 7: that gives us 12!`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'verbal',
+        country: 'NZ',
+      });
+
+      expect(result.style).toBe('verbal');
+      expect(result.explanation).toBeDefined();
+    });
+
+    it('should generate story style explanation with narrative context', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Emma had 7 kiwi birds at the zoo. Her friend Liam gave her 5 more kiwi birds. Now Emma has 12 kiwi birds altogether!`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'story',
+        country: 'NZ',
+      });
+
+      expect(result.style).toBe('story');
+      expect(result.explanation).toBeDefined();
+    });
+
+    it('should fallback to deterministic explanation when AI fails', async () => {
+      // Mock AI failure
+      mockAxios.post.mockRejectedValue(new Error('AI service unavailable'));
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      // Should still get a valid explanation from fallback
+      expect(result.explanation).toBeDefined();
+      expect(result.explanation.length).toBeGreaterThan(10);
+      expect(result.metadata.educational_appropriate).toBe(true);
+      expect(result.encouragement).toBeDefined();
+    });
+
+    it('should analyze explanation for educational appropriateness', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Start with 7. Count up 5 more. You get 12!`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.word_count).toBeGreaterThan(0);
+      expect(result.metadata.sentence_count).toBeGreaterThan(0);
+      expect(result.metadata.avg_sentence_length).toBeGreaterThan(0);
+      expect(result.vocabulary_level).toMatch(/simple|moderate|complex/);
+    });
+
+    it('should maintain performance under 2 seconds', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Let's add! 7 plus 5 equals 12.`,
+        },
+      });
+
+      const startTime = Date.now();
+
+      const result = await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      const totalTime = Date.now() - startTime;
+
+      expect(result.metadata.generation_time).toBeLessThan(2000); // AC requirement: <2s
+      expect(totalTime).toBeLessThan(2500); // Allow some margin for test execution
+    });
+  });
 });
