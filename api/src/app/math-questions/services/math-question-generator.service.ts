@@ -4,21 +4,24 @@ import {
   OperationType,
   DifficultyLevel,
 } from '../entities/math-question.entity';
+import { OllamaService } from '../../ai/ollama.service';
 
 /**
  * Service responsible for generating mathematical questions for educational purposes
- * Implements curriculum-aligned question generation with appropriate difficulty levels
+ * Implements AI-powered question generation with deterministic fallback
  *
  * @example
  * ```typescript
- * const generator = new MathQuestionGenerator();
+ * const generator = new MathQuestionGenerator(ollamaService);
  * const questions = await generator.generateAdditionQuestions(DifficultyLevel.GRADE_3, 10);
  * ```
  */
 @Injectable()
 export class MathQuestionGenerator {
+  constructor(private readonly ollamaService?: OllamaService) {}
   /**
    * Generates addition questions for specified difficulty level and count
+   * Attempts AI generation first, falls back to deterministic if AI unavailable
    *
    * @param difficulty - The educational difficulty level for question complexity
    * @param count - Number of unique questions to generate
@@ -38,6 +41,100 @@ export class MathQuestionGenerator {
   ): Promise<MathQuestion[]> {
     this.validateQuestionCount(count);
 
+    // Try AI generation first if OllamaService is available
+    if (this.ollamaService) {
+      try {
+        const aiQuestions = await this.generateWithAI(
+          difficulty,
+          count,
+          'addition'
+        );
+        if (aiQuestions && aiQuestions.length > 0) {
+          return aiQuestions;
+        }
+      } catch (error) {
+        console.warn(
+          'AI generation failed, falling back to deterministic:',
+          error.message
+        );
+      }
+    }
+
+    // Fallback to deterministic generation
+    return this.generateDeterministicAdditionQuestions(difficulty, count);
+  }
+
+  /**
+   * Generates questions using AI with curriculum context
+   *
+   * @param difficulty - The educational difficulty level
+   * @param count - Number of questions to generate
+   * @param topic - Mathematical topic (e.g., 'addition')
+   * @returns Promise resolving to array of MathQuestion instances
+   *
+   * @private
+   */
+  private async generateWithAI(
+    difficulty: DifficultyLevel,
+    count: number,
+    topic: string
+  ): Promise<MathQuestion[]> {
+    const questions: MathQuestion[] = [];
+    const gradeNumber = this.difficultyToGrade(difficulty);
+
+    for (let i = 0; i < count; i++) {
+      const aiQuestion = await this.ollamaService.generateMathQuestion({
+        grade: gradeNumber,
+        topic,
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      // Convert AI question format to MathQuestion entity
+      questions.push(
+        new MathQuestion(
+          aiQuestion.question,
+          aiQuestion.answer,
+          OperationType.ADDITION,
+          difficulty,
+          [aiQuestion.explanation] // stepByStepSolution
+        )
+      );
+    }
+
+    return questions;
+  }
+
+  /**
+   * Converts DifficultyLevel to grade number
+   *
+   * @param difficulty - The difficulty level enum
+   * @returns Grade number (1-12)
+   *
+   * @private
+   */
+  private difficultyToGrade(difficulty: DifficultyLevel): number {
+    switch (difficulty) {
+      case DifficultyLevel.GRADE_3:
+        return 3;
+      default:
+        return 3;
+    }
+  }
+
+  /**
+   * Generates addition questions using deterministic algorithm
+   *
+   * @param difficulty - The educational difficulty level for question complexity
+   * @param count - Number of unique questions to generate
+   * @returns Promise resolving to array of MathQuestion instances
+   *
+   * @private
+   */
+  private async generateDeterministicAdditionQuestions(
+    difficulty: DifficultyLevel,
+    count: number
+  ): Promise<MathQuestion[]> {
     const questions: MathQuestion[] = [];
     const usedQuestions = new Set<string>();
 
