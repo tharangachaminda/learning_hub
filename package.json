@@ -48,6 +48,7 @@
     "@angular/router": "~20.3.0",
     "@langchain/community": "^1.0.0",
     "@langchain/ollama": "^1.0.0",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
@@ -69,6 +70,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "~7.8.0",
+    "zod": "^3.25.76",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
