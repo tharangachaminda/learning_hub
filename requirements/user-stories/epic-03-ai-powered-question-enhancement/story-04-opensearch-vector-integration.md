@@ -19,6 +19,7 @@ So that I can provide varied but related practice problems
 
 ### Functional Requirements
 
+- [ ] **pre-req** Store question set in OpenSearch database
 - [ ] **AC-001:** When questions are generated, the system stores semantic embeddings in OpenSearch
 - [ ] **AC-002:** System can find similar questions based on mathematical concepts and difficulty
 - [ ] **AC-003:** Duplicate question detection prevents repetitive content (>90% similarity threshold)

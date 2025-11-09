@@ -1,10 +1,15 @@
-import { Controller, Get, Query, Post, Body } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Optional } from '@nestjs/common';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
 import {
   MathQuestion,
   DifficultyLevel,
   OperationType,
 } from './entities/math-question.entity';
+import {
+  SemanticSearchService,
+  SearchResult,
+} from '../opensearch/semantic-search.service';
+import { FindSimilarQuestionsDto } from './dto/find-similar-questions.dto';
 
 /**
  * REST API controller for mathematical question generation
@@ -15,7 +20,10 @@ import {
  */
 @Controller('math-questions')
 export class MathQuestionsController {
-  constructor(private readonly questionGenerator: MathQuestionGenerator) {}
+  constructor(
+    private readonly questionGenerator: MathQuestionGenerator,
+    @Optional() private readonly semanticSearchService?: SemanticSearchService
+  ) {}
 
   /**
    * Generates mathematical questions based on specified parameters
@@ -88,9 +96,55 @@ export class MathQuestionsController {
         supportedOperations: Object.values(OperationType),
         maxQuestionsPerRequest: 50,
         explanationStyles: ['visual', 'verbal', 'step-by-step', 'story'],
+        semanticSearch: this.semanticSearchService !== undefined,
       },
       version: '2.0.0', // Updated with explanation generation
     };
+  }
+
+  /**
+   * Finds similar questions using semantic search.
+   * Uses vector embeddings and kNN search to find semantically similar questions.
+   *
+   * @param dto - Request body containing question text and optional filters
+   * @returns Array of similar questions with similarity scores
+   * @throws Error if semantic search service is not available
+   *
+   * @example
+   * POST /api/math-questions/similar
+   * {
+   *   "questionText": "What is 5 + 3?",
+   *   "grade": 3,
+   *   "topic": "addition",
+   *   "limit": 10
+   * }
+   */
+  @Post('similar')
+  async findSimilarQuestions(
+    @Body() dto: FindSimilarQuestionsDto
+  ): Promise<SearchResult[]> {
+    if (!this.semanticSearchService) {
+      throw new Error(
+        'Semantic search service is not available. Please ensure OpenSearch is configured.'
+      );
+    }
+
+    // Validate and cap limit
+    const limit = dto.limit ? Math.min(dto.limit, 50) : 10;
+
+    // Perform semantic search
+    const results = await this.semanticSearchService.findSimilar(
+      dto.questionText,
+      {
+        grade: dto.grade,
+        topic: dto.topic,
+        operation: dto.operation,
+        excludeIds: dto.excludeIds,
+        limit,
+      }
+    );
+
+    return results;
   }
 
   /**
