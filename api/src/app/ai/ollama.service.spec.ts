@@ -230,7 +230,9 @@ describe('OllamaService', () => {
       });
 
       expect(result.style).toBe('visual');
-      expect(result.explanation.toLowerCase()).toMatch(/finger|count|draw|picture|blocks/);
+      expect(result.explanation.toLowerCase()).toMatch(
+        /finger|count|draw|picture|blocks/
+      );
     });
 
     it('should generate verbal style explanation with conversational tone', async () => {

@@ -553,9 +553,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         style: request.style,
         grade_level: request.grade,
         vocabulary_level: analysis.vocabularyLevel,
-        encouragement: gradePatterns.encouragingPhrases[
-          Math.floor(Math.random() * gradePatterns.encouragingPhrases.length)
-        ],
+        encouragement:
+          gradePatterns.encouragingPhrases[
+            Math.floor(Math.random() * gradePatterns.encouragingPhrases.length)
+          ],
         visual_aids: analysis.visualAids,
         metadata: {
           generation_time: generationTime,
@@ -613,18 +614,32 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       story: `Create a short story context using ${countryContext.commonNames[0]} and everyday situations. Make math relatable and fun.`,
     };
 
-    return `You are a kind Grade ${request.grade} math teacher helping a student understand: "${request.question}" (Answer: ${request.answer})
+    return `You are a kind Grade ${
+      request.grade
+    } math teacher helping a student understand: "${
+      request.question
+    }" (Answer: ${request.answer})
 
-${isWrongAnswer ? `The student answered ${request.studentAnswer}, which is incorrect. Be encouraging and help them understand why.` : ''}
+${
+  isWrongAnswer
+    ? `The student answered ${request.studentAnswer}, which is incorrect. Be encouraging and help them understand why.`
+    : ''
+}
 
 Teaching Guidelines for Grade ${request.grade}:
 - Use simple words (1-2 syllables)
 - Keep sentences short (5-8 words)
 - Be encouraging: ${gradePatterns.encouragingPhrases.join(', ')}
 - ${styleGuidance[request.style]}
-- Use ${countryContext.commonNames.slice(0, 2).join(' or ')} in examples if needed
+- Use ${countryContext.commonNames
+      .slice(0, 2)
+      .join(' or ')} in examples if needed
 
-Generate a ${request.style} explanation that helps the student understand. Keep it under 100 words, friendly, and appropriate for a ${request.grade} grader.
+Generate a ${
+      request.style
+    } explanation that helps the student understand. Keep it under 100 words, friendly, and appropriate for a ${
+      request.grade
+    } grader.
 
 IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
   }
@@ -677,7 +692,11 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
 
     // Simple vocabulary level assessment
     const vocabularyLevel: 'simple' | 'moderate' | 'complex' =
-      avgSentenceLength <= 8 ? 'simple' : avgSentenceLength <= 12 ? 'moderate' : 'complex';
+      avgSentenceLength <= 8
+        ? 'simple'
+        : avgSentenceLength <= 12
+        ? 'moderate'
+        : 'complex';
 
     // Educational appropriateness check
     const educationallyAppropriate =
@@ -707,10 +726,16 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
 
     if (additionMatch) {
       const [, num1, num2] = additionMatch;
-      return `Let's add together! Start with ${num1}. Now count up ${num2} more: ${Array.from({ length: parseInt(num2) }, (_, i) => parseInt(num1) + i + 1).join(', ')}. The answer is ${answer}!`;
+      return `Let's add together! Start with ${num1}. Now count up ${num2} more: ${Array.from(
+        { length: parseInt(num2) },
+        (_, i) => parseInt(num1) + i + 1
+      ).join(', ')}. The answer is ${answer}!`;
     } else if (subtractionMatch) {
       const [, num1, num2] = subtractionMatch;
-      return `Let's subtract! Start with ${num1}. Now count back ${num2}: ${Array.from({ length: parseInt(num2) }, (_, i) => parseInt(num1) - i - 1).join(', ')}. The answer is ${answer}!`;
+      return `Let's subtract! Start with ${num1}. Now count back ${num2}: ${Array.from(
+        { length: parseInt(num2) },
+        (_, i) => parseInt(num1) - i - 1
+      ).join(', ')}. The answer is ${answer}!`;
     }
 
     return `Let's solve this step by step! The answer is ${answer}. Great job working on this problem!`;

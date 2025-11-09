@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body } from '@nestjs/common';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
 import {
   MathQuestion,
@@ -87,9 +87,103 @@ export class MathQuestionsController {
         supportedDifficulties: Object.values(DifficultyLevel),
         supportedOperations: Object.values(OperationType),
         maxQuestionsPerRequest: 50,
+        explanationStyles: ['visual', 'verbal', 'step-by-step', 'story'],
       },
-      version: '1.0.0',
+      version: '2.0.0', // Updated with explanation generation
     };
+  }
+
+  /**
+   * Generates AI-powered explanation for a specific math question.
+   * Supports multiple explanation styles adapted to grade level.
+   *
+   * @param body - Request body containing question details
+   * @param body.question - The mathematical question
+   * @param body.answer - The correct answer
+   * @param body.studentAnswer - Optional student's answer for targeted feedback
+   * @param body.difficulty - Grade difficulty level (default: grade_3)
+   * @param body.style - Explanation style (default: step-by-step)
+   * @returns Enhanced explanation with metadata
+   *
+   * @example
+   * POST /api/math-questions/explain
+   * Body: {
+   *   "question": "7 + 5 = ?",
+   *   "answer": 12,
+   *   "studentAnswer": 10,
+   *   "difficulty": "grade_3",
+   *   "style": "step-by-step"
+   * }
+   */
+  @Post('explain')
+  async generateExplanation(
+    @Body()
+    body: {
+      question: string;
+      answer: number;
+      studentAnswer?: number;
+      difficulty?: string;
+      style?: 'visual' | 'verbal' | 'step-by-step' | 'story';
+    }
+  ): Promise<{
+    explanation: string;
+    style: string;
+    metadata: {
+      generation_time: number;
+      grade_level: number;
+    };
+  }> {
+    const startTime = Date.now();
+
+    const difficultyLevel = body.difficulty
+      ? this.parseDifficultyLevel(body.difficulty)
+      : DifficultyLevel.GRADE_3;
+
+    const style = body.style || 'step-by-step';
+
+    const explanation =
+      await this.questionGenerator.generateEnhancedExplanation(
+        body.question,
+        body.answer,
+        difficultyLevel,
+        body.studentAnswer,
+        style
+      );
+
+    const generationTime = Date.now() - startTime;
+
+    // Log performance for monitoring
+    console.log(`Generated ${style} explanation in ${generationTime}ms`);
+
+    // Validate performance requirement (<2 seconds for Story 03)
+    if (generationTime > 2000) {
+      console.warn(
+        `Performance warning: Explanation generation took ${generationTime}ms (>2000ms threshold)`
+      );
+    }
+
+    return {
+      explanation,
+      style,
+      metadata: {
+        generation_time: generationTime,
+        grade_level: this.difficultyToGrade(difficultyLevel),
+      },
+    };
+  }
+
+  /**
+   * Converts difficulty level to grade number.
+   *
+   * @private
+   */
+  private difficultyToGrade(difficulty: DifficultyLevel): number {
+    switch (difficulty) {
+      case DifficultyLevel.GRADE_3:
+        return 3;
+      default:
+        return 3;
+    }
   }
 
   /**

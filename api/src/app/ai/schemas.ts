@@ -234,7 +234,7 @@ export const GRADE_LEVEL_PATTERNS = {
       "Let's try together!",
       "You're doing great!",
       "Let's count it out!",
-      "Great effort!",
+      'Great effort!',
       "Let's figure this out!",
     ],
     visualAidsKeywords: [

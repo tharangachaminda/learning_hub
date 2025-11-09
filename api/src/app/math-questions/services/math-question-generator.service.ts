@@ -91,18 +91,103 @@ export class MathQuestionGenerator {
       });
 
       // Convert AI question format to MathQuestion entity
+      // Use the AI-generated explanation from question generation
       questions.push(
         new MathQuestion(
           aiQuestion.question,
           aiQuestion.answer,
           OperationType.ADDITION,
           difficulty,
-          [aiQuestion.explanation] // stepByStepSolution
+          [aiQuestion.explanation] // stepByStepSolution from AI
         )
       );
     }
 
     return questions;
+  }
+
+  /**
+   * Generates enhanced explanation for a specific math question.
+   * Uses AI to create grade-appropriate, style-specific explanations.
+   *
+   * @param question - The mathematical question text
+   * @param answer - The correct answer
+   * @param difficulty - The educational difficulty level
+   * @param studentAnswer - Optional student's answer for targeted feedback
+   * @param style - Explanation style ('visual', 'verbal', 'step-by-step', 'story')
+   * @returns Promise resolving to enhanced explanation text
+   *
+   * @example
+   * ```typescript
+   * const explanation = await generator.generateEnhancedExplanation(
+   *   '7 + 5 = ?',
+   *   12,
+   *   DifficultyLevel.GRADE_3,
+   *   10,
+   *   'step-by-step'
+   * );
+   * console.log(explanation); // "Let's count together! Start with 7..."
+   * ```
+   */
+  async generateEnhancedExplanation(
+    question: string,
+    answer: number,
+    difficulty: DifficultyLevel,
+    studentAnswer?: number,
+    style: 'visual' | 'verbal' | 'step-by-step' | 'story' = 'step-by-step'
+  ): Promise<string> {
+    if (!this.ollamaService) {
+      // Fallback to basic explanation if no AI service
+      return this.generateBasicExplanation(question, answer, difficulty);
+    }
+
+    try {
+      const gradeNumber = this.difficultyToGrade(difficulty);
+
+      const explanationResult = await this.ollamaService.generateExplanation({
+        question,
+        answer,
+        studentAnswer,
+        grade: gradeNumber,
+        style,
+        country: 'NZ',
+      });
+
+      // Combine explanation with encouragement for complete educational experience
+      let fullExplanation = explanationResult.explanation;
+
+      if (explanationResult.encouragement) {
+        fullExplanation = `${explanationResult.encouragement}\n\n${fullExplanation}`;
+      }
+
+      return fullExplanation;
+    } catch (error) {
+      console.warn(
+        'Enhanced explanation generation failed, using basic:',
+        error.message
+      );
+      return this.generateBasicExplanation(question, answer, difficulty);
+    }
+  }
+
+  /**
+   * Generates basic explanation as fallback.
+   *
+   * @private
+   */
+  private generateBasicExplanation(
+    question: string,
+    answer: number,
+    difficulty: DifficultyLevel
+  ): string {
+    const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
+
+    if (additionMatch) {
+      const [, num1, num2] = additionMatch;
+      return `Let's solve this together! Start with ${num1}, then add ${num2}. Count step by step to get ${answer}. Great work!`;
+    }
+
+    return `The answer is ${answer}. Let's practice more problems like this!`;
   }
 
   /**
