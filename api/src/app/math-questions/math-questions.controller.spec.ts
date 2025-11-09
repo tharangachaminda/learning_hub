@@ -6,10 +6,12 @@ import {
   OperationType,
   MathQuestion,
 } from './entities/math-question.entity';
+import { SemanticSearchService } from '../opensearch/semantic-search.service';
 
 describe('MathQuestionsController', () => {
   let controller: MathQuestionsController;
   let mockGenerator: jest.Mocked<MathQuestionGenerator>;
+  let mockSemanticSearch: jest.Mocked<SemanticSearchService>;
 
   beforeEach(async () => {
     // Create mock generator
@@ -18,12 +20,21 @@ describe('MathQuestionsController', () => {
       generateEnhancedExplanation: jest.fn(),
     } as any;
 
+    // Create mock semantic search service
+    mockSemanticSearch = {
+      findSimilar: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MathQuestionsController],
       providers: [
         {
           provide: MathQuestionGenerator,
           useValue: mockGenerator,
+        },
+        {
+          provide: SemanticSearchService,
+          useValue: mockSemanticSearch,
         },
       ],
     }).compile();
@@ -186,6 +197,7 @@ describe('MathQuestionsController', () => {
           ],
           maxQuestionsPerRequest: 50,
           explanationStyles: ['visual', 'verbal', 'step-by-step', 'story'],
+          semanticSearch: true, // SemanticSearchService is provided in beforeEach
         },
         version: '2.0.0',
       });
@@ -349,6 +361,149 @@ describe('MathQuestionsController', () => {
 
       expect(mockGenerator.generateEnhancedExplanation).toHaveBeenCalledTimes(
         4
+      );
+    });
+  });
+
+  describe('findSimilarQuestions', () => {
+    it('should find similar questions using semantic search', async () => {
+      const dto = {
+        questionText: 'What is 5 + 3?',
+        grade: 3,
+        topic: 'addition',
+        limit: 10,
+      };
+
+      const mockResults = [
+        {
+          id: 'q-001',
+          questionText: 'What is 4 + 6?',
+          answer: 10,
+          similarityScore: 0.95,
+          metadata: {
+            grade: '3',
+            topic: 'addition',
+            operation: 'addition',
+            difficulty: 'grade_3',
+          },
+        },
+        {
+          id: 'q-002',
+          questionText: 'Calculate 7 + 2',
+          answer: 9,
+          similarityScore: 0.88,
+          metadata: {
+            grade: '3',
+            topic: 'addition',
+            operation: 'addition',
+            difficulty: 'grade_3',
+          },
+        },
+      ];
+
+      mockSemanticSearch.findSimilar.mockResolvedValue(mockResults);
+
+      const results = await controller.findSimilarQuestions(dto);
+
+      expect(mockSemanticSearch.findSimilar).toHaveBeenCalledWith(
+        'What is 5 + 3?',
+        {
+          grade: 3,
+          topic: 'addition',
+          operation: undefined,
+          excludeIds: undefined,
+          limit: 10,
+        }
+      );
+      expect(results).toEqual(mockResults);
+      expect(results).toHaveLength(2);
+    });
+
+    it('should cap limit at 50', async () => {
+      const dto = {
+        questionText: 'What is 5 + 3?',
+        limit: 100,
+      };
+
+      mockSemanticSearch.findSimilar.mockResolvedValue([]);
+
+      await controller.findSimilarQuestions(dto);
+
+      expect(mockSemanticSearch.findSimilar).toHaveBeenCalledWith(
+        'What is 5 + 3?',
+        expect.objectContaining({
+          limit: 50,
+        })
+      );
+    });
+
+    it('should use default limit of 10 if not specified', async () => {
+      const dto = {
+        questionText: 'What is 5 + 3?',
+      };
+
+      mockSemanticSearch.findSimilar.mockResolvedValue([]);
+
+      await controller.findSimilarQuestions(dto);
+
+      expect(mockSemanticSearch.findSimilar).toHaveBeenCalledWith(
+        'What is 5 + 3?',
+        expect.objectContaining({
+          limit: 10,
+        })
+      );
+    });
+
+    it('should pass through all filters', async () => {
+      const dto = {
+        questionText: 'What is 5 + 3?',
+        grade: 3,
+        topic: 'addition',
+        operation: OperationType.ADDITION,
+        excludeIds: ['q-001', 'q-002'],
+        limit: 5,
+      };
+
+      mockSemanticSearch.findSimilar.mockResolvedValue([]);
+
+      await controller.findSimilarQuestions(dto);
+
+      expect(mockSemanticSearch.findSimilar).toHaveBeenCalledWith(
+        'What is 5 + 3?',
+        {
+          grade: 3,
+          topic: 'addition',
+          operation: OperationType.ADDITION,
+          excludeIds: ['q-001', 'q-002'],
+          limit: 5,
+        }
+      );
+    });
+
+    it('should throw error if semantic search service is not available', async () => {
+      // Create controller without semantic search service
+      const module: TestingModule = await Test.createTestingModule({
+        controllers: [MathQuestionsController],
+        providers: [
+          {
+            provide: MathQuestionGenerator,
+            useValue: mockGenerator,
+          },
+        ],
+      }).compile();
+
+      const controllerWithoutSearch = module.get<MathQuestionsController>(
+        MathQuestionsController
+      );
+
+      const dto = {
+        questionText: 'What is 5 + 3?',
+      };
+
+      await expect(
+        controllerWithoutSearch.findSimilarQuestions(dto)
+      ).rejects.toThrow(
+        'Semantic search service is not available. Please ensure OpenSearch is configured.'
       );
     });
   });
