@@ -60,7 +60,9 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateEmbedding')
         .mockResolvedValue(mockEmbedding384);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest.spyOn(vectorIndexService, 'indexQuestion').mockResolvedValue();
 
       await service.indexQuestion(question);
@@ -114,7 +116,9 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateEmbedding')
         .mockResolvedValue(mockEmbedding384);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest
         .spyOn(vectorIndexService, 'indexQuestion')
         .mockRejectedValue(new Error('OpenSearch connection failed'));
@@ -136,7 +140,9 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateEmbedding')
         .mockResolvedValue(mockEmbedding384);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest.spyOn(vectorIndexService, 'indexQuestion').mockResolvedValue();
 
       await service.indexQuestion(question);
@@ -175,7 +181,9 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateBatchEmbeddings')
         .mockResolvedValue([mockEmbedding384, mockEmbedding384]);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest.spyOn(vectorIndexService, 'bulkIndexQuestions').mockResolvedValue();
 
       await service.indexQuestions(questions);
@@ -186,8 +194,14 @@ describe('QuestionIndexingService', () => {
       ]);
       expect(vectorIndexService.createIndexIfNotExists).toHaveBeenCalled();
       expect(vectorIndexService.bulkIndexQuestions).toHaveBeenCalledWith([
-        expect.objectContaining({ id: 'q-001', questionText: 'What is 5 + 3?' }),
-        expect.objectContaining({ id: 'q-002', questionText: 'Calculate 10 - 4' }),
+        expect.objectContaining({
+          id: 'q-001',
+          questionText: 'What is 5 + 3?',
+        }),
+        expect.objectContaining({
+          id: 'q-002',
+          questionText: 'Calculate 10 - 4',
+        }),
       ]);
     });
 
@@ -231,14 +245,17 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateEmbedding')
         .mockResolvedValue(mockEmbedding384);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest.spyOn(vectorIndexService, 'indexQuestion').mockResolvedValue();
 
       await service.indexQuestion(question);
 
       // indexQuestion is called with 5 separate parameters, not an object
       // Parameters: (questionId, questionText, answer, embedding, metadata)
-      const callArgs = (vectorIndexService.indexQuestion as jest.Mock).mock.calls[0];
+      const callArgs = (vectorIndexService.indexQuestion as jest.Mock).mock
+        .calls[0];
       const metadata = callArgs[4]; // 5th parameter is metadata
       expect(metadata.difficulty_score).toBeGreaterThanOrEqual(0);
       expect(metadata.difficulty_score).toBeLessThanOrEqual(1);
@@ -256,7 +273,9 @@ describe('QuestionIndexingService', () => {
       jest
         .spyOn(embeddingService, 'generateEmbedding')
         .mockResolvedValue(mockEmbedding384);
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
       jest.spyOn(vectorIndexService, 'indexQuestion').mockResolvedValue();
 
       await service.indexQuestion(question);
@@ -276,7 +295,9 @@ describe('QuestionIndexingService', () => {
 
   describe('ensureIndexExists', () => {
     it('should create index if it does not exist', async () => {
-      jest.spyOn(vectorIndexService, 'createIndexIfNotExists').mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
 
       await service.ensureIndexExists();
 

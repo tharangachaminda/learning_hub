@@ -16,7 +16,7 @@ export class AppController {
 
   /**
    * Health check endpoint for API and dependencies
-   * 
+   *
    * @returns Status of API, OpenSearch, and other services
    */
   @Get('health')

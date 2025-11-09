@@ -4,10 +4,10 @@ import { Client } from '@opensearch-project/opensearch';
 
 /**
  * OpenSearch Service for vector storage and semantic search
- * 
+ *
  * Provides connection management and health checking for OpenSearch cluster.
  * Used for storing question embeddings and performing similarity searches.
- * 
+ *
  * @class OpenSearchService
  */
 @Injectable()
@@ -25,7 +25,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Initialize OpenSearch client on module initialization
-   * 
+   *
    * Creates client connection and verifies cluster health.
    */
   async onModuleInit() {
@@ -40,9 +40,7 @@ export class OpenSearchService implements OnModuleInit {
       // Verify connection
       const health = await this.checkHealth();
       if (health.status === 'healthy') {
-        this.logger.log(
-          `OpenSearch connected successfully to ${this.host}`
-        );
+        this.logger.log(`OpenSearch connected successfully to ${this.host}`);
       } else {
         this.logger.warn(
           `OpenSearch connection established but cluster unhealthy: ${health.clusterStatus}`
@@ -59,7 +57,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Get OpenSearch client instance
-   * 
+   *
    * @returns OpenSearch client for direct operations
    */
   getClient(): Client {
@@ -71,9 +69,9 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Check OpenSearch cluster health
-   * 
+   *
    * @returns Health status information
-   * 
+   *
    * @example
    * const health = await opensearchService.checkHealth();
    * if (health.status === 'healthy') {
@@ -88,7 +86,7 @@ export class OpenSearchService implements OnModuleInit {
   }> {
     try {
       const response = await this.client.cluster.health();
-      
+
       return {
         status: response.body.status === 'red' ? 'unhealthy' : 'healthy',
         clusterStatus: response.body.status,
@@ -105,7 +103,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Check if an index exists
-   * 
+   *
    * @param indexName - Name of the index to check
    * @returns True if index exists, false otherwise
    */
@@ -123,10 +121,10 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Create an index with specified mapping
-   * 
+   *
    * @param indexName - Name of the index to create
    * @param mapping - Index mapping configuration
-   * 
+   *
    * @example
    * await opensearchService.createIndex('math-questions', {
    *   properties: {
@@ -158,7 +156,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Delete an index (primarily for testing)
-   * 
+   *
    * @param indexName - Name of the index to delete
    */
   async deleteIndex(indexName: string): Promise<void> {
@@ -182,7 +180,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Index a document
-   * 
+   *
    * @param indexName - Name of the index
    * @param id - Document ID
    * @param document - Document to index
@@ -209,7 +207,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Bulk index multiple documents
-   * 
+   *
    * @param indexName - Name of the index
    * @param documents - Array of documents with IDs
    */
@@ -242,7 +240,7 @@ export class OpenSearchService implements OnModuleInit {
 
   /**
    * Search documents using query
-   * 
+   *
    * @param indexName - Name of the index
    * @param query - OpenSearch query DSL
    * @param size - Number of results to return

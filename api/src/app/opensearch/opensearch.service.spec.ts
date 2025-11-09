@@ -94,9 +94,7 @@ describe('OpenSearchService', () => {
     it('should handle connection errors gracefully', async () => {
       const mockClient = {
         cluster: {
-          health: jest
-            .fn()
-            .mockRejectedValue(new Error('Connection refused')),
+          health: jest.fn().mockRejectedValue(new Error('Connection refused')),
         },
       };
 

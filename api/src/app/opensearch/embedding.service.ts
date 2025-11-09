@@ -5,13 +5,13 @@ import { firstValueFrom } from 'rxjs';
 
 /**
  * Service for generating text embeddings using Ollama's nomic-embed-text model.
- * Provides 384-dimensional embeddings suitable for semantic search and similarity comparison.
+ * Provides 768-dimensional embeddings suitable for semantic search and similarity comparison.
  * Includes caching mechanism to avoid redundant embedding generation.
  *
  * @example
  * ```typescript
  * const embedding = await embeddingService.generateEmbedding('What is 5 + 3?');
- * console.log(embedding.length); // 384
+ * console.log(embedding.length); // 768
  * ```
  */
 @Injectable()
@@ -19,7 +19,7 @@ export class EmbeddingService {
   private readonly logger = new Logger(EmbeddingService.name);
   private readonly ollamaUrl: string;
   private readonly embeddingModel = 'nomic-embed-text';
-  private readonly expectedDimensions = 384;
+  private readonly expectedDimensions = 768;
   private readonly embeddingCache: Map<string, number[]> = new Map();
   private readonly maxCacheSize = 1000;
 
@@ -34,7 +34,7 @@ export class EmbeddingService {
   }
 
   /**
-   * Generates a 384-dimensional embedding vector for the given text.
+   * Generates a 768-dimensional embedding vector for the given text.
    * Uses Ollama's nomic-embed-text model which produces embeddings compatible
    * with semantic search and similarity comparison.
    *

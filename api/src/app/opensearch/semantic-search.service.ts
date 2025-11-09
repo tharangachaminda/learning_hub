@@ -123,7 +123,8 @@ export class SemanticSearchService {
       // Execute search
       const searchResults = await this.openSearchService.search(
         this.indexName,
-        query
+        query,
+        k
       );
 
       // Transform results
@@ -150,36 +151,32 @@ export class SemanticSearchService {
     filters: SearchFilters
   ): any {
     const knnQuery: any = {
-      query: {
-        knn: {
-          embedding: {
-            vector: embedding,
-            k,
-          },
+      knn: {
+        embedding: {
+          vector: embedding,
+          k,
         },
       },
-      size: k,
     };
 
     // Build filter query if filters are provided
     const filterClauses = this.buildFilterClauses(filters);
 
     if (filterClauses.must.length > 0 || filterClauses.must_not.length > 0) {
-      knnQuery.query.knn.embedding.filter = {
+      knnQuery.knn.embedding.filter = {
         bool: {},
       };
 
       if (filterClauses.must.length > 0) {
         if (filterClauses.must.length === 1) {
-          knnQuery.query.knn.embedding.filter = filterClauses.must[0];
+          knnQuery.knn.embedding.filter = filterClauses.must[0];
         } else {
-          knnQuery.query.knn.embedding.filter.bool.must = filterClauses.must;
+          knnQuery.knn.embedding.filter.bool.must = filterClauses.must;
         }
       }
 
       if (filterClauses.must_not.length > 0) {
-        knnQuery.query.knn.embedding.filter.bool.must_not =
-          filterClauses.must_not;
+        knnQuery.knn.embedding.filter.bool.must_not = filterClauses.must_not;
       }
     }
 
@@ -204,7 +201,7 @@ export class SemanticSearchService {
     // Grade filter
     if (filters.grade !== undefined) {
       must.push({
-        term: { 'metadata.grade': filters.grade.toString() },
+        term: { 'metadata.grade': filters.grade },
       });
     }
 

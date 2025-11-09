@@ -41,8 +41,8 @@ export class VectorIndexService implements OnModuleInit {
   /**
    * Get the index mapping configuration for math questions
    *
-   * Defines a 384-dimensional dense vector for embeddings (compatible with
-   * all-MiniLM-L6-v2 and nomic-embed-text models) with cosine similarity.
+   * Defines a 768-dimensional dense vector for embeddings (compatible with
+   * nomic-embed-text model) with cosine similarity.
    *
    * @returns OpenSearch index mapping
    */
@@ -55,11 +55,11 @@ export class VectorIndexService implements OnModuleInit {
         },
         embedding: {
           type: 'knn_vector',
-          dimension: 384,
+          dimension: 768,
           method: {
             name: 'hnsw',
             space_type: 'cosinesimil',
-            engine: 'nmslib',
+            engine: 'lucene',
             parameters: {
               ef_construction: 128,
               m: 24,
@@ -110,7 +110,7 @@ export class VectorIndexService implements OnModuleInit {
     return {
       index: {
         knn: true,
-        knn_algo_param_ef_search: 100,
+        'knn.algo_param.ef_search': 100,
         number_of_shards: 1,
         number_of_replicas: 0, // Single node development
       },

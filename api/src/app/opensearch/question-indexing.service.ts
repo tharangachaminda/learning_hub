@@ -9,7 +9,7 @@ import {
 /**
  * Service for indexing math questions with embeddings in OpenSearch.
  * Bridges question generation and vector storage for semantic search capabilities.
- * 
+ *
  * @example
  * ```typescript
  * const question = new MathQuestion('What is 5 + 3?', 8, ...);
@@ -28,11 +28,11 @@ export class QuestionIndexingService {
   /**
    * Indexes a single math question with its embedding in OpenSearch.
    * Generates embedding for the question text and stores with metadata.
-   * 
+   *
    * @param question - The MathQuestion entity to index
    * @returns Promise that resolves when indexing is complete
    * @throws Error if embedding generation or indexing fails
-   * 
+   *
    * @example
    * ```typescript
    * const question = new MathQuestion('Calculate 7 + 5', 12, ...);
@@ -85,11 +85,11 @@ export class QuestionIndexingService {
   /**
    * Indexes multiple math questions in batch using bulk operations.
    * More efficient than indexing questions individually for large datasets.
-   * 
+   *
    * @param questions - Array of MathQuestion entities to index
    * @returns Promise that resolves when all questions are indexed
    * @throws Error if batch embedding generation or indexing fails
-   * 
+   *
    * @example
    * ```typescript
    * const questions = [question1, question2, question3];
@@ -140,10 +140,10 @@ export class QuestionIndexingService {
   /**
    * Ensures the math-questions index exists in OpenSearch.
    * Creates the index with proper mapping if it doesn't exist.
-   * 
+   *
    * @returns Promise that resolves when index is confirmed to exist
    * @throws Error if index creation fails
-   * 
+   *
    * @example
    * ```typescript
    * await questionIndexingService.ensureIndexExists();
@@ -157,10 +157,10 @@ export class QuestionIndexingService {
   /**
    * Extracts metadata from a MathQuestion for indexing.
    * Converts question properties to OpenSearch metadata format.
-   * 
+   *
    * @param question - The MathQuestion to extract metadata from
    * @returns Metadata object for OpenSearch indexing
-   * 
+   *
    * @private
    */
   private extractMetadata(question: MathQuestion): {
@@ -187,10 +187,10 @@ export class QuestionIndexingService {
 
   /**
    * Extracts grade number from difficulty level enum.
-   * 
+   *
    * @param difficulty - The DifficultyLevel enum value
    * @returns Grade number (e.g., 3 for GRADE_3)
-   * 
+   *
    * @private
    */
   private extractGrade(difficulty: DifficultyLevel): number {
@@ -202,10 +202,10 @@ export class QuestionIndexingService {
   /**
    * Calculates a normalized difficulty score (0-1) from difficulty level.
    * Used for filtering and sorting questions by difficulty.
-   * 
+   *
    * @param difficulty - The DifficultyLevel enum value
    * @returns Normalized difficulty score between 0 and 1
-   * 
+   *
    * @private
    */
   private calculateDifficultyScore(difficulty: DifficultyLevel): number {
@@ -220,10 +220,10 @@ export class QuestionIndexingService {
   /**
    * Generates a unique ID for a question if none exists.
    * Uses timestamp and question hash for uniqueness.
-   * 
+   *
    * @param question - The MathQuestion to generate ID for
    * @returns Generated unique identifier
-   * 
+   *
    * @private
    */
   private generateQuestionId(question: MathQuestion): string {
@@ -234,10 +234,10 @@ export class QuestionIndexingService {
 
   /**
    * Generates a simple hash from a string for ID generation.
-   * 
+   *
    * @param str - The string to hash
    * @returns Simple numeric hash
-   * 
+   *
    * @private
    */
   private simpleHash(str: string): number {
