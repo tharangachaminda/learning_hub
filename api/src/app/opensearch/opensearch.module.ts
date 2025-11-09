@@ -5,6 +5,7 @@ import { OpenSearchService } from './opensearch.service';
 import { VectorIndexService } from './vector-index.service';
 import { EmbeddingService } from './embedding.service';
 import { QuestionIndexingService } from './question-indexing.service';
+import { SemanticSearchService } from './semantic-search.service';
 
 /**
  * OpenSearch Module
@@ -22,12 +23,14 @@ import { QuestionIndexingService } from './question-indexing.service';
     VectorIndexService,
     EmbeddingService,
     QuestionIndexingService,
+    SemanticSearchService,
   ],
   exports: [
     OpenSearchService,
     VectorIndexService,
     EmbeddingService,
     QuestionIndexingService,
+    SemanticSearchService,
   ],
 })
 export class OpenSearchModule {}
