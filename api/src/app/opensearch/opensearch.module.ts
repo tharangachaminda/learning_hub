@@ -6,6 +6,7 @@ import { VectorIndexService } from './vector-index.service';
 import { EmbeddingService } from './embedding.service';
 import { QuestionIndexingService } from './question-indexing.service';
 import { SemanticSearchService } from './semantic-search.service';
+import { DuplicateDetectionService } from './duplicate-detection.service';
 
 /**
  * OpenSearch Module
@@ -24,6 +25,7 @@ import { SemanticSearchService } from './semantic-search.service';
     EmbeddingService,
     QuestionIndexingService,
     SemanticSearchService,
+    DuplicateDetectionService,
   ],
   exports: [
     OpenSearchService,
@@ -31,6 +33,7 @@ import { SemanticSearchService } from './semantic-search.service';
     EmbeddingService,
     QuestionIndexingService,
     SemanticSearchService,
+    DuplicateDetectionService,
   ],
 })
 export class OpenSearchModule {}
