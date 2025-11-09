@@ -1,7 +1,9 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { OpenSearchService } from './opensearch.service';
 import { VectorIndexService } from './vector-index.service';
+import { EmbeddingService } from './embedding.service';
 
 /**
  * OpenSearch Module
@@ -13,8 +15,8 @@ import { VectorIndexService } from './vector-index.service';
  */
 @Global()
 @Module({
-  imports: [ConfigModule],
-  providers: [OpenSearchService, VectorIndexService],
-  exports: [OpenSearchService, VectorIndexService],
+  imports: [ConfigModule, HttpModule],
+  providers: [OpenSearchService, VectorIndexService, EmbeddingService],
+  exports: [OpenSearchService, VectorIndexService, EmbeddingService],
 })
 export class OpenSearchModule {}
