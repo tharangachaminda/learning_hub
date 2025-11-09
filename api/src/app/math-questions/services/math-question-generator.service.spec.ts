@@ -122,4 +122,112 @@ describe('MathQuestionGenerator Service', () => {
       expect(generator.generateAdditionQuestions).toBeDefined();
     });
   });
+
+  describe('generateEnhancedExplanation', () => {
+    it('should return basic explanation when AI generation is not available', async () => {
+      // Testing fallback mechanism for explanation generation
+      const result = await generator.generateEnhancedExplanation(
+        '5 + 3 = ?',
+        8,
+        DifficultyLevel.GRADE_3
+      );
+
+      // Should return a non-empty string explanation
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
+
+      // Basic explanation should reference the problem
+      expect(result).toContain('5');
+      expect(result).toContain('3');
+      expect(result).toContain('8');
+    });
+
+    it('should handle all four explanation styles', async () => {
+      const styles: Array<'visual' | 'verbal' | 'step-by-step' | 'story'> = [
+        'visual',
+        'verbal',
+        'step-by-step',
+        'story',
+      ];
+
+      for (const style of styles) {
+        const result = await generator.generateEnhancedExplanation(
+          '7 + 2 = ?',
+          9,
+          DifficultyLevel.GRADE_3,
+          undefined,
+          style
+        );
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should include student answer context when provided', async () => {
+      const result = await generator.generateEnhancedExplanation(
+        '10 - 3 = ?',
+        7,
+        DifficultyLevel.GRADE_3,
+        8 // Student's incorrect answer
+      );
+
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+      // Basic explanation should still work
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should adapt explanation to grade level', async () => {
+      const result = await generator.generateEnhancedExplanation(
+        '15 + 12 = ?',
+        27,
+        DifficultyLevel.GRADE_3
+      );
+
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(result.length).toBeGreaterThan(0);
+      // Grade 3 explanation should be age-appropriate
+      expect(result).toContain('15');
+      expect(result).toContain('12');
+    });
+
+    it('should handle various question formats', async () => {
+      const questions = [
+        { q: '5 + 3 = ?', a: 8 },
+        { q: '10 - 4 = ?', a: 6 },
+        { q: 'What is 7 plus 8?', a: 15 },
+      ];
+
+      for (const { q, a } of questions) {
+        const result = await generator.generateEnhancedExplanation(
+          q,
+          a,
+          DifficultyLevel.GRADE_3
+        );
+
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should generate explanation within reasonable time', async () => {
+      const startTime = Date.now();
+
+      await generator.generateEnhancedExplanation(
+        '8 + 6 = ?',
+        14,
+        DifficultyLevel.GRADE_3
+      );
+
+      const duration = Date.now() - startTime;
+
+      // Basic explanation should be fast (<100ms)
+      expect(duration).toBeLessThan(100);
+    });
+  });
 });

@@ -14,6 +14,12 @@ import {
   getCountryContext,
   parseLLMResponse,
   Country,
+  ExplanationRequestSchema,
+  ExplanationRequest,
+  GeneratedExplanationSchema,
+  GeneratedExplanation,
+  ExplanationStyle,
+  GRADE_LEVEL_PATTERNS,
 } from './schemas';
 
 /**
@@ -462,5 +468,276 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
       return ValidationResultSchema.parse(result);
     }
+  }
+
+  /**
+   * Generates grade-appropriate step-by-step explanations for mathematical problems.
+   * Adapts explanation style and complexity based on student grade level.
+   *
+   * @param requestData - Explanation generation parameters
+   * @param requestData.question - The mathematical question
+   * @param requestData.answer - The correct answer
+   * @param requestData.studentAnswer - The student's answer (optional, for targeted feedback)
+   * @param requestData.grade - Student grade level
+   * @param requestData.style - Explanation style (visual, verbal, step-by-step, story)
+   * @param requestData.country - Country code for cultural context
+   * @returns Promise resolving to generated explanation with metadata
+   *
+   * @example
+   * ```typescript
+   * const explanation = await ollamaService.generateExplanation({
+   *   question: "7 + 5 = ?",
+   *   answer: 12,
+   *   studentAnswer: 10,
+   *   grade: 3,
+   *   style: 'step-by-step',
+   *   country: 'NZ'
+   * });
+   * console.log(explanation.explanation); // "Let's count together! Start with 7..."
+   * ```
+   */
+  async generateExplanation(requestData: {
+    question: string;
+    answer: number;
+    studentAnswer?: number;
+    grade: number;
+    style?: ExplanationStyle;
+    country?: string;
+  }): Promise<GeneratedExplanation> {
+    const startTime = Date.now();
+
+    try {
+      // Validate and parse request
+      const request = ExplanationRequestSchema.parse({
+        ...requestData,
+        style: requestData.style || 'step-by-step',
+        country: requestData.country || 'NZ',
+      });
+
+      // Get grade-level patterns
+      const gradePatterns = GRADE_LEVEL_PATTERNS.GRADE_3; // For now, only Grade 3
+      const countryContext = getCountryContext(request.country);
+
+      // Create style-specific prompt
+      const prompt = this.createExplanationPrompt(
+        request,
+        gradePatterns,
+        countryContext
+      );
+
+      // Call Ollama API for explanation generation
+      const response = await this.httpService.axiosRef.post(
+        `${this.ollamaUrl}/api/generate`,
+        {
+          model: this.defaultModel,
+          prompt,
+          stream: false,
+          options: {
+            temperature: 0.7, // Slightly more creative for varied explanations
+            num_predict: 200, // Limit explanation length
+          },
+        },
+        { timeout: 2000 } // 2 second timeout for <2s requirement
+      );
+
+      const aiResponse = response.data.response;
+
+      // Parse and analyze explanation
+      const explanation = this.parseExplanationResponse(aiResponse);
+      const analysis = this.analyzeExplanation(explanation, request.grade);
+
+      const generationTime = Date.now() - startTime;
+
+      const result: GeneratedExplanation = {
+        explanation,
+        style: request.style,
+        grade_level: request.grade,
+        vocabulary_level: analysis.vocabularyLevel,
+        encouragement:
+          gradePatterns.encouragingPhrases[
+            Math.floor(Math.random() * gradePatterns.encouragingPhrases.length)
+          ],
+        visual_aids: analysis.visualAids,
+        metadata: {
+          generation_time: generationTime,
+          word_count: analysis.wordCount,
+          sentence_count: analysis.sentenceCount,
+          avg_sentence_length: analysis.avgSentenceLength,
+          educational_appropriate: analysis.educationallyAppropriate,
+        },
+      };
+
+      return GeneratedExplanationSchema.parse(result);
+    } catch (error) {
+      // Fallback to simple deterministic explanation
+      const generationTime = Date.now() - startTime;
+      const fallbackExplanation = this.generateFallbackExplanation(
+        requestData.question,
+        requestData.answer,
+        requestData.grade
+      );
+
+      return GeneratedExplanationSchema.parse({
+        explanation: fallbackExplanation,
+        style: requestData.style || 'step-by-step',
+        grade_level: requestData.grade,
+        vocabulary_level: 'simple' as const,
+        encouragement: "You're doing great! Let's practice together!",
+        visual_aids: ['use your fingers', 'count step by step'],
+        metadata: {
+          generation_time: generationTime,
+          word_count: fallbackExplanation.split(' ').length,
+          sentence_count: fallbackExplanation.split('.').length - 1,
+          avg_sentence_length: 6,
+          educational_appropriate: true,
+        },
+      });
+    }
+  }
+
+  /**
+   * Creates explanation prompt based on style and grade level.
+   */
+  private createExplanationPrompt(
+    request: ExplanationRequest,
+    gradePatterns: any,
+    countryContext: any
+  ): string {
+    const isWrongAnswer =
+      request.studentAnswer !== undefined &&
+      request.studentAnswer !== request.answer;
+
+    const styleGuidance = {
+      visual: `Use visual counting aids like "count on your fingers", "use blocks", "draw circles". Reference concrete objects.`,
+      verbal: `Use a friendly, conversational tone. Explain like you're talking to a friend. Keep it simple and encouraging.`,
+      'step-by-step': `Break down into numbered steps. Each step should be clear and easy to follow. Use simple words.`,
+      story: `Create a short story context using ${countryContext.commonNames[0]} and everyday situations. Make math relatable and fun.`,
+    };
+
+    return `You are a kind Grade ${
+      request.grade
+    } math teacher helping a student understand: "${
+      request.question
+    }" (Answer: ${request.answer})
+
+${
+  isWrongAnswer
+    ? `The student answered ${request.studentAnswer}, which is incorrect. Be encouraging and help them understand why.`
+    : ''
+}
+
+Teaching Guidelines for Grade ${request.grade}:
+- Use simple words (1-2 syllables)
+- Keep sentences short (5-8 words)
+- Be encouraging: ${gradePatterns.encouragingPhrases.join(', ')}
+- ${styleGuidance[request.style]}
+- Use ${countryContext.commonNames
+      .slice(0, 2)
+      .join(' or ')} in examples if needed
+
+Generate a ${
+      request.style
+    } explanation that helps the student understand. Keep it under 100 words, friendly, and appropriate for a ${
+      request.grade
+    } grader.
+
+IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
+  }
+
+  /**
+   * Parses explanation response from AI.
+   */
+  private parseExplanationResponse(aiResponse: string): string {
+    // Remove any potential labels or formatting
+    return aiResponse
+      .replace(/^EXPLANATION:\s*/i, '')
+      .replace(/^SOLUTION:\s*/i, '')
+      .trim();
+  }
+
+  /**
+   * Analyzes explanation for educational appropriateness.
+   */
+  private analyzeExplanation(
+    explanation: string,
+    grade: number
+  ): {
+    vocabularyLevel: 'simple' | 'moderate' | 'complex';
+    visualAids: string[];
+    wordCount: number;
+    sentenceCount: number;
+    avgSentenceLength: number;
+    educationallyAppropriate: boolean;
+  } {
+    const words = explanation.split(/\s+/);
+    const sentences = explanation.split(/[.!?]+/).filter((s) => s.trim());
+
+    const wordCount = words.length;
+    const sentenceCount = sentences.length;
+    const avgSentenceLength = sentenceCount > 0 ? wordCount / sentenceCount : 0;
+
+    // Check for visual aid keywords
+    const visualAidKeywords = [
+      'fingers',
+      'blocks',
+      'circles',
+      'count',
+      'draw',
+      'picture',
+      'groups',
+    ];
+    const visualAids = visualAidKeywords.filter((keyword) =>
+      explanation.toLowerCase().includes(keyword)
+    );
+
+    // Simple vocabulary level assessment
+    const vocabularyLevel: 'simple' | 'moderate' | 'complex' =
+      avgSentenceLength <= 8
+        ? 'simple'
+        : avgSentenceLength <= 12
+        ? 'moderate'
+        : 'complex';
+
+    // Educational appropriateness check
+    const educationallyAppropriate =
+      avgSentenceLength <= 15 && wordCount <= 150 && sentenceCount >= 2;
+
+    return {
+      vocabularyLevel,
+      visualAids,
+      wordCount,
+      sentenceCount,
+      avgSentenceLength,
+      educationallyAppropriate,
+    };
+  }
+
+  /**
+   * Generates deterministic fallback explanation.
+   */
+  private generateFallbackExplanation(
+    question: string,
+    answer: number,
+    grade: number
+  ): string {
+    // Extract numbers and operation
+    const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
+    const subtractionMatch = question.match(/(\d+)\s*-\s*(\d+)/);
+
+    if (additionMatch) {
+      const [, num1, num2] = additionMatch;
+      return `Let's add together! Start with ${num1}. Now count up ${num2} more: ${Array.from(
+        { length: parseInt(num2) },
+        (_, i) => parseInt(num1) + i + 1
+      ).join(', ')}. The answer is ${answer}!`;
+    } else if (subtractionMatch) {
+      const [, num1, num2] = subtractionMatch;
+      return `Let's subtract! Start with ${num1}. Now count back ${num2}: ${Array.from(
+        { length: parseInt(num2) },
+        (_, i) => parseInt(num1) - i - 1
+      ).join(', ')}. The answer is ${answer}!`;
+    }
+
+    return `Let's solve this step by step! The answer is ${answer}. Great job working on this problem!`;
   }
 }
