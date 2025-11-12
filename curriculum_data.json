@@ -1,0 +1,88 @@
+{
+  "curriculum": {
+    "subject": "Mathematics",
+    "phases": [
+      {
+        "name": "Phase 1",
+        "years": [0, 1, 2, 3],
+        "progressOutcome": {
+          "criticalFocus": "Thriving in environments rich in literacy and maths",
+          "understand": [
+            "Patterns and variation",
+            "Logic and reasoning",
+            "Visualisation and application"
+          ],
+          "know": [
+            "Number: Base-10, partitioning, basic operations, subitising, fractions as parts of a whole",
+            "Algebra: Patterns (repeating/growing), simple equality, beginning algorithms",
+            "Measurement: Comparing/measuring various attributes (length, mass, time, etc.), informal/standard units",
+            "Geometry: 2D/3D shapes, basic transformations (flip, turn, slide), spatial language, maps",
+            "Statistics: Data as information about the world, statistical enquiry cycle, basic data visualisations",
+            "Probability: Understanding outcomes, chance events"
+          ],
+          "do": [
+            "Investigating situations: Pose questions, plan and follow investigation pathway",
+            "Representing situations: Use concrete and pictorial methods, visualise groups/shapes",
+            "Connecting situations: Link new learning to prior knowledge and other contexts",
+            "Generalising findings: Notice/explore patterns, make conjectures, seek relationships",
+            "Explaining/justifying findings: Use evidence/reasoning, basic argument/explanation"
+          ]
+        }
+      },
+      {
+        "name": "Phase 2",
+        "years": [4, 5, 6],
+        "progressOutcome": {
+          "criticalFocus": "Expanding horizons of knowledge and collaboration",
+          "understand": [
+            "Patterns and variation",
+            "Logic and reasoning",
+            "Visualisation and application"
+          ],
+          "know": [
+            "Number: Develop fluency with all four operations, place value to 1,000,000, fractions, decimals, squared numbers",
+            "Algebra: Pattern rules, relational equality, algorithms for problem-solving",
+            "Measurement: Metric system, attributes (area, perimeter, volume), conversion of units",
+            "Geometry: Properties of polygons/polyhedra, symmetry, mapping",
+            "Statistics: Collect/check/analyse data, statistical cycles, variable identification",
+            "Probability: Listing possible outcomes, theoretical probability, frequency concepts"
+          ],
+          "do": [
+            "Investigating situations: Collaboratively plan and conduct investigations",
+            "Representing situations: Use diagrams/tables/graphs, visualise/compare representations",
+            "Connecting situations: Make links across mathematical ideas and other learning areas",
+            "Generalising findings: Develop and test conjectures, seek invariance/general rules",
+            "Explaining/justifying findings: Construct explanations, critique reasoning, use evidence"
+          ]
+        }
+      },
+      {
+        "name": "Phase 3",
+        "years": [7, 8],
+        "progressOutcome": {
+          "criticalFocus": "Seeing ourselves in the wider world and advocating with and for others",
+          "understand": [
+            "Patterns and variation",
+            "Logic and reasoning",
+            "Visualisation and application"
+          ],
+          "know": [
+            "Number: Operations with integers, rational numbers, properties of number operations, advanced decimals/fractions",
+            "Algebra: Linear/nonlinear patterns, variables, equations, algorithms for solutions",
+            "Measurement: Advanced metric conversions, dimensional analysis, properties of shapes",
+            "Geometry: Spatial properties, transformations, systems of coordinates, scale mapping",
+            "Statistics: Data collection ethics, complex data visualisations, statistical investigations",
+            "Probability: Probability experiments, relative frequency, theoretical distribution"
+          ],
+          "do": [
+            "Investigating situations: Design and adapt investigations, monitor/evaluate progress",
+            "Representing situations: Use/evaluate appropriate symbolic, graphical, concrete methods",
+            "Connecting situations: Integrate concepts with context, cross-disciplinary links",
+            "Generalising findings: Use symbols and logic for generalisations, apply to new contexts",
+            "Explaining/justifying findings: Present reasoned arguments, critique/proof, peer discourse"
+          ]
+        }
+      }
+    ]
+  }
+}
