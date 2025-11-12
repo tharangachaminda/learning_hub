@@ -21,6 +21,7 @@ import {
   ExplanationStyle,
   GRADE_LEVEL_PATTERNS,
 } from './schemas';
+import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -40,6 +41,7 @@ import {
 export class OllamaService {
   private readonly ollamaUrl: string;
   private readonly defaultModel = 'llama3.1:latest';
+  private readonly curriculumPromptEngine: CurriculumPromptEngine;
 
   constructor(
     private readonly httpService: HttpService,
@@ -49,6 +51,7 @@ export class OllamaService {
       'OLLAMA_URL',
       'http://localhost:11434'
     );
+    this.curriculumPromptEngine = new CurriculumPromptEngine();
   }
 
   /**
@@ -133,21 +136,17 @@ export class OllamaService {
         country: requestData.country || 'NZ',
       });
 
-      // Get curriculum context for AI prompt
-      const curriculumContext = getCurriculumContext(
-        request.grade,
-        request.topic.toUpperCase()
-      );
+      // Generate curriculum-aware prompt using CurriculumPromptEngine
+      const curriculumPrompt =
+        this.curriculumPromptEngine.generateCurriculumPrompt({
+          grade: request.grade,
+          topic: request.topic.toUpperCase(),
+          difficulty: request.difficulty,
+          country: request.country,
+        });
 
-      // Get country-specific context for cultural relevance
-      const countryContext = getCountryContext(request.country);
-
-      // Create enhanced curriculum-aware prompt with cultural context
-      const prompt = this.createEnhancedCurriculumPrompt(
-        request,
-        curriculumContext,
-        countryContext
-      );
+      // Use the curriculum-aware system prompt for AI generation
+      const prompt = curriculumPrompt.systemPrompt;
 
       // Call Ollama API for question generation
       const response = await this.httpService.axiosRef.post(
