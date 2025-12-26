@@ -23,12 +23,14 @@ This guide provides complete instructions for integrating the progress tracking 
 ## API Endpoints Reference
 
 ### Base URL
+
 ```
 Development: http://localhost:3000/api
 Production: TBD
 ```
 
 ### 1. Record Question Attempt
+
 ```typescript
 POST /progress/record
 
@@ -51,6 +53,7 @@ Response: DailyProgressResponse (see below)
 ---
 
 ### 2. Get Daily Progress
+
 ```typescript
 GET /progress/daily/:studentId
 
@@ -68,12 +71,14 @@ Response:
 }
 ```
 
-**When to Call:** 
+**When to Call:**
+
 - On dashboard load
 - After recording question attempt
 - Every time student returns to progress view
 
 **UI Components Needed:**
+
 - Question count badge
 - Accuracy percentage display
 - Encouragement message alert/banner
@@ -81,6 +86,7 @@ Response:
 ---
 
 ### 3. Get Weekly Progress
+
 ```typescript
 GET /progress/weekly/:studentId
 
@@ -99,11 +105,13 @@ Response:
 ```
 
 **When to Call:**
+
 - Weekly progress tab/section
 - Parent reports
 - Trend analysis view
 
 **UI Components Needed:**
+
 - Weekly trend chart (7 days)
 - Weekly summary cards
 - Comparison indicators
@@ -111,6 +119,7 @@ Response:
 ---
 
 ### 4. Get Student Achievements
+
 ```typescript
 GET /achievements/:studentId
 
@@ -136,11 +145,13 @@ Response:
 ```
 
 **When to Call:**
+
 - Achievement page load
 - After recording question (to check for new unlocks)
 - Profile/dashboard summary
 
 **UI Components Needed:**
+
 - Achievement badge grid (locked/unlocked states)
 - Achievement celebration modal (when unlocked)
 - Progress bars for locked achievements
@@ -149,6 +160,7 @@ Response:
 ---
 
 ### 5. Get Next Milestone
+
 ```typescript
 GET /achievements/:studentId/next
 
@@ -168,10 +180,12 @@ Response:
 ```
 
 **When to Call:**
+
 - Dashboard load (show progress to next badge)
 - After each question attempt
 
 **UI Components Needed:**
+
 - Progress bar with milestone indicator
 - "X questions to next badge" message
 - Motivational display
@@ -265,7 +279,7 @@ export interface NextMilestone {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProgressService {
   private apiUrl = `${environment.apiUrl}/progress`;
@@ -326,7 +340,7 @@ import { ProgressService, DailyProgress, NextMilestone } from '../../services/pr
 @Component({
   selector: 'app-progress-dashboard',
   templateUrl: './progress-dashboard.component.html',
-  styleUrls: ['./progress-dashboard.component.scss']
+  styleUrls: ['./progress-dashboard.component.scss'],
 })
 export class ProgressDashboardComponent implements OnInit {
   studentId = 'current-student-id'; // Get from auth service
@@ -352,7 +366,7 @@ export class ProgressDashboardComponent implements OnInit {
       error: (err) => {
         console.error('Error loading progress:', err);
         this.loading = false;
-      }
+      },
     });
 
     // Load next milestone
@@ -360,7 +374,7 @@ export class ProgressDashboardComponent implements OnInit {
       next: (milestone) => {
         this.nextMilestone = milestone;
       },
-      error: (err) => console.error('Error loading milestone:', err)
+      error: (err) => console.error('Error loading milestone:', err),
     });
   }
 }
@@ -426,23 +440,13 @@ export class ProgressDashboardComponent implements OnInit {
         Next Achievement: {{ nextMilestone.nextMilestone.name }}
       </h5>
       <p class="text-muted">{{ nextMilestone.nextMilestone.description }}</p>
-      
+
       <!-- Progress Bar -->
       <div class="progress mb-2" style="height: 30px;">
-        <div 
-          class="progress-bar progress-bar-striped progress-bar-animated bg-success"
-          role="progressbar"
-          [style.width.%]="nextMilestone.progressPercentage"
-          [attr.aria-valuenow]="nextMilestone.progressPercentage"
-          aria-valuemin="0"
-          aria-valuemax="100">
-          {{ nextMilestone.progressPercentage }}%
-        </div>
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" [style.width.%]="nextMilestone.progressPercentage" [attr.aria-valuenow]="nextMilestone.progressPercentage" aria-valuemin="0" aria-valuemax="100">{{ nextMilestone.progressPercentage }}%</div>
       </div>
-      
-      <p class="mb-0">
-        <strong>{{ nextMilestone.questionsRemaining }}</strong> more correct answers to unlock!
-      </p>
+
+      <p class="mb-0"><strong>{{ nextMilestone.questionsRemaining }}</strong> more correct answers to unlock!</p>
     </div>
   </div>
 </div>
@@ -473,7 +477,7 @@ onAnswerSubmit(questionId: string, isCorrect: boolean, timeSpent: number): void 
   this.progressService.recordQuestionAttempt(attempt).subscribe({
     next: (progress) => {
       console.log('Progress updated:', progress);
-      
+
       // Check if achievement was recently unlocked
       this.progressService.getStudentAchievements(this.studentId).subscribe({
         next: (achievements) => {
@@ -503,7 +507,7 @@ import { ProgressService, Achievement } from '../../services/progress.service';
 
 @Component({
   selector: 'app-achievements-grid',
-  templateUrl: './achievements-grid.component.html'
+  templateUrl: './achievements-grid.component.html',
 })
 export class AchievementsGridComponent implements OnInit {
   studentId = 'current-student-id';
@@ -523,7 +527,7 @@ export class AchievementsGridComponent implements OnInit {
       error: (err) => {
         console.error('Error loading achievements:', err);
         this.loading = false;
-      }
+      },
     });
   }
 
@@ -551,9 +555,7 @@ export class AchievementsGridComponent implements OnInit {
         <div class="card-body">
           <!-- Badge Icon -->
           <div class="achievement-icon mb-3">
-            <i [class]="'fas ' + achievement.badgeIcon + ' fa-4x'"
-               [class.text-warning]="achievement.unlocked"
-               [class.text-muted]="!achievement.unlocked"></i>
+            <i [class]="'fas ' + achievement.badgeIcon + ' fa-4x'" [class.text-warning]="achievement.unlocked" [class.text-muted]="!achievement.unlocked"></i>
           </div>
 
           <!-- Achievement Name -->
@@ -574,11 +576,7 @@ export class AchievementsGridComponent implements OnInit {
           <div *ngIf="!achievement.unlocked">
             <!-- Progress Bar for Locked Achievements -->
             <div class="progress mt-2" style="height: 20px;">
-              <div class="progress-bar"
-                   [style.width.%]="achievement.progress"
-                   [attr.aria-valuenow]="achievement.progress">
-                {{ achievement.progress }}%
-              </div>
+              <div class="progress-bar" [style.width.%]="achievement.progress" [attr.aria-valuenow]="achievement.progress">{{ achievement.progress }}%</div>
             </div>
           </div>
         </div>
@@ -607,11 +605,11 @@ import { ProgressService } from '../../services/progress.service';
 
 @Component({
   selector: 'app-weekly-chart',
-  templateUrl: './weekly-chart.component.html'
+  templateUrl: './weekly-chart.component.html',
 })
 export class WeeklyChartComponent implements OnInit {
   studentId = 'current-student-id';
-  
+
   public lineChartData: ChartConfiguration<'line'>['data'] = {
     labels: [],
     datasets: [
@@ -621,14 +619,14 @@ export class WeeklyChartComponent implements OnInit {
         fill: true,
         tension: 0.4,
         borderColor: '#4285f4',
-        backgroundColor: 'rgba(66, 133, 244, 0.1)'
-      }
-    ]
+        backgroundColor: 'rgba(66, 133, 244, 0.1)',
+      },
+    ],
   };
 
   public lineChartOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
-    maintainAspectRatio: false
+    maintainAspectRatio: false,
   };
 
   constructor(private progressService: ProgressService) {}
@@ -637,15 +635,11 @@ export class WeeklyChartComponent implements OnInit {
     this.progressService.getWeeklyProgress(this.studentId).subscribe({
       next: (weeklyData) => {
         // Populate chart data
-        this.lineChartData.labels = weeklyData.dailyBreakdown.map(
-          day => new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })
-        );
-        
-        this.lineChartData.datasets[0].data = weeklyData.dailyBreakdown.map(
-          day => day.totalQuestionsAttempted
-        );
+        this.lineChartData.labels = weeklyData.dailyBreakdown.map((day) => new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }));
+
+        this.lineChartData.datasets[0].data = weeklyData.dailyBreakdown.map((day) => day.totalQuestionsAttempted);
       },
-      error: (err) => console.error('Error loading weekly data:', err)
+      error: (err) => console.error('Error loading weekly data:', err),
     });
   }
 }
@@ -660,14 +654,14 @@ export class WeeklyChartComponent implements OnInit {
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api'
+  apiUrl: 'http://localhost:3000/api',
 };
 
 // apps/student-app/src/environments/environment.prod.ts
 
 export const environment = {
   production: true,
-  apiUrl: 'https://api.learninghub.com/api'
+  apiUrl: 'https://api.learninghub.com/api',
 };
 ```
 
@@ -676,18 +670,21 @@ export const environment = {
 ## Testing the Integration
 
 ### 1. Start Backend API
+
 ```bash
 npx nx serve api
 # API running at http://localhost:3000
 ```
 
 ### 2. Start Student App
+
 ```bash
 npx nx serve student-app
 # App running at http://localhost:4200
 ```
 
 ### 3. Test Endpoints
+
 ```bash
 # Get daily progress
 curl http://localhost:3000/api/progress/daily/student-123
@@ -713,22 +710,27 @@ curl http://localhost:3000/api/achievements/student-123
 ## Acceptance Criteria Checklist
 
 - [ ] **AC-001:** Display total questions answered today
+
   - Component: Progress dashboard card
   - Data: `dailyProgress.totalQuestionsAttempted`
 
 - [ ] **AC-002:** Show correct answers and accuracy percentage
+
   - Component: Accuracy card
   - Data: `dailyProgress.correctAnswers`, `dailyProgress.accuracyPercentage`
 
 - [ ] **AC-003:** Visual progress indicators (bars, badges)
+
   - Component: Next milestone progress bar
   - Data: `nextMilestone.progressPercentage`
 
 - [ ] **AC-004:** Display weekly improvement
+
   - Component: Weekly trend chart
   - Data: `weeklyProgress.improvementPercentage` (MVP: shows 0)
 
 - [ ] **AC-005:** Daily reset with weekly history
+
   - Component: Weekly chart with 7-day breakdown
   - Data: `weeklyProgress.dailyBreakdown[]`
 
@@ -741,21 +743,25 @@ curl http://localhost:3000/api/achievements/student-123
 ## Next Steps
 
 1. **Create Angular Components** (estimate: 2-3 hours)
+
    - Progress dashboard
    - Achievement grid
    - Weekly trend chart
    - Celebration modal
 
 2. **Style with MDB 5** (estimate: 1-2 hours)
+
    - Apply Bootstrap 5 classes
    - Add animations for achievements
    - Responsive design
 
 3. **Add Navigation** (estimate: 30 minutes)
+
    - Progress tab in student menu
    - Achievement page route
 
 4. **Testing** (estimate: 1 hour)
+
    - Component unit tests
    - Integration tests with mock data
    - User acceptance testing
