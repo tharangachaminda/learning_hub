@@ -1,9 +1,9 @@
 {
   "name": "student-app",
-  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "app",
-  "sourceRoot": "student-app/src",
+  "sourceRoot": "apps/student-app/src",
   "tags": [],
   "targets": {
     "build": {
@@ -11,17 +11,17 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/student-app",
-        "browser": "student-app/src/main.ts",
+        "browser": "apps/student-app/src/main.ts",
         "polyfills": ["zone.js"],
-        "tsConfig": "student-app/tsconfig.app.json",
+        "tsConfig": "apps/student-app/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
           {
             "glob": "**/*",
-            "input": "student-app/public"
+            "input": "apps/student-app/public"
           }
         ],
-        "styles": ["student-app/src/styles.scss"]
+        "styles": ["apps/student-app/src/styles.scss"]
       },
       "configurations": {
         "production": {
@@ -73,8 +73,8 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "jestConfig": "student-app/jest.config.ts",
-        "tsConfig": "student-app/tsconfig.spec.json"
+        "jestConfig": "apps/student-app/jest.config.ts",
+        "tsConfig": "apps/student-app/tsconfig.spec.json"
       }
     },
     "serve-static": {

@@ -314,4 +314,236 @@ describe('AchievementService', () => {
       expect(recentAchievement.unlockedDate).toBeDefined();
     });
   });
+
+  describe('checkStreaks', () => {
+    /**
+     * Test: Unlock 3-day streak achievement (AC-002)
+     * Why Essential: Core requirement - award "Streak Starter" at 3 consecutive days
+     * Impact: Students miss early streak motivation milestone
+     */
+    it('should unlock "Streak Starter" achievement at 3 consecutive days', async () => {
+      const studentId = 'student-streak-3';
+
+      const unlockedAchievements = await service.checkStreaks(studentId, 3);
+
+      expect(unlockedAchievements).toBeDefined();
+      expect(unlockedAchievements.length).toBeGreaterThan(0);
+
+      const streakStarter = unlockedAchievements.find(
+        (a) => a.id === 'streak_starter'
+      );
+      expect(streakStarter).toBeDefined();
+      expect(streakStarter?.name).toBe('Streak Starter');
+      expect(streakStarter?.unlocked).toBe(true);
+    });
+
+    /**
+     * Test: Unlock 7-day streak achievement (AC-002)
+     * Why Essential: Award "Week Warrior" badge at 7 consecutive days
+     * Impact: Students miss weekly streak celebration
+     */
+    it('should unlock "Week Warrior" achievement at 7 consecutive days', async () => {
+      const studentId = 'student-streak-7';
+
+      const unlockedAchievements = await service.checkStreaks(studentId, 7);
+
+      const weekWarrior = unlockedAchievements.find(
+        (a) => a.id === 'week_warrior'
+      );
+      expect(weekWarrior).toBeDefined();
+      expect(weekWarrior?.name).toBe('Week Warrior');
+      expect(weekWarrior?.unlocked).toBe(true);
+    });
+
+    /**
+     * Test: Unlock 14-day streak achievement (AC-002)
+     * Why Essential: Award "Two Week Champion" badge at 14 consecutive days
+     * Impact: Students miss major streak milestone
+     */
+    it('should unlock "Two Week Champion" achievement at 14 consecutive days', async () => {
+      const studentId = 'student-streak-14';
+
+      const unlockedAchievements = await service.checkStreaks(studentId, 14);
+
+      const twoWeekChampion = unlockedAchievements.find(
+        (a) => a.id === 'two_week_champion'
+      );
+      expect(twoWeekChampion).toBeDefined();
+      expect(twoWeekChampion?.name).toBe('Two Week Champion');
+      expect(twoWeekChampion?.unlocked).toBe(true);
+    });
+
+    /**
+     * Test: No streak achievements unlock below 3 days
+     * Why Essential: Don't award streak achievements prematurely
+     * Impact: Achievement value diminished if awarded too early
+     */
+    it('should not unlock any streak achievements below 3 days', async () => {
+      const studentId = 'student-streak-2';
+
+      const unlockedAchievements = await service.checkStreaks(studentId, 2);
+
+      const streakAchievements = unlockedAchievements.filter(
+        (a) => a.category === 'streak' && a.unlocked === true
+      );
+      expect(streakAchievements.length).toBe(0);
+    });
+
+    /**
+     * Test: Unlock multiple streak achievements when crossing thresholds
+     * Why Essential: Student going from 2 to 8 days should get both 3-day and 7-day
+     * Impact: Students miss achievements if not retroactively awarded
+     */
+    it('should unlock multiple streak achievements when crossing thresholds', async () => {
+      const studentId = 'student-streak-multiple';
+
+      const unlockedAchievements = await service.checkStreaks(studentId, 8);
+
+      // Should unlock both Streak Starter (3) and Week Warrior (7)
+      expect(unlockedAchievements.length).toBeGreaterThanOrEqual(2);
+
+      const streakStarter = unlockedAchievements.find(
+        (a) => a.id === 'streak_starter'
+      );
+      const weekWarrior = unlockedAchievements.find(
+        (a) => a.id === 'week_warrior'
+      );
+
+      expect(streakStarter?.unlocked).toBe(true);
+      expect(weekWarrior?.unlocked).toBe(true);
+    });
+  });
+
+  describe('checkTopicMastery', () => {
+    /**
+     * Test: Unlock Addition Master achievement (AC-006)
+     * Why Essential: Award topic-specific badge for Addition mastery
+     * Impact: Students miss subject-specific achievement recognition
+     */
+    it('should unlock "Addition Master" with 20+ questions and 80%+ accuracy', async () => {
+      const studentId = 'student-addition-master';
+      const topicStats = {
+        topic: 'Addition',
+        questionsAttempted: 25,
+        correctAnswers: 22,
+        accuracyPercentage: 88,
+      };
+
+      const unlockedAchievements = await service.checkTopicMastery(
+        studentId,
+        topicStats
+      );
+
+      expect(unlockedAchievements).toBeDefined();
+      const additionMaster = unlockedAchievements.find(
+        (a) => a.id === 'addition_master'
+      );
+      expect(additionMaster).toBeDefined();
+      expect(additionMaster?.name).toBe('Addition Master');
+      expect(additionMaster?.unlocked).toBe(true);
+    });
+
+    /**
+     * Test: Unlock Subtraction Star achievement (AC-006)
+     * Why Essential: Award topic-specific badge for Subtraction mastery
+     * Impact: Students miss subject-specific achievement recognition
+     */
+    it('should unlock "Subtraction Star" with 20+ questions and 80%+ accuracy', async () => {
+      const studentId = 'student-subtraction-star';
+      const topicStats = {
+        topic: 'Subtraction',
+        questionsAttempted: 30,
+        correctAnswers: 27,
+        accuracyPercentage: 90,
+      };
+
+      const unlockedAchievements = await service.checkTopicMastery(
+        studentId,
+        topicStats
+      );
+
+      const subtractionStar = unlockedAchievements.find(
+        (a) => a.id === 'subtraction_star'
+      );
+      expect(subtractionStar).toBeDefined();
+      expect(subtractionStar?.name).toBe('Subtraction Star');
+      expect(subtractionStar?.unlocked).toBe(true);
+    });
+
+    /**
+     * Test: Do not unlock if question count too low
+     * Why Essential: Ensure mastery requires sufficient practice
+     * Impact: Achievement value diminished if awarded too easily
+     */
+    it('should not unlock topic achievement with less than 20 questions', async () => {
+      const studentId = 'student-low-count';
+      const topicStats = {
+        topic: 'Addition',
+        questionsAttempted: 15,
+        correctAnswers: 14,
+        accuracyPercentage: 93, // High accuracy but low count
+      };
+
+      const unlockedAchievements = await service.checkTopicMastery(
+        studentId,
+        topicStats
+      );
+
+      const topicAchievements = unlockedAchievements.filter(
+        (a) => a.category === 'topic_mastery' && a.unlocked === true
+      );
+      expect(topicAchievements.length).toBe(0);
+    });
+
+    /**
+     * Test: Do not unlock if accuracy too low
+     * Why Essential: Mastery requires high accuracy, not just volume
+     * Impact: "Master" badge loses meaning if accuracy is low
+     */
+    it('should not unlock topic achievement with less than 80% accuracy', async () => {
+      const studentId = 'student-low-accuracy';
+      const topicStats = {
+        topic: 'Addition',
+        questionsAttempted: 25,
+        correctAnswers: 18,
+        accuracyPercentage: 72, // Low accuracy
+      };
+
+      const unlockedAchievements = await service.checkTopicMastery(
+        studentId,
+        topicStats
+      );
+
+      const topicAchievements = unlockedAchievements.filter(
+        (a) => a.category === 'topic_mastery' && a.unlocked === true
+      );
+      expect(topicAchievements.length).toBe(0);
+    });
+
+    /**
+     * Test: Track progress towards topic mastery
+     * Why Essential: Show students how close they are to earning badge
+     * Impact: Reduced motivation without progress visibility
+     */
+    it('should calculate progress percentage towards topic mastery', async () => {
+      const studentId = 'student-topic-progress';
+      const topicStats = {
+        topic: 'Multiplication',
+        questionsAttempted: 10,
+        correctAnswers: 9,
+        accuracyPercentage: 90,
+      };
+
+      await service.checkTopicMastery(studentId, topicStats);
+
+      const achievements = await service.getStudentAchievements(studentId);
+      const multiplicationWizard = achievements.achievements.find(
+        (a) => a.id === 'multiplication_wizard'
+      );
+
+      expect(multiplicationWizard).toBeDefined();
+      expect(multiplicationWizard?.progress).toBeGreaterThan(0);
+      expect(multiplicationWizard?.progress).toBeLessThan(100);
+    });
+  });
 });

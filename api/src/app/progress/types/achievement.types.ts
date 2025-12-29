@@ -30,6 +30,25 @@ export const ACHIEVEMENT_MILESTONES = {
 } as const;
 
 /**
+ * Streak milestone thresholds
+ * Supports AC-002: Streak achievements at 3, 7, 14 consecutive days
+ */
+export const STREAK_MILESTONES = {
+  STARTER: 3, // First streak milestone
+  WEEK: 7, // One week streak
+  TWO_WEEKS: 14, // Two week streak
+} as const;
+
+/**
+ * Topic mastery requirements
+ * Supports AC-006: Topic-specific achievements (Addition Master, etc.)
+ */
+export const TOPIC_MASTERY_REQUIREMENTS = {
+  MIN_QUESTIONS: 20, // Minimum questions to demonstrate mastery
+  MIN_ACCURACY: 80, // Minimum accuracy percentage (0-100)
+} as const;
+
+/**
  * Achievement badge definitions
  */
 export interface Achievement {
@@ -166,15 +185,95 @@ export const STANDARD_ACHIEVEMENTS: Omit<
     pointValue: 20,
   },
   {
+    id: 'streak_starter',
+    name: 'Streak Starter',
+    description: 'Practice every day for 3 days in a row',
+    category: 'streak',
+    criteria: {
+      type: 'streak_days',
+      targetValue: STREAK_MILESTONES.STARTER,
+    },
+    badgeIcon: 'badge-streak-starter',
+    pointValue: 15,
+  },
+  {
     id: 'week_warrior',
     name: 'Week Warrior',
     description: 'Practice every day for 7 days in a row',
     category: 'streak',
     criteria: {
       type: 'streak_days',
-      targetValue: 7,
+      targetValue: STREAK_MILESTONES.WEEK,
     },
     badgeIcon: 'badge-week-warrior',
     pointValue: 30,
+  },
+  {
+    id: 'two_week_champion',
+    name: 'Two Week Champion',
+    description: 'Practice every day for 14 days in a row',
+    category: 'streak',
+    criteria: {
+      type: 'streak_days',
+      targetValue: STREAK_MILESTONES.TWO_WEEKS,
+    },
+    badgeIcon: 'badge-two-week-champion',
+    pointValue: 50,
+  },
+  {
+    id: 'addition_master',
+    name: 'Addition Master',
+    description: 'Answer 20+ Addition questions with 80%+ accuracy',
+    category: 'topic_mastery',
+    criteria: {
+      type: 'topic_mastery',
+      targetValue: TOPIC_MASTERY_REQUIREMENTS.MIN_QUESTIONS,
+      topic: 'Addition',
+      minimumAccuracy: TOPIC_MASTERY_REQUIREMENTS.MIN_ACCURACY,
+    },
+    badgeIcon: 'badge-addition-master',
+    pointValue: 40,
+  },
+  {
+    id: 'subtraction_star',
+    name: 'Subtraction Star',
+    description: 'Answer 20+ Subtraction questions with 80%+ accuracy',
+    category: 'topic_mastery',
+    criteria: {
+      type: 'topic_mastery',
+      targetValue: TOPIC_MASTERY_REQUIREMENTS.MIN_QUESTIONS,
+      topic: 'Subtraction',
+      minimumAccuracy: TOPIC_MASTERY_REQUIREMENTS.MIN_ACCURACY,
+    },
+    badgeIcon: 'badge-subtraction-star',
+    pointValue: 40,
+  },
+  {
+    id: 'multiplication_wizard',
+    name: 'Multiplication Wizard',
+    description: 'Answer 20+ Multiplication questions with 80%+ accuracy',
+    category: 'topic_mastery',
+    criteria: {
+      type: 'topic_mastery',
+      targetValue: TOPIC_MASTERY_REQUIREMENTS.MIN_QUESTIONS,
+      topic: 'Multiplication',
+      minimumAccuracy: TOPIC_MASTERY_REQUIREMENTS.MIN_ACCURACY,
+    },
+    badgeIcon: 'badge-multiplication-wizard',
+    pointValue: 40,
+  },
+  {
+    id: 'division_expert',
+    name: 'Division Expert',
+    description: 'Answer 20+ Division questions with 80%+ accuracy',
+    category: 'topic_mastery',
+    criteria: {
+      type: 'topic_mastery',
+      targetValue: TOPIC_MASTERY_REQUIREMENTS.MIN_QUESTIONS,
+      topic: 'Division',
+      minimumAccuracy: TOPIC_MASTERY_REQUIREMENTS.MIN_ACCURACY,
+    },
+    badgeIcon: 'badge-division-expert',
+    pointValue: 40,
   },
 ];

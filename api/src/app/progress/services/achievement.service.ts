@@ -3,6 +3,8 @@
  *
  * Manages student achievements and milestone detection.
  * Implements AC-006: Achievements unlock at milestones (10, 25, 50 correct answers)
+ * Implements AC-002: Streak achievements for consecutive practice days (3, 7, 14)
+ * Implements AC-006: Topic-specific achievements (Addition Master, Subtraction Star, etc.)
  * Implements AC-003: Progress indicators for next milestone
  */
 
@@ -12,6 +14,8 @@ import {
   StudentAchievements,
   STANDARD_ACHIEVEMENTS,
   ACHIEVEMENT_MILESTONES,
+  STREAK_MILESTONES,
+  TOPIC_MASTERY_REQUIREMENTS,
 } from '../types/achievement.types';
 
 /**
@@ -66,6 +70,140 @@ export class AchievementService {
           achievement.progress = Math.round(
             (totalCorrectAnswers / targetValue) * 100
           );
+        }
+      }
+    }
+
+    studentState.lastChecked = new Date();
+    return newlyUnlocked;
+  }
+
+  /**
+   * Check and unlock streak achievements based on consecutive practice days
+   *
+   * Detects when students reach streak thresholds (3, 7, 14 days).
+   * Implements AC-002 requirement for consecutive day achievements.
+   *
+   * @param studentId - Unique student identifier
+   * @param currentStreak - Current number of consecutive practice days
+   * @returns Array of newly unlocked achievements
+   *
+   * @example
+   * ```typescript
+   * // Check if student earned streak achievements
+   * const unlocked = await achievementService.checkStreaks('student-123', 7);
+   * // Returns [{ id: 'streak_starter', ... }, { id: 'week_warrior', ... }]
+   * ```
+   */
+  async checkStreaks(
+    studentId: string,
+    currentStreak: number
+  ): Promise<Achievement[]> {
+    // Initialize student achievements if not exists
+    if (!this.studentAchievements.has(studentId)) {
+      this.initializeStudentAchievements(studentId);
+    }
+
+    const studentState = this.studentAchievements.get(studentId)!;
+    const newlyUnlocked: Achievement[] = [];
+
+    // Check each streak achievement
+    for (const achievement of studentState.achievements) {
+      if (achievement.category === 'streak' && !achievement.unlocked) {
+        const targetValue = achievement.criteria.targetValue;
+
+        // Check if streak threshold is reached
+        if (currentStreak >= targetValue) {
+          achievement.unlocked = true;
+          achievement.unlockedDate = new Date();
+          achievement.progress = 100;
+          newlyUnlocked.push(achievement);
+        } else {
+          // Update progress percentage
+          achievement.progress = Math.round(
+            (currentStreak / targetValue) * 100
+          );
+        }
+      }
+    }
+
+    studentState.lastChecked = new Date();
+    return newlyUnlocked;
+  }
+
+  /**
+   * Check and unlock topic mastery achievements based on performance
+   *
+   * Detects when students demonstrate mastery in specific topics.
+   * Implements AC-006 requirement for topic-specific achievements.
+   *
+   * @param studentId - Unique student identifier
+   * @param topicStats - Topic performance statistics
+   * @param topicStats.topic - Topic name (Addition, Subtraction, etc.)
+   * @param topicStats.questionsAttempted - Total questions in this topic
+   * @param topicStats.correctAnswers - Correct answers in this topic
+   * @param topicStats.accuracyPercentage - Accuracy percentage (0-100)
+   * @returns Array of newly unlocked achievements
+   *
+   * @example
+   * ```typescript
+   * // Check if student earned Addition Master achievement
+   * const unlocked = await achievementService.checkTopicMastery('student-123', {
+   *   topic: 'Addition',
+   *   questionsAttempted: 25,
+   *   correctAnswers: 22,
+   *   accuracyPercentage: 88
+   * });
+   * ```
+   */
+  async checkTopicMastery(
+    studentId: string,
+    topicStats: {
+      topic: string;
+      questionsAttempted: number;
+      correctAnswers: number;
+      accuracyPercentage: number;
+    }
+  ): Promise<Achievement[]> {
+    // Initialize student achievements if not exists
+    if (!this.studentAchievements.has(studentId)) {
+      this.initializeStudentAchievements(studentId);
+    }
+
+    const studentState = this.studentAchievements.get(studentId)!;
+    const newlyUnlocked: Achievement[] = [];
+
+    // Check each topic mastery achievement
+    for (const achievement of studentState.achievements) {
+      if (achievement.category === 'topic_mastery' && !achievement.unlocked) {
+        // Check if this achievement is for the current topic
+        if (achievement.criteria.topic === topicStats.topic) {
+          const minQuestions = achievement.criteria.targetValue;
+          const minAccuracy = achievement.criteria.minimumAccuracy || 80;
+
+          // Check if mastery criteria are met
+          const questionsMet = topicStats.questionsAttempted >= minQuestions;
+          const accuracyMet = topicStats.accuracyPercentage >= minAccuracy;
+
+          if (questionsMet && accuracyMet) {
+            // Unlock achievement
+            achievement.unlocked = true;
+            achievement.unlockedDate = new Date();
+            achievement.progress = 100;
+            newlyUnlocked.push(achievement);
+          } else {
+            // Calculate progress percentage
+            // Progress based on question count (50%) and accuracy (50%)
+            const questionProgress =
+              (topicStats.questionsAttempted / minQuestions) * 50;
+            const accuracyProgress =
+              (topicStats.accuracyPercentage / minAccuracy) * 50;
+
+            achievement.progress = Math.min(
+              100,
+              Math.round(questionProgress + accuracyProgress)
+            );
+          }
         }
       }
     }
