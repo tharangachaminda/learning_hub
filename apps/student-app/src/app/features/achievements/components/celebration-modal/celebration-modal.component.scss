@@ -1,0 +1,375 @@
+// Celebration Modal Styles
+// Implements AC-003: Badge unlock celebrations with animations
+
+.celebration-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(4px);
+}
+
+.celebration-modal {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  padding: 48px 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  overflow: hidden;
+}
+
+// Confetti Animation
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffd700;
+  top: -10px;
+  animation: confettiFall 3s linear infinite;
+  
+  &:nth-child(1) {
+    left: 10%;
+    animation-delay: 0s;
+    background: #ff6b6b;
+  }
+  
+  &:nth-child(2) {
+    left: 20%;
+    animation-delay: 0.2s;
+    background: #4ecdc4;
+  }
+  
+  &:nth-child(3) {
+    left: 30%;
+    animation-delay: 0.4s;
+    background: #ffd700;
+  }
+  
+  &:nth-child(4) {
+    left: 40%;
+    animation-delay: 0.1s;
+    background: #95e1d3;
+  }
+  
+  &:nth-child(5) {
+    left: 50%;
+    animation-delay: 0.3s;
+    background: #ff6b6b;
+  }
+  
+  &:nth-child(6) {
+    left: 60%;
+    animation-delay: 0.5s;
+    background: #4ecdc4;
+  }
+  
+  &:nth-child(7) {
+    left: 70%;
+    animation-delay: 0.2s;
+    background: #ffd700;
+  }
+  
+  &:nth-child(8) {
+    left: 80%;
+    animation-delay: 0.4s;
+    background: #95e1d3;
+  }
+  
+  &:nth-child(9) {
+    left: 90%;
+    animation-delay: 0.1s;
+    background: #ff6b6b;
+  }
+  
+  &:nth-child(10) {
+    left: 15%;
+    animation-delay: 0.3s;
+    background: #4ecdc4;
+  }
+}
+
+// Close Button
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+  }
+
+  &:active {
+    transform: rotate(90deg) scale(0.9);
+  }
+}
+
+// Celebration Content
+.celebration-content {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  color: white;
+}
+
+// Badge Icon
+.badge-icon-large {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 24px;
+  animation: badgePop 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s backwards;
+}
+
+.badge-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  animation: pulse 2s ease-out infinite;
+}
+
+.badge-emoji {
+  position: relative;
+  font-size: 80px;
+  display: block;
+  line-height: 120px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+// Text Content
+.celebration-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.6s ease-out 0.4s backwards;
+}
+
+.achievement-name {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  color: #ffd700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.6s ease-out 0.5s backwards;
+}
+
+.achievement-description {
+  font-size: 18px;
+  margin: 0 0 24px;
+  opacity: 0.95;
+  animation: slideDown 0.6s ease-out 0.6s backwards;
+}
+
+// Points Display
+.points-awarded {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12px 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  animation: slideDown 0.6s ease-out 0.7s backwards;
+  backdrop-filter: blur(10px);
+}
+
+.points-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-right: 8px;
+}
+
+.points-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+// Continue Button
+.continue-button {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: slideDown 0.6s ease-out 0.8s backwards;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+// Queue Indicator
+.queue-indicator {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(50px);
+  }
+  50% {
+    transform: scale(1.05) translateY(-10px);
+  }
+  70% {
+    transform: scale(0.95) translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .celebration-modal {
+    padding: 40px 24px;
+    max-width: 90%;
+  }
+
+  .badge-icon-large {
+    width: 100px;
+    height: 100px;
+  }
+
+  .badge-emoji {
+    font-size: 64px;
+    line-height: 100px;
+  }
+
+  .celebration-title {
+    font-size: 24px;
+  }
+
+  .achievement-name {
+    font-size: 26px;
+  }
+
+  .achievement-description {
+    font-size: 16px;
+  }
+
+  .points-value {
+    font-size: 20px;
+  }
+}
