@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AchievementService } from '../../../../services/achievement.service';
 import { Achievement } from '../../../../models/achievement.model';
@@ -17,7 +16,7 @@ import { Achievement } from '../../../../models/achievement.model';
 @Component({
   selector: 'app-celebration-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [], // No CommonModule needed with new control flow
   templateUrl: './celebration-modal.component.html',
   styleUrls: ['./celebration-modal.component.scss'],
 })

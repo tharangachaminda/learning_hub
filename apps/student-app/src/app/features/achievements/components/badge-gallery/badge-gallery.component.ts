@@ -15,6 +15,8 @@ import { AchievementService } from '../../../../services/achievement.service';
 
 @Component({
   selector: 'app-badge-gallery',
+  standalone: true,
+  imports: [], // No CommonModule needed with new control flow
   templateUrl: './badge-gallery.component.html',
   styleUrls: ['./badge-gallery.component.scss'],
 })
