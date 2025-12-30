@@ -21,7 +21,7 @@ import { AchievementService } from '../../../../services/achievement.service';
   styleUrls: ['./badge-gallery.component.scss'],
 })
 export class BadgeGalleryComponent implements OnInit {
-  @Input() studentId!: string;
+  @Input() studentId = 'integration-test-student'; // Default for testing, should come from auth service
 
   achievements: Achievement[] = [];
   totalPoints = 0;
