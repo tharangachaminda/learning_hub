@@ -1,57 +1,59 @@
 @if (isVisible) {
-  <div class="celebration-overlay" (click)="closeModal()">
-    <div class="celebration-modal" (click)="$event.stopPropagation()">
-      <!-- Confetti Animation -->
-      <div class="confetti-container">
-        @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
-          <div class="confetti"></div>
-        }
-      </div>
-
-      <!-- Close Button -->
-      <button
-        class="close-button"
-        (click)="closeModal()"
-        aria-label="Close celebration"
-      >
-        ✕
-      </button>
-
-      <!-- Celebration Content -->
-      <div class="celebration-content">
-        <!-- Achievement Badge Icon -->
-        <div class="badge-icon-large">
-          <div class="badge-pulse"></div>
-          <span class="badge-emoji">🎉</span>
-        </div>
-
-        <!-- Congratulations Message -->
-        <h2 class="celebration-title">Achievement Unlocked!</h2>
-
-        <!-- Achievement Name -->
-        <h3 class="achievement-name">{{ currentAchievement?.name }}</h3>
-
-        <!-- Achievement Description -->
-        <p class="achievement-description">
-          {{ currentAchievement?.description }}
-        </p>
-
-        <!-- Points Awarded -->
-        <div class="points-awarded">
-          <span class="points-label">Points Earned:</span>
-          <span class="points-value">+{{ currentAchievement?.pointValue }}</span>
-        </div>
-
-        <!-- Continue Button -->
-        <button class="continue-button" (click)="closeModal()">Continue</button>
-      </div>
-
-      <!-- Achievement Queue Indicator -->
-      @if (achievementQueue.length > 0) {
-        <div class="queue-indicator">
-          +{{ achievementQueue.length }} more achievement{{ achievementQueue.length > 1 ? 's' : '' }}
-        </div>
+<div class="celebration-overlay" (click)="closeModal()">
+  <div class="celebration-modal" (click)="$event.stopPropagation()">
+    <!-- Confetti Animation -->
+    <div class="confetti-container">
+      @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+      <div class="confetti"></div>
       }
     </div>
+
+    <!-- Close Button -->
+    <button
+      class="close-button"
+      (click)="closeModal()"
+      aria-label="Close celebration"
+    >
+      ✕
+    </button>
+
+    <!-- Celebration Content -->
+    <div class="celebration-content">
+      <!-- Achievement Badge Icon -->
+      <div class="badge-icon-large">
+        <div class="badge-pulse"></div>
+        <span class="badge-emoji">🎉</span>
+      </div>
+
+      <!-- Congratulations Message -->
+      <h2 class="celebration-title">Achievement Unlocked!</h2>
+
+      <!-- Achievement Name -->
+      <h3 class="achievement-name">{{ currentAchievement?.name }}</h3>
+
+      <!-- Achievement Description -->
+      <p class="achievement-description">
+        {{ currentAchievement?.description }}
+      </p>
+
+      <!-- Points Awarded -->
+      <div class="points-awarded">
+        <span class="points-label">Points Earned:</span>
+        <span class="points-value">+{{ currentAchievement?.pointValue }}</span>
+      </div>
+
+      <!-- Continue Button -->
+      <button class="continue-button" (click)="closeModal()">Continue</button>
+    </div>
+
+    <!-- Achievement Queue Indicator -->
+    @if (achievementQueue.length > 0) {
+    <div class="queue-indicator">
+      +{{ achievementQueue.length }} more achievement{{
+        achievementQueue.length > 1 ? 's' : ''
+      }}
+    </div>
+    }
   </div>
+</div>
 }
