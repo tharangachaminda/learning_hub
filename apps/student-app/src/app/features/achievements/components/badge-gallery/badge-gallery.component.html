@@ -1,0 +1,137 @@
+<!-- Badge Gallery Component Template -->
+<!-- Implements AC-004: Display all badges in collection gallery -->
+<!-- Implements AC-005: Show unlock dates and descriptions -->
+
+<div class="badge-gallery-container">
+  <!-- Header Section -->
+  <div class="gallery-header">
+    <h2 class="gallery-title">🏆 My Achievements</h2>
+    <div class="gallery-stats">
+      <div class="stat-item">
+        <span class="stat-value">{{ totalPoints }}</span>
+        <span class="stat-label">Total Points</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ completionPercentage }}%</span>
+        <span class="stat-label">Complete</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading achievements...</p>
+  </div>
+  }
+
+  <!-- Error State -->
+  @if (error && !loading) {
+  <div class="error-state">
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-button" (click)="loadAchievements()">Try Again</button>
+  </div>
+  }
+
+  <!-- Achievement Gallery -->
+  @if (!loading && !error) {
+  <div class="achievement-gallery">
+    <!-- Category Sections -->
+    @for (category of categories; track category.key) {
+    <div class="category-section">
+      <div class="category-header">
+        <span class="category-icon">{{ category.icon }}</span>
+        <h3 class="category-title">{{ category.label }}</h3>
+      </div>
+
+      <div class="badges-grid">
+        @for ( achievement of getAchievementsByCategory(category.key); track
+        achievement.id ) {
+        <div class="badge-card {{ getBadgeClass(achievement) }}">
+          <!-- Badge Icon -->
+          <div class="badge-icon-wrapper">
+            <div class="badge-icon" [attr.data-icon]="achievement.badgeIcon">
+              <span class="icon-placeholder">
+                {{ achievement.unlocked ? '🏅' : '🔒' }}
+              </span>
+            </div>
+
+            <!-- Progress Ring for Locked Badges -->
+            @if (!achievement.unlocked) {
+            <div class="progress-ring">
+              <svg width="80" height="80">
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="36"
+                  stroke="#e0e0e0"
+                  stroke-width="4"
+                  fill="none"
+                />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="36"
+                  stroke="#4CAF50"
+                  stroke-width="4"
+                  fill="none"
+                  [attr.stroke-dasharray]="226"
+                  [attr.stroke-dashoffset]="
+                    226 - (226 * achievement.progress) / 100
+                  "
+                  transform="rotate(-90 40 40)"
+                />
+              </svg>
+              <span class="progress-text">{{ achievement.progress }}%</span>
+            </div>
+            }
+          </div>
+
+          <!-- Badge Details -->
+          <div class="badge-details">
+            <h4 class="badge-name">{{ achievement.name }}</h4>
+            <p class="badge-description">{{ achievement.description }}</p>
+
+            <!-- Unlocked Badge Info (AC-005) -->
+            @if (achievement.unlocked) {
+            <div class="badge-unlock-info">
+              <div class="unlock-date">
+                <span class="icon">📅</span>
+                <span>{{ formatDate(achievement.unlockedDate) }}</span>
+              </div>
+              <div class="badge-points">
+                <span class="icon">⭐</span>
+                <span>{{ achievement.pointValue }} points</span>
+              </div>
+            </div>
+            }
+
+            <!-- Locked Badge Progress (AC-005) -->
+            @if (!achievement.unlocked) {
+            <div class="badge-progress-info">
+              <div class="progress-bar">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="achievement.progress"
+                ></div>
+              </div>
+              <p class="progress-hint">{{ achievement.progress }}% complete</p>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+
+      <!-- Empty State for Category -->
+      @if (getAchievementsByCategory(category.key).length === 0) {
+      <div class="category-empty">
+        <p>No {{ category.label.toLowerCase() }} achievements yet.</p>
+      </div>
+      }
+    </div>
+    }
+  </div>
+  }
+</div>

@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MathQuestionsModule } from './math-questions/math-questions.module';
 import { OpenSearchModule } from './opensearch/opensearch.module';
+import { ProgressModule } from './progress/progress.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { OpenSearchModule } from './opensearch/opensearch.module';
     }),
     OpenSearchModule,
     MathQuestionsModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],
