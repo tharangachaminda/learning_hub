@@ -4,11 +4,10 @@ import { RouterModule } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { App } from './app';
 import { appRoutes } from './app.routes';
-import { NxWelcome } from './nx-welcome';
 import { CelebrationModalComponent } from './features/achievements/components/celebration-modal/celebration-modal.component';
 
 @NgModule({
-  declarations: [App, NxWelcome],
+  declarations: [App],
   imports: [
     BrowserModule,
     RouterModule.forRoot(appRoutes),
