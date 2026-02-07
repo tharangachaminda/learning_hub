@@ -1,0 +1,254 @@
+<div class="registration-container">
+  <!-- Screen Reader Announcements -->
+  <div aria-live="polite" aria-atomic="true" class="sr-only">
+    {{ stepAnnouncement }}
+  </div>
+
+  <!-- Progress Indicator -->
+  <div data-testid="progress-indicator" class="progress-indicator">
+    <span>Step {{ currentStep }} of 3</span>
+  </div>
+
+  <!-- Registration Form -->
+  <form [formGroup]="registrationForm" data-testid="registration-form">
+    <!-- Step 1: Basic Information -->
+    @if (currentStep === 1) {
+    <div data-testid="step-1-content" class="step-content">
+      <h2>Step 1: Basic Information</h2>
+
+      <div class="form-field">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" formControlName="firstName" />
+        @if (getErrorMessage('firstName')) {
+        <div class="error-message" data-testid="firstName-error">
+          {{ getErrorMessage('firstName') }}
+        </div>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" formControlName="lastName" />
+        @if (getErrorMessage('lastName')) {
+        <div class="error-message" data-testid="lastName-error">
+          {{ getErrorMessage('lastName') }}
+        </div>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="email">Email</label>
+        <input type="email" id="email" formControlName="email" />
+        @if (getErrorMessage('email')) {
+        <div class="error-message" data-testid="email-error">
+          {{ getErrorMessage('email') }}
+        </div>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <div class="password-input-wrapper">
+          <input [type]="passwordVisible['password'] ? 'text' : 'password'" id="password" formControlName="password" />
+          <button
+            type="button"
+            class="toggle-password-btn"
+            data-testid="toggle-password"
+            [attr.aria-label]="passwordVisible['password'] ? 'Hide password' : 'Show password'"
+            (click)="togglePasswordVisibility('password')"
+          >
+            @if (passwordVisible['password']) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        </div>
+        <div data-testid="password-requirements" class="password-requirements">
+          <small>Password must contain:</small>
+          <ul>
+            <li>At least 8 characters</li>
+            <li>At least one uppercase letter</li>
+            <li>At least one number</li>
+            <li>At least one special character (!@#$%^&*)</li>
+          </ul>
+        </div>
+        <div data-testid="password-strength" class="password-strength">
+          <span class="strength-label"
+            >Strength: {{ getPasswordStrength() }}</span
+          >
+        </div>
+        @if (getErrorMessage('password')) {
+        <div class="error-message" data-testid="password-error">
+          {{ getErrorMessage('password') }}
+        </div>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="passwordVisible['confirmPassword'] ? 'text' : 'password'"
+            id="confirmPassword"
+            formControlName="confirmPassword"
+          />
+          <button
+            type="button"
+            class="toggle-password-btn"
+            data-testid="toggle-confirmPassword"
+            [attr.aria-label]="passwordVisible['confirmPassword'] ? 'Hide password' : 'Show password'"
+            (click)="togglePasswordVisibility('confirmPassword')"
+          >
+            @if (passwordVisible['confirmPassword']) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            }
+          </button>
+        </div>
+        @if (getErrorMessage('confirmPassword')) {
+        <div class="error-message" data-testid="confirmPassword-error">
+          {{ getErrorMessage('confirmPassword') }}
+        </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          data-testid="next-button"
+          [disabled]="!isStep1Valid()"
+          (click)="nextStep()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+    }
+
+    <!-- Step 2: Profile Details -->
+    @if (currentStep === 2) {
+    <div data-testid="step-2-content" class="step-content">
+      <h2>Step 2: Profile Details</h2>
+
+      <div class="form-field">
+        <label for="grade">Grade Level</label>
+        <select id="grade" data-testid="grade-select" formControlName="grade">
+          <option value="">Select your grade</option>
+          @for (grade of availableGrades; track grade) {
+          <option [value]="grade">Grade {{ grade }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label>Learning Goals</label>
+        <div class="checkbox-group">
+          @for (goal of learningGoalOptions; track goal.id) {
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [value]="goal.id"
+              [attr.data-testid]="'goal-' + goal.id"
+              [checked]="registrationForm.get('learningGoals')?.value?.includes(goal.id)"
+              (change)="onLearningGoalChange(goal.id, $event)"
+            />
+            {{ goal.label }}
+          </label>
+          }
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          data-testid="back-button"
+          (click)="previousStep()"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          data-testid="next-button-step-2"
+          [disabled]="!isStep2Valid()"
+          (click)="nextStep()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+    }
+
+    <!-- Step 3: Avatar Selection -->
+    @if (currentStep === 3) {
+    <div data-testid="step-3-content" class="step-content">
+      <h2>Step 3: Choose Your Avatar</h2>
+      @if (registrationError) {
+      <div class="error-message" data-testid="registration-error">
+        {{ registrationError }}
+      </div>
+      }
+      <div class="avatar-grid">
+        @for (avatar of availableAvatars; track avatar.id; let i = $index) {
+        <div
+          class="avatar-option"
+          [class.selected]="registrationForm.get('selectedAvatar')?.value === avatar.id"
+          [attr.data-testid]="'avatar-option-' + i"
+          [attr.tabindex]="0"
+          [attr.role]="'button'"
+          [attr.aria-label]="'Select avatar ' + i"
+          [attr.aria-pressed]="registrationForm.get('selectedAvatar')?.value === avatar.id"
+          (click)="selectAvatar(avatar.id)"
+          (keydown.enter)="selectAvatar(avatar.id)"
+          (keydown.space)="selectAvatar(avatar.id); $event.preventDefault()"
+        >
+          <img [src]="avatar.url" [alt]="'Avatar ' + i" />
+        </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          data-testid="back-button-step-3"
+          (click)="previousStep()"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          data-testid="skip-avatar"
+          class="secondary"
+          (click)="skipAvatar()"
+        >
+          Skip for now
+        </button>
+        <button
+          type="button"
+          data-testid="create-account-button"
+          class="primary"
+          [disabled]="isLoading"
+          (click)="register()"
+        >
+          {{ isLoading ? 'Creating Account...' : 'Create Account' }}
+        </button>
+      </div>
+    </div>
+    }
+  </form>
+
+  <!-- Success Notification -->
+  @if (registrationSuccess) {
+  <div class="success-notification" data-testid="registration-success" role="alert">
+    🎉 Account created successfully! Redirecting to your dashboard...
+  </div>
+  }
+
+  <!-- Login Link -->
+  <div class="login-link-container">
+    <a data-testid="login-link" href="/login">
+      Already have an account? Login
+    </a>
+  </div>
+</div>

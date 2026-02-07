@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cool Lion - Golden -->
+  <circle cx="50" cy="54" r="44" fill="#E65100"/>
+  <!-- Mane -->
+  <circle cx="50" cy="50" r="46" fill="#F57F17"/>
+  <circle cx="30" cy="30" r="12" fill="#FF8F00"/>
+  <circle cx="50" cy="18" r="12" fill="#FF8F00"/>
+  <circle cx="70" cy="30" r="12" fill="#FF8F00"/>
+  <circle cx="78" cy="50" r="12" fill="#FF8F00"/>
+  <circle cx="22" cy="50" r="12" fill="#FF8F00"/>
+  <circle cx="26" cy="70" r="10" fill="#FF8F00"/>
+  <circle cx="74" cy="70" r="10" fill="#FF8F00"/>
+  <!-- Face -->
+  <circle cx="50" cy="54" r="34" fill="#FFB74D"/>
+  <!-- Eyes -->
+  <circle cx="38" cy="48" r="5.5" fill="white"/>
+  <circle cx="62" cy="48" r="5.5" fill="white"/>
+  <circle cx="39" cy="49" r="3.5" fill="#4E342E"/>
+  <circle cx="63" cy="49" r="3.5" fill="#4E342E"/>
+  <circle cx="40" cy="47.5" r="1.2" fill="white"/>
+  <circle cx="64" cy="47.5" r="1.2" fill="white"/>
+  <!-- Muzzle -->
+  <ellipse cx="50" cy="62" rx="14" ry="10" fill="#FFE0B2"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="58" rx="4" ry="3" fill="#5D4037"/>
+  <!-- Mouth -->
+  <path d="M44 64 Q50 70 56 64" fill="none" stroke="#5D4037" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Cheeks -->
+  <circle cx="30" cy="58" r="4" fill="#FFCC80" opacity="0.5"/>
+  <circle cx="70" cy="58" r="4" fill="#FFCC80" opacity="0.5"/>
+</svg>

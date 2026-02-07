@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cute Dinosaur - Green -->
+  <circle cx="50" cy="54" r="44" fill="#1B5E20"/>
+  <!-- Spikes -->
+  <polygon points="36,10 40,24 32,24" fill="#4CAF50"/>
+  <polygon points="50,6 54,22 46,22" fill="#4CAF50"/>
+  <polygon points="64,10 68,24 60,24" fill="#4CAF50"/>
+  <!-- Face -->
+  <circle cx="50" cy="54" r="40" fill="#66BB6A"/>
+  <!-- Snout -->
+  <ellipse cx="50" cy="62" rx="22" ry="16" fill="#81C784"/>
+  <!-- Eyes -->
+  <circle cx="36" cy="46" r="8" fill="white"/>
+  <circle cx="64" cy="46" r="8" fill="white"/>
+  <circle cx="38" cy="47" r="5" fill="#1B5E20"/>
+  <circle cx="66" cy="47" r="5" fill="#1B5E20"/>
+  <circle cx="39.5" cy="45" r="2" fill="white"/>
+  <circle cx="67.5" cy="45" r="2" fill="white"/>
+  <!-- Nostrils -->
+  <circle cx="42" cy="60" r="2.5" fill="#388E3C"/>
+  <circle cx="58" cy="60" r="2.5" fill="#388E3C"/>
+  <!-- Big smile -->
+  <path d="M36 68 Q50 78 64 68" fill="none" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>
+  <!-- Teeth -->
+  <rect x="41" y="67" width="4" height="4" rx="1" fill="white"/>
+  <rect x="55" y="67" width="4" height="4" rx="1" fill="white"/>
+  <!-- Cheeks -->
+  <circle cx="24" cy="60" r="5" fill="#A5D6A7" opacity="0.5"/>
+  <circle cx="76" cy="60" r="5" fill="#A5D6A7" opacity="0.5"/>
+</svg>

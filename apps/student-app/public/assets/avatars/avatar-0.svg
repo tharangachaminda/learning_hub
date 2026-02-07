@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Happy Cat - Orange -->
+  <circle cx="50" cy="50" r="48" fill="#FF9800"/>
+  <circle cx="50" cy="50" r="44" fill="#FFB74D"/>
+  <!-- Ears -->
+  <polygon points="18,28 30,8 38,32" fill="#FF9800"/>
+  <polygon points="82,28 70,8 62,32" fill="#FF9800"/>
+  <polygon points="22,28 30,14 36,32" fill="#FFE0B2"/>
+  <polygon points="78,28 70,14 64,32" fill="#FFE0B2"/>
+  <!-- Eyes -->
+  <ellipse cx="36" cy="44" rx="7" ry="8" fill="white"/>
+  <ellipse cx="64" cy="44" rx="7" ry="8" fill="white"/>
+  <ellipse cx="37" cy="45" rx="4" ry="5" fill="#4A2800"/>
+  <ellipse cx="65" cy="45" rx="4" ry="5" fill="#4A2800"/>
+  <circle cx="38" cy="43" r="2" fill="white"/>
+  <circle cx="66" cy="43" r="2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="56" rx="4" ry="3" fill="#E65100"/>
+  <!-- Mouth -->
+  <path d="M42 62 Q50 72 58 62" fill="none" stroke="#4A2800" stroke-width="2" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="14" y1="52" x2="32" y2="56" stroke="#4A2800" stroke-width="1.5"/>
+  <line x1="14" y1="60" x2="32" y2="60" stroke="#4A2800" stroke-width="1.5"/>
+  <line x1="68" y1="56" x2="86" y2="52" stroke="#4A2800" stroke-width="1.5"/>
+  <line x1="68" y1="60" x2="86" y2="60" stroke="#4A2800" stroke-width="1.5"/>
+</svg>
