@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Friendly Bear - Warm Brown -->
+  <circle cx="50" cy="50" r="48" fill="#795548"/>
+  <circle cx="50" cy="50" r="44" fill="#8D6E63"/>
+  <!-- Ears -->
+  <circle cx="22" cy="24" r="12" fill="#795548"/>
+  <circle cx="78" cy="24" r="12" fill="#795548"/>
+  <circle cx="22" cy="24" r="7" fill="#A1887F"/>
+  <circle cx="78" cy="24" r="7" fill="#A1887F"/>
+  <!-- Snout -->
+  <ellipse cx="50" cy="60" rx="18" ry="14" fill="#D7CCC8"/>
+  <!-- Eyes -->
+  <circle cx="36" cy="44" r="5" fill="#1A1A1A"/>
+  <circle cx="64" cy="44" r="5" fill="#1A1A1A"/>
+  <circle cx="37" cy="42" r="2" fill="white"/>
+  <circle cx="65" cy="42" r="2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="55" rx="5" ry="4" fill="#4E342E"/>
+  <!-- Mouth -->
+  <path d="M44 62 Q50 70 56 62" fill="none" stroke="#4E342E" stroke-width="2" stroke-linecap="round"/>
+  <!-- Cheeks -->
+  <circle cx="30" cy="56" r="5" fill="#FFAB91" opacity="0.5"/>
+  <circle cx="70" cy="56" r="5" fill="#FFAB91" opacity="0.5"/>
+</svg>

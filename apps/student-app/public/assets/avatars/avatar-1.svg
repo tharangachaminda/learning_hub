@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cool Dog - Brown -->
+  <circle cx="50" cy="50" r="48" fill="#8D6E63"/>
+  <circle cx="50" cy="50" r="44" fill="#A1887F"/>
+  <!-- Ears -->
+  <ellipse cx="20" cy="34" rx="14" ry="20" fill="#6D4C41" transform="rotate(-15 20 34)"/>
+  <ellipse cx="80" cy="34" rx="14" ry="20" fill="#6D4C41" transform="rotate(15 80 34)"/>
+  <!-- Face patch -->
+  <ellipse cx="50" cy="58" rx="22" ry="18" fill="#EFEBE9"/>
+  <!-- Eyes -->
+  <circle cx="36" cy="44" r="7" fill="white"/>
+  <circle cx="64" cy="44" r="7" fill="white"/>
+  <circle cx="37" cy="45" r="4.5" fill="#3E2723"/>
+  <circle cx="65" cy="45" r="4.5" fill="#3E2723"/>
+  <circle cx="38" cy="43" r="2" fill="white"/>
+  <circle cx="66" cy="43" r="2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="50" cy="55" rx="6" ry="4.5" fill="#3E2723"/>
+  <ellipse cx="50" cy="54" rx="3" ry="1.5" fill="#5D4037" opacity="0.5"/>
+  <!-- Mouth -->
+  <path d="M44 62 Q50 70 56 62" fill="none" stroke="#3E2723" stroke-width="2" stroke-linecap="round"/>
+  <!-- Tongue -->
+  <ellipse cx="50" cy="67" rx="4" ry="5" fill="#EF5350"/>
+</svg>
