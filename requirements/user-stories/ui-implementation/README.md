@@ -28,6 +28,10 @@ ui-implementation/
 ├── US-UI-P-003-parent-registration.md     # Parent Registration
 ├── US-UI-P-004-child-management.md        # Child Account Management
 ├── US-UI-P-005-learning-report.md         # Learning Reports
+├── US-UI-S-008-ai-question-generator.md    # AI Question Generator - Controls
+├── US-UI-S-009-ai-question-display.md     # AI Question Display & Pagination
+├── US-UI-S-010-answer-batch-submission.md  # Answer Collection & Batch Submission
+├── US-UI-S-011-hint-panel.md              # Hint Panel
 └── US-UI-SHARED-001-notification-center.md # Notification Center
 ```
 
@@ -68,7 +72,7 @@ ui-implementation/
 
 ## User Story Inventory
 
-### P0 Priority - MVP Critical (34 points)
+### P0 Priority - MVP Critical (55 points)
 
 | Story ID | Title | User Type | Points | Status |
 |----------|-------|-----------|--------|--------|
@@ -76,17 +80,21 @@ ui-implementation/
 | US-UI-S-002 | Student Dashboard | Student | 5 | Ready |
 | US-UI-S-003 | Student Registration | Student | 5 | Ready |
 | US-UI-S-004 | Question Practice Screen | Student | 8 | Ready |
+| US-UI-S-008 | AI Question Generator — Controls | Student | 5 | Ready |
+| US-UI-S-009 | AI Question Display & Pagination | Student | 8 | Ready |
+| US-UI-S-010 | Answer Collection & Batch Submission | Student | 5 | Ready |
 | US-UI-P-001 | Parent Login Screen | Parent | 3 | Ready |
 | US-UI-P-002 | Parent Dashboard | Parent | 5 | Ready |
 | US-UI-P-003 | Parent Registration | Parent | 5 | Ready |
 
-### P1 Priority - High Value (26 points)
+### P1 Priority - High Value (29 points)
 
 | Story ID | Title | User Type | Points | Status |
 |----------|-------|-----------|--------|--------|
 | US-UI-S-005 | Student Profile Settings | Student | 5 | Ready |
 | US-UI-S-006 | Achievement Unlocked Screen | Student | 3 | Ready |
 | US-UI-S-007 | Streak Tracker Component | Student | 3 | Ready |
+| US-UI-S-011 | Hint Panel | Student | 3 | Ready |
 | US-UI-P-004 | Child Account Management | Parent | 5 | Ready |
 | US-UI-P-005 | Learning Report Screen | Parent | 5 | Ready |
 | US-UI-SHARED-001 | Notification Center | Both | 5 | Ready |

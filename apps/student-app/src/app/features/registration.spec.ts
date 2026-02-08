@@ -329,22 +329,38 @@ describe('Registration', () => {
   describe('Password Complexity Validation', () => {
     it('should reject password without uppercase letter', () => {
       component.registrationForm.get('password')?.setValue('test1234!');
-      expect(component.registrationForm.get('password')?.hasError('passwordComplexity')).toBeTruthy();
+      expect(
+        component.registrationForm
+          .get('password')
+          ?.hasError('passwordComplexity')
+      ).toBeTruthy();
     });
 
     it('should reject password without a number', () => {
       component.registrationForm.get('password')?.setValue('Testtest!');
-      expect(component.registrationForm.get('password')?.hasError('passwordComplexity')).toBeTruthy();
+      expect(
+        component.registrationForm
+          .get('password')
+          ?.hasError('passwordComplexity')
+      ).toBeTruthy();
     });
 
     it('should reject password without special character', () => {
       component.registrationForm.get('password')?.setValue('Test1234');
-      expect(component.registrationForm.get('password')?.hasError('passwordComplexity')).toBeTruthy();
+      expect(
+        component.registrationForm
+          .get('password')
+          ?.hasError('passwordComplexity')
+      ).toBeTruthy();
     });
 
     it('should accept password meeting all complexity requirements', () => {
       component.registrationForm.get('password')?.setValue('Test123!');
-      expect(component.registrationForm.get('password')?.hasError('passwordComplexity')).toBeFalsy();
+      expect(
+        component.registrationForm
+          .get('password')
+          ?.hasError('passwordComplexity')
+      ).toBeFalsy();
     });
 
     it('should show complexity error message for weak password', () => {
@@ -582,7 +598,9 @@ describe('Registration', () => {
 
     it('should render toggle button for confirm password field', () => {
       const compiled = fixture.nativeElement;
-      const toggle = compiled.querySelector('[data-testid="toggle-confirmPassword"]');
+      const toggle = compiled.querySelector(
+        '[data-testid="toggle-confirmPassword"]'
+      );
       expect(toggle).toBeTruthy();
     });
 
@@ -614,7 +632,9 @@ describe('Registration', () => {
 
     it('should toggle confirm password independently', () => {
       const compiled = fixture.nativeElement;
-      const toggleConfirm = compiled.querySelector('[data-testid="toggle-confirmPassword"]');
+      const toggleConfirm = compiled.querySelector(
+        '[data-testid="toggle-confirmPassword"]'
+      );
       toggleConfirm.click();
       fixture.detectChanges();
       const confirmInput = compiled.querySelector('#confirmPassword');
@@ -1229,8 +1249,13 @@ describe('Registration', () => {
       const firstNameInput = compiled.querySelector('#firstName');
       const emailInput = compiled.querySelector('#email');
 
-      expect(firstNameInput.getAttribute('aria-label') || firstNameInput.labels?.length).toBeTruthy();
-      expect(emailInput.getAttribute('aria-label') || emailInput.labels?.length).toBeTruthy();
+      expect(
+        firstNameInput.getAttribute('aria-label') ||
+          firstNameInput.labels?.length
+      ).toBeTruthy();
+      expect(
+        emailInput.getAttribute('aria-label') || emailInput.labels?.length
+      ).toBeTruthy();
     });
 
     it('should announce step changes to screen readers', fakeAsync(() => {
@@ -1249,7 +1274,9 @@ describe('Registration', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement;
-      const firstAvatar = compiled.querySelector('[data-testid="avatar-option-0"]');
+      const firstAvatar = compiled.querySelector(
+        '[data-testid="avatar-option-0"]'
+      );
 
       expect(firstAvatar.getAttribute('tabindex')).toBe('0');
       expect(firstAvatar.getAttribute('role')).toBe('button');
@@ -1315,7 +1342,9 @@ describe('Registration', () => {
       tick();
       fixture.detectChanges();
 
-      const successMsg = fixture.nativeElement.querySelector('[data-testid="registration-success"]');
+      const successMsg = fixture.nativeElement.querySelector(
+        '[data-testid="registration-success"]'
+      );
       expect(successMsg).toBeTruthy();
       expect(successMsg.textContent).toContain('Account created successfully');
     }));
@@ -1325,7 +1354,10 @@ describe('Registration', () => {
       tick();
 
       const req = httpMock.expectOne('/api/auth/student/register');
-      req.flush({ message: 'Error' }, { status: 400, statusText: 'Bad Request' });
+      req.flush(
+        { message: 'Error' },
+        { status: 400, statusText: 'Bad Request' }
+      );
       tick();
 
       expect(component.registrationSuccess).toBe(false);
