@@ -100,7 +100,7 @@
 ## Testing Summary
 
 | Metric     | Value   | Requirement | Status |
-|-----------|---------|-------------|--------|
+| ---------- | ------- | ----------- | ------ |
 | Tests      | 80/80   | All pass    | ✅     |
 | Full Suite | 110/110 | All pass    | ✅     |
 | Statements | 87.27%  | >85%        | ✅     |

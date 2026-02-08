@@ -50,7 +50,9 @@ export class Registration implements OnInit {
   /**
    * Available grade levels for selection (1-12).
    */
-  readonly availableGrades = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+  readonly availableGrades = Array.from({ length: 12 }, (_, i) =>
+    (i + 1).toString()
+  );
 
   /**
    * Available learning goal subjects.
@@ -181,7 +183,14 @@ export class Registration implements OnInit {
           [Validators.required, Validators.email],
           [this.emailUniquenessValidator()],
         ],
-        password: ['', [Validators.required, Validators.minLength(8), this.passwordComplexityValidator]],
+        password: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(8),
+            this.passwordComplexityValidator,
+          ],
+        ],
         confirmPassword: ['', [Validators.required]],
         grade: ['', [Validators.required]],
         learningGoals: [[]],
@@ -384,8 +393,11 @@ export class Registration implements OnInit {
       (f) => this.registrationForm.get(f)?.valid
     );
     const emailControl = this.registrationForm.get('email');
-    const emailAcceptable = emailControl?.valid || (emailControl?.pending && !emailControl?.hasError('email'));
-    const noPasswordMismatch = !this.registrationForm.hasError('passwordMismatch');
+    const emailAcceptable =
+      emailControl?.valid ||
+      (emailControl?.pending && !emailControl?.hasError('email'));
+    const noPasswordMismatch =
+      !this.registrationForm.hasError('passwordMismatch');
     return allSyncValid && !!emailAcceptable && noPasswordMismatch;
   }
 
@@ -496,10 +508,7 @@ export class Registration implements OnInit {
    */
   private setupAutoSave(): void {
     this.registrationForm.valueChanges
-      .pipe(
-        debounceTime(1000),
-        distinctUntilChanged()
-      )
+      .pipe(debounceTime(1000), distinctUntilChanged())
       .subscribe(() => {
         this.saveFormData();
       });
