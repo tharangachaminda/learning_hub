@@ -47,6 +47,7 @@ So that **I can practise questions that are relevant to my grade level and learn
 ### Functional Requirements
 
 1. **Route & Navigation**
+
    - GIVEN I am a logged-in student
    - WHEN I navigate to `/practice/generate`
    - THEN I see the AI Question Generator screen
@@ -55,6 +56,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND if the backend is unhealthy, I see a friendly error banner
 
 2. **Grade Dropdown (Pre-filled)**
+
    - GIVEN I am on the generation controls screen
    - WHEN the screen loads
    - THEN I see a Grade dropdown (`mdb-select`) pre-filled from my profile (grades 3–8)
@@ -62,6 +64,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND changing the grade resets the Topic dropdown to the first available topic for that grade
 
 3. **Topic Dropdown (Filtered by Grade)**
+
    - GIVEN I have a grade selected
    - WHEN the Topic dropdown renders
    - THEN it shows only topics available for my selected grade (from `GRADE_TOPICS[grade].mathematics`)
@@ -70,6 +73,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND changing the grade refreshes the topic list immediately
 
 4. **Category Card Selection**
+
    - GIVEN I am on the generation controls screen
    - WHEN I view the category selector
    - THEN I see 4 category cards in a 2×2 grid:
@@ -84,6 +88,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND on mobile (<768 px) the cards stack into a single column
 
 5. **Difficulty Toggle**
+
    - GIVEN I am on the generation controls screen
    - WHEN I view the difficulty selector
    - THEN I see a toggle button group with three options: Easy, Medium, Hard
@@ -92,6 +97,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND only one difficulty can be selected at a time
 
 6. **Question Count Slider**
+
    - GIVEN I am on the generation controls screen
    - WHEN I view the count selector
    - THEN I see a range slider with a number badge above the thumb
@@ -100,6 +106,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND the badge updates as I drag the slider
 
 7. **Generate Button**
+
    - GIVEN I have a topic selected
    - WHEN I view the "🚀 Generate Questions" button
    - THEN it is enabled (`.btn-primary-student` style: 56 px height, 18 px font)
@@ -109,6 +116,7 @@ So that **I can practise questions that are relevant to my grade level and learn
    - AND a loading overlay appears with encouraging text: "🎨 Creating your questions…"
 
 8. **Country (Hidden)**
+
    - GIVEN the generation controls are configured
    - WHEN the API request is made
    - THEN the student's country from their profile is included silently in the request
@@ -126,11 +134,13 @@ So that **I can practise questions that are relevant to my grade level and learn
 ### Quality Requirements
 
 10. **Performance**
+
     - Loading state appears within 200 ms of clicking Generate
     - If API takes > 3 s, a secondary message cycles in: "Almost there! ⏳"
     - Initial page load (LCP) < 2 seconds
 
 11. **Accessibility**
+
     - All controls are keyboard-navigable (Tab, Enter/Space)
     - ARIA labels on all dropdowns, cards, and buttons
     - Focus indicators (3 px outline) visible on all interactive elements
@@ -138,6 +148,7 @@ So that **I can practise questions that are relevant to my grade level and learn
     - Respects `prefers-reduced-motion` — animations disabled when set
 
 12. **Responsive Design**
+
     - ≥768 px: 2×2 category grid, side-by-side layout
     - <768 px: Single-column stack, full-width buttons, reduced padding
 
@@ -212,19 +223,19 @@ Until the auth story is implemented, use a mock service returning:
 
 ### Unit Tests (Jest + Angular Testing Library)
 
-| Test Area | Cases |
-|---|---|
-| Route | `/practice/generate` renders `QuestionGeneratorComponent` |
-| Grade dropdown | Pre-fills from profile, options 3–8, changing grade resets topic |
-| Topic dropdown | Filters by grade, shows display names, auto-selects first |
-| Category cards | Renders 4 cards, single-select, default "Number Operations", selected styling |
-| Difficulty toggle | 3 options, default "Easy", single-select, colour coding |
-| Count slider | Range 5–25, step 5, default 10, badge updates |
-| Generate button | Enabled when topic selected, disabled otherwise, loading state |
-| Country | Sent in API request, falls back to NZ |
-| API integration | Calls `GET /api/math-questions/generate` with correct params |
-| Error handling | Error card renders on API failure, empty state on 0 results |
-| Health check | Runs on init, shows error banner if unhealthy |
+| Test Area         | Cases                                                                         |
+| ----------------- | ----------------------------------------------------------------------------- |
+| Route             | `/practice/generate` renders `QuestionGeneratorComponent`                     |
+| Grade dropdown    | Pre-fills from profile, options 3–8, changing grade resets topic              |
+| Topic dropdown    | Filters by grade, shows display names, auto-selects first                     |
+| Category cards    | Renders 4 cards, single-select, default "Number Operations", selected styling |
+| Difficulty toggle | 3 options, default "Easy", single-select, colour coding                       |
+| Count slider      | Range 5–25, step 5, default 10, badge updates                                 |
+| Generate button   | Enabled when topic selected, disabled otherwise, loading state                |
+| Country           | Sent in API request, falls back to NZ                                         |
+| API integration   | Calls `GET /api/math-questions/generate` with correct params                  |
+| Error handling    | Error card renders on API failure, empty state on 0 results                   |
+| Health check      | Runs on init, shows error banner if unhealthy                                 |
 
 ### Coverage Target
 
@@ -259,11 +270,13 @@ Until the auth story is implemented, use a mock service returning:
 ## Dependencies
 
 ### Blockers
+
 - Backend `GET /api/math-questions/generate` endpoint operational
 - Backend `GET /api/math-questions/health` endpoint operational
 - Curriculum data available (`GRADE_TOPICS`, `QUESTION_CATEGORIES`, `QUESTION_TYPE_DISPLAY_NAMES`)
 
 ### Related Stories
+
 - **US-UI-S-009:** AI Question Display & Pagination (consumes generated questions)
 - **US-UI-S-010:** Answer Collection & Batch Submission (submits answers)
 - **US-UI-S-004:** Question Practice Screen (existing practice flow)

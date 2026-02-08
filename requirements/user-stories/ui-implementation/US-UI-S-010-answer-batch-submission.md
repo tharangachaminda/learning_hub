@@ -45,6 +45,7 @@ So that **I can work through questions at my own pace without pressure and then 
 ### Functional Requirements
 
 1. **Submit Button Visibility**
+
    - GIVEN I am in the question list (Phase 2)
    - WHEN at least one question has been answered
    - THEN a "✅ Submit All Answers (X of N answered)" button appears at the bottom of the page
@@ -53,12 +54,14 @@ So that **I can work through questions at my own pace without pressure and then 
    - AND X updates in real-time as I answer more questions
 
 2. **Submit Button — Unanswered Awareness**
+
    - GIVEN I have answered X out of N questions (where X < N)
    - WHEN I view the submit button
    - THEN the label clearly shows "X of N answered"
    - AND the label colour/tone indicates incomplete (not alarming — friendly)
 
 3. **Confirmation Modal**
+
    - GIVEN I click the Submit button
    - WHEN the confirmation modal opens
    - THEN I see: "You've answered **X out of N** questions. Unanswered questions will be marked as skipped. Ready to submit?"
@@ -68,6 +71,7 @@ So that **I can work through questions at my own pace without pressure and then 
    - AND pressing Submit triggers the scoring flow
 
 4. **Client-Side Scoring (MVP)**
+
    - GIVEN I confirm submission
    - WHEN the scoring runs
    - THEN each answered question is compared against `GeneratedQuestion.answer`
@@ -76,6 +80,7 @@ So that **I can work through questions at my own pace without pressure and then 
    - AND total time spent is captured from the session timer
 
 5. **Results Summary Display**
+
    - GIVEN scoring is complete
    - WHEN the results screen renders (phase transitions to `results`)
    - THEN I see a summary card showing:
@@ -91,6 +96,7 @@ So that **I can work through questions at my own pace without pressure and then 
      - < 50%: "💪 Good try! Let's practise some more!"
 
 6. **Post-Results Actions**
+
    - GIVEN I am on the results screen
    - WHEN I view the action buttons
    - THEN I see:
@@ -99,6 +105,7 @@ So that **I can work through questions at my own pace without pressure and then 
    - AND both buttons use `.btn-student` styling
 
 7. **Answer Submission Data Model**
+
    - GIVEN I submit answers
    - WHEN the submission is assembled
    - THEN the `AnswerSubmission` object contains:
@@ -117,16 +124,19 @@ So that **I can work through questions at my own pace without pressure and then 
 ### Quality Requirements
 
 9. **Performance**
-    - Client-side scoring completes in < 100 ms
-    - Results screen renders immediately after scoring
+
+   - Client-side scoring completes in < 100 ms
+   - Results screen renders immediately after scoring
 
 10. **Accessibility**
+
     - Modal traps focus; Escape key closes it
     - Results summary is announced by screen readers
     - Action buttons are keyboard-navigable
     - Colour-coded results have text labels (not colour-only)
 
 11. **Responsive Design**
+
     - Submit button full-width on mobile (<768 px)
     - Results card centred with max-width on desktop
     - Action buttons stack on mobile
@@ -177,12 +187,12 @@ allAnswered = computed(() => this.totalAnswered() === this.questions().length);
 ```typescript
 interface StudentAnswer {
   questionIndex: number;
-  selectedOption?: string;       // "A" | "B" | "C" | "D"
-  numericAnswer?: number;        // Future: numeric input
-  textAnswer?: string;           // Future: fill-in-blank
+  selectedOption?: string; // "A" | "B" | "C" | "D"
+  numericAnswer?: number; // Future: numeric input
+  textAnswer?: string; // Future: fill-in-blank
   additionalNotes?: string;
   hintUsed: boolean;
-  timeSpent: number;             // seconds
+  timeSpent: number; // seconds
 }
 
 interface AnswerSubmission {
@@ -195,7 +205,7 @@ interface AnswerSubmission {
   };
   answers: StudentAnswer[];
   totalTimeSpent: number;
-  submittedAt: string;           // ISO timestamp
+  submittedAt: string; // ISO timestamp
 }
 
 interface ScoringResult {
@@ -204,7 +214,7 @@ interface ScoringResult {
   skipped: number;
   total: number;
   percentage: number;
-  timeSpent: number;             // formatted string "mm:ss"
+  timeSpent: number; // formatted string "mm:ss"
 }
 ```
 
@@ -214,19 +224,19 @@ interface ScoringResult {
 
 ### Unit Tests (Jest + Angular Testing Library)
 
-| Test Area | Cases |
-|---|---|
-| Submit button | Hidden when 0 answered, visible when ≥1 answered, label shows "X of N" |
-| Submit button | Disabled while `isSubmitting` is true |
-| Confirmation modal | Opens on submit click, shows correct count text, Cancel closes, Submit triggers scoring |
-| Client-side scoring | Correct answers counted, incorrect counted, skipped = total - answered |
-| Results summary | Shows correct/incorrect/skipped counts and percentages |
-| Results — encouraging text | ≥80%: superstar message, 50–79%: great effort, <50%: good try |
-| Results — animation | Celebratory animation triggers at ≥80% |
-| Try Again | Returns to Phase 1, previous params pre-filled |
-| Back to Dashboard | Navigates to dashboard route |
-| Data model | `AnswerSubmission` assembled with correct structure |
-| Time formatting | Total time displays as mm:ss |
+| Test Area                  | Cases                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------- |
+| Submit button              | Hidden when 0 answered, visible when ≥1 answered, label shows "X of N"                  |
+| Submit button              | Disabled while `isSubmitting` is true                                                   |
+| Confirmation modal         | Opens on submit click, shows correct count text, Cancel closes, Submit triggers scoring |
+| Client-side scoring        | Correct answers counted, incorrect counted, skipped = total - answered                  |
+| Results summary            | Shows correct/incorrect/skipped counts and percentages                                  |
+| Results — encouraging text | ≥80%: superstar message, 50–79%: great effort, <50%: good try                           |
+| Results — animation        | Celebratory animation triggers at ≥80%                                                  |
+| Try Again                  | Returns to Phase 1, previous params pre-filled                                          |
+| Back to Dashboard          | Navigates to dashboard route                                                            |
+| Data model                 | `AnswerSubmission` assembled with correct structure                                     |
+| Time formatting            | Total time displays as mm:ss                                                            |
 
 ### Coverage Target
 
@@ -260,14 +270,17 @@ interface ScoringResult {
 ## Dependencies
 
 ### Blockers
+
 - **US-UI-S-008** (Generation Controls — provides `generationParams`)
 - **US-UI-S-009** (Question Display — provides `answers` signal)
 
 ### Future Dependencies (Not Blockers)
+
 - Batch answer submission endpoint (backend — not yet built)
 - Server-side persistence of results
 
 ### Related Stories
+
 - **US-UI-S-008:** AI Question Generator — Generation Controls
 - **US-UI-S-009:** AI Question Display & Pagination
 - **US-UI-S-011:** Hint Panel

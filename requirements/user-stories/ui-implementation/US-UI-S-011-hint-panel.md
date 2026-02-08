@@ -42,12 +42,14 @@ So that **I can get help understanding the problem while still trying to solve i
 ### Functional Requirements
 
 1. **Hint Button Display**
+
    - GIVEN I am viewing a question card
    - WHEN the card renders
    - THEN I see a "💡 Show Hint" text button below the additional notes textarea
    - AND the button uses a subtle, non-distracting style (text link, not primary button)
 
 2. **Hint Expand**
+
    - GIVEN the hint is collapsed (default state)
    - WHEN I click "💡 Show Hint"
    - THEN a hint panel slides down with a smooth animation (`--animation-normal: 0.3s`)
@@ -56,6 +58,7 @@ So that **I can get help understanding the problem while still trying to solve i
    - AND the `hintUsed` flag is set to `true` for this question's `StudentAnswer`
 
 3. **Hint Collapse**
+
    - GIVEN the hint is expanded
    - WHEN I click "💡 Hide Hint"
    - THEN the hint panel slides up and is hidden
@@ -63,6 +66,7 @@ So that **I can get help understanding the problem while still trying to solve i
    - AND the `hintUsed` flag remains `true` (once revealed, always tracked)
 
 4. **Hint Visual Style**
+
    - GIVEN the hint panel is expanded
    - WHEN I view it
    - THEN it has:
@@ -74,12 +78,14 @@ So that **I can get help understanding the problem while still trying to solve i
    - AND the text is readable (16 px, `--text-primary` colour)
 
 5. **Hint State Persistence**
+
    - GIVEN I have expanded the hint on question 3
    - WHEN I navigate to question 4 and then back to question 3
    - THEN the hint is still in its expanded state
    - AND the `hintUsed` flag is still `true`
 
 6. **No API Call**
+
    - GIVEN I click "Show Hint"
    - WHEN the hint renders
    - THEN no network request is made
@@ -94,16 +100,19 @@ So that **I can get help understanding the problem while still trying to solve i
 ### Quality Requirements
 
 8. **Performance**
+
    - Hint expand/collapse: instant (client-side, no API call)
    - Animation duration: 0.3 s (respects `prefers-reduced-motion`)
 
 9. **Accessibility**
+
    - Toggle button has `aria-expanded="true|false"` attribute
    - Hint panel has `role="region"` and `aria-label="Hint"`
    - Toggle button is focusable and activatable via Enter/Space
    - Screen reader announces "Hint shown" / "Hint hidden" on toggle
 
 10. **Responsive Design**
+
     - Hint panel is full-width within the question card at all breakpoints
     - Text wraps naturally on narrow screens
 
@@ -169,20 +178,20 @@ export class HintPanelComponent {
 
 ### Unit Tests (Jest + Angular Testing Library)
 
-| Test Area | Cases |
-|---|---|
-| Default state | Hint panel is collapsed on render |
-| Show Hint | Click → panel visible, button text changes to "Hide Hint" |
-| Hide Hint | Click again → panel hidden, button text changes to "Show Hint" |
-| Explanation text | Renders the `explanation` input content |
-| LaTeX in hint | LaTeX expressions rendered via KaTeX |
-| `hintUsed` event | `hintRevealed` output emits on first reveal only |
-| `hintToggled` event | Emits on every toggle with current expanded state |
-| State persistence | `isExpanded` input controls initial state correctly |
-| No HTTP call | No `HttpClient` usage in component or dependencies |
-| `aria-expanded` | Attribute toggles between `true` and `false` |
-| `prefers-reduced-motion` | Animation class not applied when motion is reduced |
-| Visual style | Yellow background, accent left border, 💡 icon |
+| Test Area                | Cases                                                          |
+| ------------------------ | -------------------------------------------------------------- |
+| Default state            | Hint panel is collapsed on render                              |
+| Show Hint                | Click → panel visible, button text changes to "Hide Hint"      |
+| Hide Hint                | Click again → panel hidden, button text changes to "Show Hint" |
+| Explanation text         | Renders the `explanation` input content                        |
+| LaTeX in hint            | LaTeX expressions rendered via KaTeX                           |
+| `hintUsed` event         | `hintRevealed` output emits on first reveal only               |
+| `hintToggled` event      | Emits on every toggle with current expanded state              |
+| State persistence        | `isExpanded` input controls initial state correctly            |
+| No HTTP call             | No `HttpClient` usage in component or dependencies             |
+| `aria-expanded`          | Attribute toggles between `true` and `false`                   |
+| `prefers-reduced-motion` | Animation class not applied when motion is reduced             |
+| Visual style             | Yellow background, accent left border, 💡 icon                 |
 
 ### Coverage Target
 
@@ -213,10 +222,12 @@ export class HintPanelComponent {
 ## Dependencies
 
 ### Blockers
+
 - **US-UI-S-009** (Question Display — `QuestionCardComponent` hosts the hint panel)
 - `KatexRenderComponent` (from US-UI-S-009 — for LaTeX in hints)
 
 ### Related Stories
+
 - **US-UI-S-009:** AI Question Display & Pagination (parent component)
 - **US-UI-S-010:** Answer Collection & Batch Submission (tracks `hintUsed`)
 
