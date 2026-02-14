@@ -1,0 +1,128 @@
+<div class="generation-controls">
+  <h2 class="controls-title">🎯 Create Your Questions</h2>
+
+  <!-- Grade Dropdown -->
+  <div class="control-group">
+    <label for="grade-select" class="control-label">Grade</label>
+    <select
+      id="grade-select"
+      class="form-select control-select"
+      [ngModel]="selectedGrade()"
+      (ngModelChange)="onGradeChange($event)"
+      [disabled]="isGenerating"
+      aria-label="Select your grade level"
+      data-testid="grade-select"
+    >
+      @for (g of supportedGrades; track g) {
+      <option [ngValue]="g">Grade {{ g }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Topic Dropdown -->
+  <div class="control-group">
+    <label for="topic-select" class="control-label">Topic</label>
+    <select
+      id="topic-select"
+      class="form-select control-select"
+      [ngModel]="selectedTopic()"
+      (ngModelChange)="onTopicChange($event)"
+      [disabled]="isGenerating"
+      aria-label="Select a topic"
+      data-testid="topic-select"
+    >
+      @for (topic of availableTopics(); track topic) {
+      <option [ngValue]="topic">{{ getTopicDisplayName(topic) }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Difficulty Toggle -->
+  <div class="control-group">
+    <label class="control-label">Difficulty</label>
+    <div
+      class="difficulty-toggle"
+      role="group"
+      aria-label="Select difficulty"
+      data-testid="difficulty-toggle"
+    >
+      <button
+        class="difficulty-btn difficulty-easy"
+        [class.selected]="selectedDifficulty() === 'easy'"
+        (click)="onDifficultySelect('easy')"
+        [disabled]="isGenerating"
+        [attr.aria-pressed]="selectedDifficulty() === 'easy'"
+        type="button"
+        data-testid="difficulty-easy"
+      >
+        Easy
+      </button>
+      <button
+        class="difficulty-btn difficulty-medium"
+        [class.selected]="selectedDifficulty() === 'medium'"
+        (click)="onDifficultySelect('medium')"
+        [disabled]="isGenerating"
+        [attr.aria-pressed]="selectedDifficulty() === 'medium'"
+        type="button"
+        data-testid="difficulty-medium"
+      >
+        Medium
+      </button>
+      <button
+        class="difficulty-btn difficulty-hard"
+        [class.selected]="selectedDifficulty() === 'hard'"
+        (click)="onDifficultySelect('hard')"
+        [disabled]="isGenerating"
+        [attr.aria-pressed]="selectedDifficulty() === 'hard'"
+        type="button"
+        data-testid="difficulty-hard"
+      >
+        Hard
+      </button>
+    </div>
+  </div>
+
+  <!-- Question Count Slider -->
+  <div class="control-group">
+    <label for="count-slider" class="control-label">
+      Number of Questions
+      <span class="count-badge" data-testid="count-badge"
+        >{{ selectedCount() }}</span
+      >
+    </label>
+    <input
+      id="count-slider"
+      type="range"
+      class="form-range count-slider"
+      [min]="5"
+      [max]="25"
+      [step]="5"
+      [ngModel]="selectedCount()"
+      (ngModelChange)="onCountChange($event)"
+      [disabled]="isGenerating"
+      aria-label="Number of questions"
+      data-testid="count-slider"
+    />
+    <div class="slider-labels">
+      <span>5</span>
+      <span>10</span>
+      <span>15</span>
+      <span>20</span>
+      <span>25</span>
+    </div>
+  </div>
+
+  <!-- Generate Button -->
+  <button
+    class="btn-generate"
+    (click)="onGenerateClick()"
+    [disabled]="!canGenerate()"
+    aria-label="Generate questions"
+    data-testid="generate-btn"
+    type="button"
+  >
+    @if (isGenerating) {
+    <span class="btn-spinner" role="status"></span>
+    🧠 } @else { 🚀 Generate Questions }
+  </button>
+</div>
