@@ -1,0 +1,171 @@
+:host {
+  display: block;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.health-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: var(--border-radius, 16px);
+  color: #856404;
+  font-size: 16px;
+}
+
+.health-error-icon {
+  font-size: 24px;
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.loading-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--border-radius, 16px);
+  padding: 48px;
+  text-align: center;
+  box-shadow: var(--shadow-medium, 0 4px 16px rgba(0, 0, 0, 0.15));
+}
+
+.ai-brain-container {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-brain-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  line-height: 1;
+  animation: brainPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes brainPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.loading-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 6px;
+}
+
+.loading-subtitle {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-brain-icon {
+    animation: none;
+  }
+}
+
+/* Empty State */
+.empty-state-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--border-radius, 16px);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-soft, 0 2px 8px rgba(0, 0, 0, 0.1));
+  margin-top: 24px;
+}
+
+.empty-state-text {
+  font-size: 18px;
+  color: #555;
+  margin: 0;
+}
+
+/* Error State */
+.error-state-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--border-radius, 16px);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-soft, 0 2px 8px rgba(0, 0, 0, 0.1));
+  margin-top: 24px;
+}
+
+.error-state-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px;
+}
+
+.error-state-text {
+  font-size: 16px;
+  color: #666;
+  margin: 0 0 24px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-retry {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: var(--primary-color, #4285f4);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-retry:focus-visible {
+  outline: 3px solid var(--primary-color, #4285f4);
+  outline-offset: 2px;
+}
+
+.btn-dashboard {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-dashboard:focus-visible {
+  outline: 3px solid var(--primary-color, #4285f4);
+  outline-offset: 2px;
+}

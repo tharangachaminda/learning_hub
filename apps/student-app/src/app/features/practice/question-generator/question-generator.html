@@ -1,0 +1,72 @@
+<!-- Health Error Banner -->
+@if (!serviceHealthy()) {
+<div class="health-error-banner" data-testid="health-error-banner" role="alert">
+  <span class="health-error-icon">⚠️</span>
+  <span
+    >Our question service is not available right now. Please try again
+    later!</span
+  >
+</div>
+}
+
+<!-- Phase 1: Generation Controls -->
+@if (phase() === 'controls') {
+<app-generation-controls
+  [grade]="profileGrade()"
+  [country]="profileCountry()"
+  [isGenerating]="isGenerating()"
+  [serviceHealthy]="serviceHealthy()"
+  (generate)="onGenerate($event)"
+/>
+}
+
+<!-- Empty State: 0 questions returned -->
+@if (emptyState()) {
+<div class="empty-state-card" data-testid="empty-state" role="alert">
+  <p class="empty-state-text">
+    🤔 No questions found for this topic. Try a different topic!
+  </p>
+</div>
+}
+
+<!-- Error State: API failure -->
+@if (errorState()) {
+<div class="error-state-card" data-testid="error-state" role="alert">
+  <p class="error-state-title">😅 Oops! Something went wrong</p>
+  <p class="error-state-text">
+    We couldn't generate your questions right now. Let's try again!
+  </p>
+  <div class="error-actions">
+    <button
+      class="btn-retry"
+      data-testid="retry-btn"
+      (click)="onRetry()"
+      type="button"
+    >
+      🔄 Try Again
+    </button>
+    <button class="btn-dashboard" data-testid="dashboard-btn" type="button">
+      🏠 Back to Dashboard
+    </button>
+  </div>
+</div>
+}
+
+<!-- Loading Overlay -->
+@if (isGenerating()) {
+<div class="loading-overlay" data-testid="loading-overlay">
+  <div class="loading-card">
+    <div class="ai-brain-container">
+      <div
+        class="ai-brain-icon"
+        role="status"
+        aria-label="Generating questions"
+      >
+        🧠
+      </div>
+    </div>
+    <p class="loading-title">Thinking...</p>
+    <p class="loading-subtitle">Preparing your questions</p>
+  </div>
+</div>
+}
