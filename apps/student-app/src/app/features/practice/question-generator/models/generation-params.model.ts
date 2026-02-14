@@ -19,6 +19,12 @@
  * };
  * ```
  */
+/**
+ * Answer display type — controls how the question is rendered.
+ * Frontend-only parameter, not sent to the backend API.
+ */
+export type AnswerType = 'multiple-choice' | 'open-ended';
+
 export interface GenerationParams {
   /** Student grade level (3–8) */
   grade: number;
@@ -30,4 +36,10 @@ export interface GenerationParams {
   count: number;
   /** Country code for curriculum context (hidden from student) */
   country: string;
+  /**
+   * How to display answer input — 'multiple-choice' (default) generates
+   * 4 options from correct answer; 'open-ended' shows no options.
+   * Frontend-only, not sent to the backend.
+   */
+  answerType?: AnswerType;
 }

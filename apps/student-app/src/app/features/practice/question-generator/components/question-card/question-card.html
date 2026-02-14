@@ -1,0 +1,88 @@
+<div class="question-card">
+  <!-- Header: counter + difficulty badge -->
+  <div class="question-card__header">
+    <span class="question-card__counter" data-testid="question-counter">
+      📝 Question {{ questionNumber() }} of {{ totalQuestions() }}
+    </span>
+    <span
+      class="question-card__badge badge-{{ question().metadata.difficulty }}"
+      data-testid="difficulty-badge"
+    >
+      {{ question().metadata.difficulty }}
+    </span>
+  </div>
+
+  <!-- Question text with LaTeX rendering -->
+  <div class="question-card__body">
+    <div class="question-card__text" data-testid="question-text">
+      <app-katex-render [content]="question().question" />
+    </div>
+
+    <!-- Multiple-choice options (2×2 grid) -->
+    @if (options().length > 0) {
+    <div
+      class="options-grid"
+      data-testid="options-grid"
+      role="radiogroup"
+      aria-label="Answer options"
+    >
+      @for (option of options(); track $index) {
+      <button
+        type="button"
+        class="option-button"
+        [class.option-selected]="selectedOption() === optionLetters[$index]"
+        [attr.data-testid]="'option-' + optionLetters[$index]"
+        [attr.aria-checked]="selectedOption() === optionLetters[$index]"
+        role="radio"
+        (click)="onSelectOption(optionLetters[$index])"
+      >
+        <span class="option-badge">{{ optionLetters[$index] }}</span>
+        <span class="option-text">
+          <app-katex-render [content]="option" />
+        </span>
+      </button>
+      }
+    </div>
+    }
+
+    <!-- Textarea for Additional Notes -->
+    <div class="notes-section">
+      <label class="notes-label" data-testid="notes-label" for="notes-textarea">
+        Additional notes (optional)
+      </label>
+      <textarea
+        id="notes-textarea"
+        class="notes-textarea"
+        data-testid="notes-textarea"
+        rows="3"
+        [maxLength]="maxNotesLength"
+        [value]="notes()"
+        aria-label="Additional notes for this question"
+        placeholder="Show your working or add comments..."
+        (input)="onNotesInput($event)"
+      ></textarea>
+      <span class="char-count" data-testid="char-count">
+        {{ notesLength() }} / {{ maxNotesLength }}
+      </span>
+    </div>
+
+    <!-- Hint Toggle -->
+    <div class="hint-section">
+      <button
+        type="button"
+        class="hint-toggle"
+        data-testid="hint-toggle"
+        (click)="onToggleHint()"
+        [attr.aria-expanded]="showHint()"
+      >
+        💡 {{ showHint() ? 'Hide Hint' : 'Show Hint' }}
+      </button>
+
+      @if (showHint()) {
+      <div class="hint-content" data-testid="hint-content">
+        <app-katex-render [content]="question().explanation" />
+      </div>
+      }
+    </div>
+  </div>
+</div>

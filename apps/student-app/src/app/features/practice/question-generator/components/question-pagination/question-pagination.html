@@ -1,0 +1,45 @@
+<!-- Progress Bar -->
+<div
+  class="progress-bar-container"
+  data-testid="progress-bar"
+  role="progressbar"
+  [attr.aria-valuenow]="progressPercent()"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  [attr.aria-label]="'Question ' + (currentIndex() + 1) + ' of ' + totalQuestions()"
+>
+  <div
+    class="progress-bar-fill"
+    data-testid="progress-fill"
+    [style.width.%]="progressPercent()"
+  ></div>
+</div>
+
+<!-- Navigation Controls -->
+<div class="pagination-controls">
+  <button
+    type="button"
+    class="nav-btn nav-btn--prev"
+    data-testid="prev-btn"
+    [disabled]="currentIndex() === 0"
+    (click)="onPrevious()"
+    aria-label="Go to previous question"
+  >
+    ← Previous
+  </button>
+
+  <span class="page-counter" data-testid="page-counter">
+    Q {{ currentIndex() + 1 }}/{{ totalQuestions() }}
+  </span>
+
+  <button
+    type="button"
+    class="nav-btn nav-btn--next"
+    data-testid="next-btn"
+    [disabled]="currentIndex() === totalQuestions() - 1"
+    (click)="onNext()"
+    aria-label="Go to next question"
+  >
+    Next →
+  </button>
+</div>

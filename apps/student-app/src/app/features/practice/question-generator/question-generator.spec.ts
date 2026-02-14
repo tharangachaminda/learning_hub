@@ -308,4 +308,518 @@ describe('QuestionGeneratorComponent', () => {
       tick();
     }));
   });
+
+  // ────────────────────────────────────────────────────
+  // API Response Mapping (MathQuestion → GeneratedQuestion)
+  // ────────────────────────────────────────────────────
+  describe('API Response Mapping', () => {
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 2,
+      country: 'NZ',
+    };
+
+    /** Raw API response shape — what the backend actually returns */
+    const rawApiResponse = [
+      {
+        question: '9 + 7 = ?',
+        answer: 16,
+        operation: 'addition',
+        difficulty: 'grade_3',
+        stepByStepSolution: ['Add 9 and 7 together to get 16.'],
+        createdAt: '2026-02-14T07:47:50.205Z',
+      },
+      {
+        question: '3 + 8 = ?',
+        answer: 11,
+        operation: 'addition',
+        difficulty: 'grade_3',
+        stepByStepSolution: ['Add 3 and 8 together to get 11.'],
+        createdAt: '2026-02-14T07:48:00.210Z',
+      },
+    ];
+
+    function initComponent(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+    }
+
+    it('should map raw API response into GeneratedQuestion format with metadata', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      const q = component.questions()[0];
+      expect(q.question).toBe('9 + 7 = ?');
+      expect(q.answer).toBe(16);
+      expect(q.metadata).toBeDefined();
+      expect(q.metadata.grade).toBe(3);
+      expect(q.metadata.topic).toBe('ADDITION');
+      expect(q.metadata.difficulty).toBe('easy');
+      expect(q.metadata.country).toBe('NZ');
+    }));
+
+    it('should map stepByStepSolution to explanation', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      expect(component.questions()[0].explanation).toBe(
+        'Add 9 and 7 together to get 16.'
+      );
+    }));
+
+    it('should handle missing stepByStepSolution with fallback explanation', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const noStepsResponse = [
+        {
+          question: '2 + 2 = ?',
+          answer: 4,
+          operation: 'addition',
+          difficulty: 'grade_3',
+          createdAt: '2026-02-14T07:47:50.205Z',
+        },
+      ];
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(noStepsResponse);
+      tick();
+
+      expect(component.questions()[0].explanation).toBeTruthy();
+    }));
+
+    it('should transition to questions phase with mapped questions', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      expect(component.phase()).toBe('questions');
+      expect(component.questions()).toHaveLength(2);
+    }));
+
+    it('should generate 4 multiple-choice options by default (answerType=multiple-choice)', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      const options = component.currentOptions();
+      expect(options).toHaveLength(4);
+      expect(options).toContain('16'); // correct answer for Q1
+    }));
+
+    it('should not generate options when answerType is open-ended', fakeAsync(() => {
+      initComponent();
+      const openEndedParams: GenerationParams = {
+        ...mockParams,
+        answerType: 'open-ended',
+      };
+      component.onGenerate(openEndedParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      expect(component.currentOptions()).toHaveLength(0);
+    }));
+
+    it('should regenerate options per question on navigation', fakeAsync(() => {
+      initComponent();
+      component.onGenerate(mockParams);
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      req.flush(rawApiResponse);
+      tick();
+
+      const q1Options = component.currentOptions();
+      expect(q1Options).toContain('16'); // Q1 answer
+
+      component.goToNext();
+      const q2Options = component.currentOptions();
+      expect(q2Options).toContain('11'); // Q2 answer
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // Phase 2: Navigation State & Computed Properties
+  // ────────────────────────────────────────────────────
+  describe('Navigation State (AC#1, AC#6, AC#7)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'What is 5 + 3?',
+        answer: 8,
+        explanation: 'Add 5 and 3 to get 8.',
+        metadata: {
+          grade: 3,
+          topic: 'ADDITION',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'What is 7 - 2?',
+        answer: 5,
+        explanation: 'Subtract 2 from 7.',
+        metadata: {
+          grade: 3,
+          topic: 'SUBTRACTION',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+      {
+        question: 'What is 4 × 3?',
+        answer: 12,
+        explanation: 'Multiply 4 by 3.',
+        metadata: {
+          grade: 3,
+          topic: 'MULTIPLICATION',
+          difficulty: 'medium',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 500,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 3,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should initialise currentIndex to 0 after generation', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.currentIndex()).toBe(0);
+    }));
+
+    it('should compute currentQuestion from questions and currentIndex', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.currentQuestion()).toEqual(mockQuestions[0]);
+    }));
+
+    it('should compute progressPercent based on currentIndex', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      // Question 1 of 3 → ((0+1)/3)*100 ≈ 33.33%
+      expect(component.progressPercent()).toBeCloseTo(33.33, 0);
+    }));
+
+    it('should navigate to next question with goToNext()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext();
+      expect(component.currentIndex()).toBe(1);
+      expect(component.currentQuestion()).toEqual(mockQuestions[1]);
+    }));
+
+    it('should navigate to previous question with goToPrevious()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext(); // go to index 1
+      component.goToPrevious(); // back to index 0
+      expect(component.currentIndex()).toBe(0);
+    }));
+
+    it('should not go below index 0 on goToPrevious()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToPrevious(); // already at 0
+      expect(component.currentIndex()).toBe(0);
+    }));
+
+    it('should not go above last index on goToNext()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext(); // 1
+      component.goToNext(); // 2 (last)
+      component.goToNext(); // should stay at 2
+      expect(component.currentIndex()).toBe(2);
+    }));
+
+    it('should update progressPercent when navigating', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext(); // index 1 → Question 2 of 3
+      // ((1+1)/3)*100 ≈ 66.67
+      expect(component.progressPercent()).toBeCloseTo(66.67, 0);
+    }));
+
+    it('should reach 100% on the last question', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext(); // index 1
+      component.goToNext(); // index 2 (last)
+      // ((2+1)/3)*100 = 100%
+      expect(component.progressPercent()).toBe(100);
+    }));
+
+    it('should initialise answers as empty Map', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.answers().size).toBe(0);
+    }));
+
+    it('should compute totalAnswered from answers map size', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.totalAnswered()).toBe(0);
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#8: Answer Persistence Across Navigation
+  // ────────────────────────────────────────────────────
+  describe('Answer Persistence (AC#8)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'Q2',
+        answer: 5,
+        explanation: 'E2',
+        metadata: {
+          grade: 3,
+          topic: 'SUB',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 2,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should store selected option via onOptionSelected()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('B');
+      expect(component.answers().get(0)?.selectedOption).toBe('B');
+    }));
+
+    it('should store notes via onNotesChanged()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onNotesChanged('My working');
+      expect(component.answers().get(0)?.additionalNotes).toBe('My working');
+    }));
+
+    it('should preserve answer when navigating away and back', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('C');
+      component.onNotesChanged('Note for Q1');
+      component.goToNext(); // go to Q2
+      component.goToPrevious(); // back to Q1
+      const answer = component.answers().get(0);
+      expect(answer?.selectedOption).toBe('C');
+      expect(answer?.additionalNotes).toBe('Note for Q1');
+    }));
+
+    it('should get current answer for the active question', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('A');
+      expect(component.currentAnswer()?.selectedOption).toBe('A');
+    }));
+
+    it('should return undefined for unanswered questions', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.goToNext();
+      expect(component.currentAnswer()).toBeUndefined();
+    }));
+
+    it('should increment totalAnswered when answer is stored', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('A');
+      expect(component.totalAnswered()).toBe(1);
+    }));
+
+    it('should store hintUsed via onHintToggled()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onHintToggled(true);
+      expect(component.answers().get(0)?.hintUsed).toBe(true);
+    }));
+
+    it('should preserve hintUsed state on navigation', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onHintToggled(true);
+      component.goToNext();
+      component.goToPrevious();
+      expect(component.answers().get(0)?.hintUsed).toBe(true);
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#9: Per-Question Time Tracking
+  // ────────────────────────────────────────────────────
+  describe('Per-Question Time Tracking (AC#9)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'Q2',
+        answer: 5,
+        explanation: 'E2',
+        metadata: {
+          grade: 3,
+          topic: 'SUB',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 2,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should start tracking time when entering questions phase', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.questionStartTime()).toBeGreaterThan(0);
+    }));
+
+    it('should record time spent on navigation away', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      // Simulate 5 seconds on Q1
+      tick(5000);
+      component.goToNext();
+      const answer = component.answers().get(0);
+      expect(answer).toBeTruthy();
+      expect(answer!.timeSpent).toBeGreaterThan(0);
+    }));
+
+    it('should accumulate time across multiple visits', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      // First visit: 3 seconds on Q1
+      tick(3000);
+      component.goToNext();
+      const firstVisitTime = component.answers().get(0)!.timeSpent;
+
+      // Second visit: go back for 2 more seconds
+      tick(2000);
+      component.goToPrevious();
+      tick(2000);
+      component.goToNext();
+      const secondVisitTime = component.answers().get(0)!.timeSpent;
+
+      expect(secondVisitTime).toBeGreaterThan(firstVisitTime);
+    }));
+  });
 });

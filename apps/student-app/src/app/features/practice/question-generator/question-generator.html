@@ -29,6 +29,33 @@
 </div>
 }
 
+<!-- Phase 2: Question Display -->
+@if (phase() === 'questions' && currentQuestion()) {
+<div class="questions-phase" data-testid="questions-phase">
+  <app-question-card
+    [question]="currentQuestion()!"
+    [questionNumber]="currentIndex() + 1"
+    [totalQuestions]="questions().length"
+    [options]="currentOptions()"
+    [selectedOption]="currentAnswer()?.selectedOption"
+    [notes]="currentAnswer()?.additionalNotes ?? ''"
+    [hintExpanded]="currentAnswer()?.hintUsed ?? false"
+    (optionSelected)="onOptionSelected($event)"
+    (notesChanged)="onNotesChanged($event)"
+    (hintToggled)="onHintToggled($event)"
+  />
+
+  <app-question-pagination
+    [currentIndex]="currentIndex()"
+    [totalQuestions]="questions().length"
+    [progressPercent]="progressPercent()"
+    [totalAnswered]="totalAnswered()"
+    (previous)="goToPrevious()"
+    (next)="goToNext()"
+  />
+</div>
+}
+
 <!-- Error State: API failure -->
 @if (errorState()) {
 <div class="error-state-card" data-testid="error-state" role="alert">
