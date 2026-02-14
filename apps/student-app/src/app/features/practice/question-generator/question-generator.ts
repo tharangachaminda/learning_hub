@@ -90,7 +90,9 @@ export class QuestionGeneratorComponent implements OnInit {
   questionOptions = signal<Map<number, string[]>>(new Map());
 
   /** Options for the currently displayed question (empty if open-ended). */
-  currentOptions = computed(() => this.questionOptions().get(this.currentIndex()) ?? []);
+  currentOptions = computed(
+    () => this.questionOptions().get(this.currentIndex()) ?? []
+  );
 
   /** Student profile grade (pre-filled for controls). */
   profileGrade = computed(() => this.profileService.getGrade());
@@ -137,7 +139,10 @@ export class QuestionGeneratorComponent implements OnInit {
           this.questions.set(questions);
           this.isGenerating.set(false);
           if (questions.length > 0) {
-            this.generateOptionsForQuestions(questions, params.answerType ?? 'multiple-choice');
+            this.generateOptionsForQuestions(
+              questions,
+              params.answerType ?? 'multiple-choice'
+            );
             this.phase.set('questions');
             this.sessionStartTime.set(Date.now());
             this.questionStartTime.set(Date.now());

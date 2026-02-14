@@ -41,9 +41,7 @@ export function generateDistractors(
     const offset = Math.floor(Math.random() * maxOffset) + 1;
     // Randomly add or subtract
     const candidate =
-      Math.random() < 0.5
-        ? correctAnswer + offset
-        : correctAnswer - offset;
+      Math.random() < 0.5 ? correctAnswer + offset : correctAnswer - offset;
 
     // No negatives, no duplicates, not equal to correct answer
     if (candidate >= 0 && candidate !== correctAnswer) {
