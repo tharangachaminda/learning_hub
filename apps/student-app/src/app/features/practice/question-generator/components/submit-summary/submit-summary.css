@@ -1,0 +1,248 @@
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1100;
+  padding: 16px;
+}
+
+.modal-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--border-radius, 16px);
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-medium, 0 4px 16px rgba(0, 0, 0, 0.15));
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 16px;
+}
+
+.modal-message {
+  font-size: 16px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-cancel {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.btn-cancel:focus-visible {
+  outline: 3px solid var(--primary-color, #4285f4);
+  outline-offset: 2px;
+}
+
+.btn-confirm-submit {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: var(--correct-color, #34a853);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.btn-confirm-submit:focus-visible {
+  outline: 3px solid var(--correct-color, #34a853);
+  outline-offset: 2px;
+}
+
+/* Results Display */
+.results-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: var(--border-radius, 16px);
+  padding: 32px;
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: var(--shadow-medium, 0 4px 16px rgba(0, 0, 0, 0.15));
+}
+
+.results-card.celebrate {
+  animation: celebratePulse 0.6s ease-in-out 2;
+}
+
+@keyframes celebratePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.results-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 16px;
+}
+
+.results-percentage {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--primary-color, #4285f4);
+  margin: 0 0 8px;
+}
+
+.encouraging-text {
+  font-size: 18px;
+  color: #555;
+  margin: 0 0 24px;
+}
+
+.results-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8f9fa;
+}
+
+.result-icon {
+  font-size: 24px;
+}
+
+.result-label {
+  font-size: 14px;
+  color: #777;
+  font-weight: 500;
+}
+
+.result-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+
+.result-correct .result-value {
+  color: var(--correct-color, #34a853);
+}
+
+.result-incorrect .result-value {
+  color: var(--warning-color, #ea4335);
+}
+
+/* Results Action Buttons */
+.results-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.btn-try-again,
+.btn-back-dashboard {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.btn-try-again {
+  background-color: var(--primary-color, #4285f4);
+  color: #fff;
+}
+
+.btn-back-dashboard {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.btn-try-again:focus-visible,
+.btn-back-dashboard:focus-visible {
+  outline: 3px solid var(--primary-color, #4285f4);
+  outline-offset: 2px;
+}
+
+.btn-try-again:hover {
+  background-color: #3367d6;
+}
+
+.btn-back-dashboard:hover {
+  background-color: #e0e0e0;
+}
+
+/* Responsive: mobile (<768px) */
+@media (max-width: 767px) {
+  .modal-card {
+    padding: 24px 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+
+  .results-card {
+    margin: 0 8px;
+    padding: 24px 16px;
+  }
+
+  .results-breakdown {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .results-actions {
+    flex-direction: column;
+  }
+
+  .results-actions button {
+    width: 100%;
+  }
+
+  .results-percentage {
+    font-size: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-card.celebrate {
+    animation: none;
+  }
+}

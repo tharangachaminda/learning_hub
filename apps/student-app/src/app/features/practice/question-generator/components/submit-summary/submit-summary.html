@@ -1,0 +1,133 @@
+<!-- Confirmation Modal -->
+@if (mode() === 'confirm') {
+<div
+  class="modal-overlay"
+  data-testid="modal-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="confirm-title"
+  aria-describedby="confirm-desc"
+  tabindex="0"
+  (keydown)="onKeydown($event)"
+>
+  <div class="modal-card">
+    <h2 id="confirm-title" class="modal-title">Ready to submit? 📝</h2>
+    <p id="confirm-desc" class="modal-message" data-testid="confirm-message">
+      You've answered
+      <strong>{{ totalAnswered() }} out of {{ totalQuestions() }}</strong>
+      questions. Unanswered questions will be marked as skipped. Ready to
+      submit?
+    </p>
+    <div class="modal-actions">
+      <button
+        class="btn-cancel"
+        data-testid="cancel-btn"
+        (click)="cancel.emit()"
+        type="button"
+        aria-label="Cancel submission and return to questions"
+      >
+        Cancel
+      </button>
+      <button
+        class="btn-confirm-submit"
+        data-testid="confirm-submit-btn"
+        (click)="confirmSubmit.emit()"
+        type="button"
+        aria-label="Submit all answers for scoring"
+      >
+        Submit ✅
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Results Display -->
+@if (mode() === 'results' && scoringResult()) {
+<div
+  class="results-card"
+  data-testid="results-card"
+  [class.celebrate]="showCelebration()"
+  role="region"
+  aria-labelledby="results-heading"
+  aria-live="polite"
+>
+  <h2 id="results-heading" class="results-title">Your Results 🏆</h2>
+
+  <div
+    class="results-percentage"
+    data-testid="result-percentage"
+    aria-label="Score: {{ scoringResult()!.percentage | number:'1.0-0' }} percent"
+  >
+    {{ scoringResult()!.percentage | number:'1.0-0' }}%
+  </div>
+
+  <p class="encouraging-text" data-testid="encouraging-text" aria-live="polite">
+    {{ encouragingText() }}
+  </p>
+
+  <div class="results-breakdown">
+    <div
+      class="result-item result-correct"
+      data-testid="result-correct"
+      role="group"
+      aria-label="Correct: {{ scoringResult()!.correct }}"
+    >
+      <span class="result-icon" aria-hidden="true">✅</span>
+      <span class="result-label">Correct</span>
+      <span class="result-value">{{ scoringResult()!.correct }}</span>
+    </div>
+    <div
+      class="result-item result-incorrect"
+      data-testid="result-incorrect"
+      role="group"
+      aria-label="Incorrect: {{ scoringResult()!.incorrect }}"
+    >
+      <span class="result-icon" aria-hidden="true">❌</span>
+      <span class="result-label">Incorrect</span>
+      <span class="result-value">{{ scoringResult()!.incorrect }}</span>
+    </div>
+    <div
+      class="result-item result-skipped"
+      data-testid="result-skipped"
+      role="group"
+      aria-label="Skipped: {{ scoringResult()!.skipped }}"
+    >
+      <span class="result-icon" aria-hidden="true">⏭️</span>
+      <span class="result-label">Skipped</span>
+      <span class="result-value">{{ scoringResult()!.skipped }}</span>
+    </div>
+    <div
+      class="result-item result-time"
+      data-testid="result-time"
+      role="group"
+      aria-label="Time spent: {{ scoringResult()!.timeSpent }}"
+    >
+      <span class="result-icon" aria-hidden="true">⏱️</span>
+      <span class="result-label">Time</span>
+      <span class="result-value">{{ scoringResult()!.timeSpent }}</span>
+    </div>
+  </div>
+
+  <div class="results-actions">
+    <button
+      class="btn-try-again"
+      data-testid="try-again-btn"
+      (click)="tryAgain.emit()"
+      type="button"
+      aria-label="Try again with new questions"
+    >
+      🔄 Try Again
+    </button>
+    <button
+      class="btn-back-dashboard"
+      data-testid="back-dashboard-btn"
+      (click)="backToDashboard.emit()"
+      type="button"
+      aria-label="Go back to dashboard"
+    >
+      🏠 Back to Dashboard
+    </button>
+  </div>
+</div>
+}
