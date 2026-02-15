@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { QuestionGeneratorService } from './services/question-generator.service';
 import { StudentProfileService } from './services/student-profile.service';
 import { GenerationControlsComponent } from './components/generation-controls/generation-controls';
@@ -8,7 +9,13 @@ import { QuestionPaginationComponent } from './components/question-pagination/qu
 import { GeneratedQuestion } from './models/question.model';
 import { GenerationParams } from './models/generation-params.model';
 import { StudentAnswer } from './models/student-answer.model';
+import {
+  AnswerSubmission,
+  ScoringResult,
+} from './models/answer-submission.model';
 import { generateDistractors } from './utils/distractor-generator';
+import { scoreAnswers } from './utils/scoring';
+import { SubmitSummaryComponent } from './components/submit-summary/submit-summary';
 
 /**
  * Smart container component for the AI Question Generator feature.
@@ -30,6 +37,7 @@ import { generateDistractors } from './utils/distractor-generator';
     GenerationControlsComponent,
     QuestionCardComponent,
     QuestionPaginationComponent,
+    SubmitSummaryComponent,
   ],
   templateUrl: './question-generator.html',
   styleUrl: './question-generator.css',
@@ -37,6 +45,7 @@ import { generateDistractors } from './utils/distractor-generator';
 export class QuestionGeneratorComponent implements OnInit {
   private readonly generatorService = inject(QuestionGeneratorService);
   private readonly profileService = inject(StudentProfileService);
+  private readonly router = inject(Router);
 
   /** Current phase of the question generator flow. */
   phase = signal<'controls' | 'questions' | 'results'>('controls');
@@ -71,6 +80,18 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Timestamp when the current question started being viewed. */
   questionStartTime = signal<number>(0);
 
+  /** Whether answer submission / scoring is in progress. */
+  isSubmitting = signal<boolean>(false);
+
+  /** Client-side scoring result after submission, null until submitted. */
+  scoringResult = signal<ScoringResult | null>(null);
+
+  /** Whether the confirmation modal is displayed. */
+  showConfirmModal = signal<boolean>(false);
+
+  /** The last assembled submission data, available for future persistence. */
+  lastSubmission = signal<AnswerSubmission | null>(null);
+
   /** The currently displayed question derived from questions and currentIndex. */
   currentQuestion = computed(() => this.questions()[this.currentIndex()]);
 
@@ -92,6 +113,14 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Options for the currently displayed question (empty if open-ended). */
   currentOptions = computed(
     () => this.questionOptions().get(this.currentIndex()) ?? []
+  );
+
+  /** Whether at least one answer exists, enabling the submit button. */
+  canSubmit = computed(() => this.totalAnswered() > 0);
+
+  /** Whether every question has been answered. */
+  allAnswered = computed(
+    () => this.totalAnswered() === this.questions().length
   );
 
   /** Student profile grade (pre-filled for controls). */
@@ -221,6 +250,91 @@ export class QuestionGeneratorComponent implements OnInit {
    */
   onHintToggled(expanded: boolean): void {
     this.updateAnswer({ hintUsed: expanded });
+  }
+
+  /**
+   * Handles the submit button click — opens confirmation modal.
+   */
+  onSubmitClick(): void {
+    this.showConfirmModal.set(true);
+  }
+
+  /**
+   * Handles cancel from the confirmation modal.
+   * Closes the modal and returns to the question view.
+   */
+  onCancelSubmit(): void {
+    this.showConfirmModal.set(false);
+  }
+
+  /**
+   * Handles confirmed submission from the modal.
+   * Records final time, runs client-side scoring, assembles
+   * the AnswerSubmission, and transitions to results phase.
+   */
+  onConfirmSubmit(): void {
+    this.showConfirmModal.set(false);
+    this.isSubmitting.set(true);
+
+    // Record time spent on the current question
+    this.recordTimeSpent();
+
+    // Calculate total session time
+    const totalTimeSpent = Math.round(
+      (Date.now() - this.sessionStartTime()) / 1000
+    );
+
+    // Run client-side scoring
+    const result = scoreAnswers(
+      this.questions(),
+      this.answers(),
+      totalTimeSpent,
+      this.questionOptions()
+    );
+    this.scoringResult.set(result);
+
+    // Assemble submission data for future persistence
+    const params = this.generationParams()!;
+    const submission: AnswerSubmission = {
+      generationParams: {
+        grade: params.grade,
+        topic: params.topic,
+        category: params.topic, // category maps to topic for now
+        difficulty: params.difficulty,
+        country: params.country,
+      },
+      answers: [...this.answers().values()],
+      totalTimeSpent,
+      submittedAt: new Date().toISOString(),
+    };
+    this.lastSubmission.set(submission);
+
+    this.isSubmitting.set(false);
+    this.phase.set('results');
+  }
+
+  /**
+   * Handles "Try Again" from the results screen.
+   * Returns to Phase 1 (controls) with previous params preserved,
+   * clears questions, answers, and scoring state.
+   */
+  onTryAgain(): void {
+    this.questions.set([]);
+    this.answers.set(new Map());
+    this.currentIndex.set(0);
+    this.scoringResult.set(null);
+    this.lastSubmission.set(null);
+    this.errorState.set(false);
+    this.emptyState.set(false);
+    this.phase.set('controls');
+  }
+
+  /**
+   * Handles "Back to Dashboard" from the results screen.
+   * Navigates to the student dashboard route.
+   */
+  onBackToDashboard(): void {
+    this.router.navigate(['/achievements']);
   }
 
   /**

@@ -53,7 +53,45 @@
     (previous)="goToPrevious()"
     (next)="goToNext()"
   />
+
+  <!-- Submit Button: visible when ≥1 answer exists -->
+  @if (canSubmit()) {
+  <button
+    class="btn-submit-all"
+    data-testid="submit-btn"
+    [disabled]="isSubmitting()"
+    (click)="onSubmitClick()"
+    type="button"
+    aria-live="polite"
+    [attr.aria-label]="'Submit all answers. ' + totalAnswered() + ' of ' + questions().length + ' answered'"
+  >
+    ✅ Submit All Answers ({{ totalAnswered() }} of {{ questions().length }} answered)
+  </button>
+  }
 </div>
+}
+
+<!-- Confirmation Modal -->
+@if (showConfirmModal()) {
+<app-submit-summary
+  [mode]="'confirm'"
+  [totalAnswered]="totalAnswered()"
+  [totalQuestions]="questions().length"
+  (cancel)="onCancelSubmit()"
+  (confirmSubmit)="onConfirmSubmit()"
+/>
+}
+
+<!-- Results Phase -->
+@if (phase() === 'results') {
+<app-submit-summary
+  [mode]="'results'"
+  [scoringResult]="scoringResult()"
+  [totalAnswered]="totalAnswered()"
+  [totalQuestions]="questions().length"
+  (tryAgain)="onTryAgain()"
+  (backToDashboard)="onBackToDashboard()"
+/>
 }
 
 <!-- Error State: API failure -->

@@ -15,6 +15,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { QuestionGeneratorComponent } from './question-generator';
 import { QuestionGeneratorService } from './services/question-generator.service';
 import { StudentProfileService } from './services/student-profile.service';
@@ -34,6 +35,7 @@ describe('QuestionGeneratorComponent', () => {
         StudentProfileService,
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
       ],
     }).compileComponents();
 
@@ -820,6 +822,446 @@ describe('QuestionGeneratorComponent', () => {
       const secondVisitTime = component.answers().get(0)!.timeSpent;
 
       expect(secondVisitTime).toBeGreaterThan(firstVisitTime);
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#1, AC#2: Submit State & Computed Properties
+  // ────────────────────────────────────────────────────
+  describe('Submit State (AC#1, AC#2, AC#7, AC#8)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'Q2',
+        answer: 5,
+        explanation: 'E2',
+        metadata: {
+          grade: 3,
+          topic: 'SUB',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+      {
+        question: 'Q3',
+        answer: 12,
+        explanation: 'E3',
+        metadata: {
+          grade: 3,
+          topic: 'MUL',
+          difficulty: 'medium',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 500,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 3,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should initialise isSubmitting to false', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.isSubmitting()).toBe(false);
+    }));
+
+    it('should initialise scoringResult to null', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.scoringResult()).toBeNull();
+    }));
+
+    it('should compute canSubmit as false when no answers', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      expect(component.canSubmit()).toBe(false);
+    }));
+
+    it('should compute canSubmit as true when at least 1 answer exists', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      expect(component.canSubmit()).toBe(true);
+    }));
+
+    it('should compute allAnswered as false when not all questions answered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      expect(component.allAnswered()).toBe(false);
+    }));
+
+    it('should compute allAnswered as true when all questions answered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8'); // Q1
+      component.goToNext();
+      component.onOptionSelected('5'); // Q2
+      component.goToNext();
+      component.onOptionSelected('12'); // Q3
+      expect(component.allAnswered()).toBe(true);
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#1, AC#2: Submit Button (Template)
+  // ────────────────────────────────────────────────────
+  describe('Submit Button (AC#1, AC#2)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'Q2',
+        answer: 5,
+        explanation: 'E2',
+        metadata: {
+          grade: 3,
+          topic: 'SUB',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 2,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should not show submit button when no answers given', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="submit-btn"]'
+      );
+      expect(btn).toBeFalsy();
+    }));
+
+    it('should show submit button when at least 1 answer exists', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="submit-btn"]'
+      );
+      expect(btn).toBeTruthy();
+    }));
+
+    it('should show correct "X of N answered" label on submit button', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="submit-btn"]'
+      );
+      expect(btn.textContent).toContain('1 of 2 answered');
+    }));
+
+    it('should update label when more answers are given', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8'); // Q1
+      component.goToNext();
+      component.onOptionSelected('5'); // Q2
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="submit-btn"]'
+      );
+      expect(btn.textContent).toContain('2 of 2 answered');
+    }));
+
+    it('should disable submit button while isSubmitting is true', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.isSubmitting.set(true);
+      fixture.detectChanges();
+
+      const btn = fixture.nativeElement.querySelector(
+        '[data-testid="submit-btn"]'
+      );
+      expect(btn.disabled).toBe(true);
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#3, AC#4, AC#7, AC#8: Submit Flow Orchestration
+  // ────────────────────────────────────────────────────
+  describe('Submit Flow (AC#3, AC#4, AC#7, AC#8)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+      {
+        question: 'Q2',
+        answer: 5,
+        explanation: 'E2',
+        metadata: {
+          grade: 3,
+          topic: 'SUB',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 350,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 2,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+    }
+
+    it('should open confirmation modal on onSubmitClick()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.onSubmitClick();
+      expect(component.showConfirmModal()).toBe(true);
+    }));
+
+    it('should close modal on onCancelSubmit()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.onSubmitClick();
+      component.onCancelSubmit();
+      expect(component.showConfirmModal()).toBe(false);
+    }));
+
+    it('should run scoring and transition to results on onConfirmSubmit()', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8'); // correct
+      component.onConfirmSubmit();
+      tick();
+
+      expect(component.phase()).toBe('results');
+      expect(component.scoringResult()).toBeTruthy();
+      expect(component.scoringResult()!.correct).toBe(1);
+      expect(component.scoringResult()!.skipped).toBe(1);
+      expect(component.scoringResult()!.total).toBe(2);
+    }));
+
+    it('should set isSubmitting briefly during scoring', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.onConfirmSubmit();
+      // isSubmitting should have been set and then cleared
+      tick();
+      expect(component.isSubmitting()).toBe(false);
+    }));
+
+    it('should close confirmation modal after submit', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.onSubmitClick();
+      component.onConfirmSubmit();
+      tick();
+      expect(component.showConfirmModal()).toBe(false);
+    }));
+
+    it('should assemble lastSubmission with correct structure', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.goToNext();
+      component.onOptionSelected('3'); // incorrect
+      component.onConfirmSubmit();
+      tick();
+
+      const submission = component.lastSubmission();
+      expect(submission).toBeTruthy();
+      expect(submission!.generationParams.grade).toBe(3);
+      expect(submission!.generationParams.topic).toBe('ADDITION');
+      expect(submission!.generationParams.difficulty).toBe('easy');
+      expect(submission!.generationParams.country).toBe('NZ');
+      expect(submission!.answers).toHaveLength(2);
+      expect(submission!.submittedAt).toBeTruthy();
+      expect(submission!.totalTimeSpent).toBeGreaterThanOrEqual(0);
+    }));
+
+    it('should render confirmation modal in template when showConfirmModal is true', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('8');
+      component.onSubmitClick();
+      fixture.detectChanges();
+
+      const modal = fixture.nativeElement.querySelector(
+        'app-submit-summary'
+      );
+      expect(modal).toBeTruthy();
+    }));
+  });
+
+  // ────────────────────────────────────────────────────
+  // AC#6: Post-Results Actions (Container)
+  // ────────────────────────────────────────────────────
+  describe('Post-Results Actions (AC#6)', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 1,
+      country: 'NZ',
+    };
+
+    function initAndSubmit(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = httpMock.expectOne(
+        (r) => r.url === '/api/math-questions/generate'
+      );
+      genReq.flush(mockQuestions);
+      component.onOptionSelected('8');
+      component.onConfirmSubmit();
+    }
+
+    it('should reset to controls phase on onTryAgain()', fakeAsync(() => {
+      initAndSubmit();
+      tick();
+      component.onTryAgain();
+      expect(component.phase()).toBe('controls');
+    }));
+
+    it('should keep generationParams pre-filled after onTryAgain()', fakeAsync(() => {
+      initAndSubmit();
+      tick();
+      component.onTryAgain();
+      expect(component.generationParams()).toEqual(mockParams);
+    }));
+
+    it('should clear questions and answers on onTryAgain()', fakeAsync(() => {
+      initAndSubmit();
+      tick();
+      component.onTryAgain();
+      expect(component.questions()).toHaveLength(0);
+      expect(component.answers().size).toBe(0);
+    }));
+
+    it('should render results view in template when phase is results', fakeAsync(() => {
+      initAndSubmit();
+      tick();
+      fixture.detectChanges();
+
+      const summary = fixture.nativeElement.querySelector(
+        'app-submit-summary'
+      );
+      expect(summary).toBeTruthy();
     }));
   });
 });
