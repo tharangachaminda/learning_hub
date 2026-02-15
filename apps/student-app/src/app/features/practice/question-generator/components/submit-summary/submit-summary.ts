@@ -61,11 +61,11 @@ export class SubmitSummaryComponent {
     const result = this.scoringResult();
     if (!result) return '';
     if (result.percentage >= 80) {
-      return '🎉 Amazing work! You\'re a maths superstar!';
+      return "🎉 Amazing work! You're a maths superstar!";
     } else if (result.percentage >= 50) {
       return '👍 Great effort! Keep practising!';
     } else {
-      return '💪 Good try! Let\'s practise some more!';
+      return "💪 Good try! Let's practise some more!";
     }
   });
 

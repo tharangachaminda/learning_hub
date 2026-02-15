@@ -368,7 +368,9 @@ describe('SubmitSummaryComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.detectChanges();
 
-      const overlay = fixture.nativeElement.querySelector('[data-testid="modal-overlay"]');
+      const overlay = fixture.nativeElement.querySelector(
+        '[data-testid="modal-overlay"]'
+      );
       expect(overlay.getAttribute('role')).toBe('dialog');
       expect(overlay.getAttribute('aria-modal')).toBe('true');
     });
@@ -379,7 +381,9 @@ describe('SubmitSummaryComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.detectChanges();
 
-      const overlay = fixture.nativeElement.querySelector('[data-testid="modal-overlay"]');
+      const overlay = fixture.nativeElement.querySelector(
+        '[data-testid="modal-overlay"]'
+      );
       expect(overlay.getAttribute('aria-describedby')).toBe('confirm-desc');
 
       const desc = fixture.nativeElement.querySelector('#confirm-desc');
@@ -389,12 +393,18 @@ describe('SubmitSummaryComponent', () => {
     it('should have aria-labelledby on results card linking to heading', () => {
       fixture.componentRef.setInput('mode', 'results');
       fixture.componentRef.setInput('scoringResult', {
-        correct: 8, incorrect: 1, skipped: 1, total: 10,
-        percentage: 80, timeSpent: '02:30',
+        correct: 8,
+        incorrect: 1,
+        skipped: 1,
+        total: 10,
+        percentage: 80,
+        timeSpent: '02:30',
       });
       fixture.detectChanges();
 
-      const card = fixture.nativeElement.querySelector('[data-testid="results-card"]');
+      const card = fixture.nativeElement.querySelector(
+        '[data-testid="results-card"]'
+      );
       expect(card.getAttribute('aria-labelledby')).toBe('results-heading');
 
       const heading = fixture.nativeElement.querySelector('#results-heading');
@@ -404,20 +414,30 @@ describe('SubmitSummaryComponent', () => {
     it('should have aria-live="polite" on results card for screen reader announcements', () => {
       fixture.componentRef.setInput('mode', 'results');
       fixture.componentRef.setInput('scoringResult', {
-        correct: 5, incorrect: 3, skipped: 2, total: 10,
-        percentage: 50, timeSpent: '03:00',
+        correct: 5,
+        incorrect: 3,
+        skipped: 2,
+        total: 10,
+        percentage: 50,
+        timeSpent: '03:00',
       });
       fixture.detectChanges();
 
-      const card = fixture.nativeElement.querySelector('[data-testid="results-card"]');
+      const card = fixture.nativeElement.querySelector(
+        '[data-testid="results-card"]'
+      );
       expect(card.getAttribute('aria-live')).toBe('polite');
     });
 
     it('should mark emoji icons as aria-hidden in results breakdown', () => {
       fixture.componentRef.setInput('mode', 'results');
       fixture.componentRef.setInput('scoringResult', {
-        correct: 5, incorrect: 3, skipped: 2, total: 10,
-        percentage: 50, timeSpent: '03:00',
+        correct: 5,
+        incorrect: 3,
+        skipped: 2,
+        total: 10,
+        percentage: 50,
+        timeSpent: '03:00',
       });
       fixture.detectChanges();
 
@@ -430,16 +450,24 @@ describe('SubmitSummaryComponent', () => {
     it('should have group role with aria-label on each result breakdown item', () => {
       fixture.componentRef.setInput('mode', 'results');
       fixture.componentRef.setInput('scoringResult', {
-        correct: 5, incorrect: 3, skipped: 2, total: 10,
-        percentage: 50, timeSpent: '03:00',
+        correct: 5,
+        incorrect: 3,
+        skipped: 2,
+        total: 10,
+        percentage: 50,
+        timeSpent: '03:00',
       });
       fixture.detectChanges();
 
-      const correct = fixture.nativeElement.querySelector('[data-testid="result-correct"]');
+      const correct = fixture.nativeElement.querySelector(
+        '[data-testid="result-correct"]'
+      );
       expect(correct.getAttribute('role')).toBe('group');
       expect(correct.getAttribute('aria-label')).toContain('Correct: 5');
 
-      const incorrect = fixture.nativeElement.querySelector('[data-testid="result-incorrect"]');
+      const incorrect = fixture.nativeElement.querySelector(
+        '[data-testid="result-incorrect"]'
+      );
       expect(incorrect.getAttribute('aria-label')).toContain('Incorrect: 3');
     });
   });

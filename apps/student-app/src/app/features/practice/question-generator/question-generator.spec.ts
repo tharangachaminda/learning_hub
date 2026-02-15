@@ -1182,9 +1182,7 @@ describe('QuestionGeneratorComponent', () => {
       component.onSubmitClick();
       fixture.detectChanges();
 
-      const modal = fixture.nativeElement.querySelector(
-        'app-submit-summary'
-      );
+      const modal = fixture.nativeElement.querySelector('app-submit-summary');
       expect(modal).toBeTruthy();
     }));
   });
@@ -1258,9 +1256,7 @@ describe('QuestionGeneratorComponent', () => {
       tick();
       fixture.detectChanges();
 
-      const summary = fixture.nativeElement.querySelector(
-        'app-submit-summary'
-      );
+      const summary = fixture.nativeElement.querySelector('app-submit-summary');
       expect(summary).toBeTruthy();
     }));
   });

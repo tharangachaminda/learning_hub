@@ -40,27 +40,72 @@ describe('scoreAnswers', () => {
       question: '5 + 3 = ?',
       answer: 8,
       explanation: 'Add 5 and 3.',
-      metadata: { grade: 3, topic: 'ADD', difficulty: 'easy', country: 'NZ', generated_by: 'ollama', generation_time: 400 },
+      metadata: {
+        grade: 3,
+        topic: 'ADD',
+        difficulty: 'easy',
+        country: 'NZ',
+        generated_by: 'ollama',
+        generation_time: 400,
+      },
     },
     {
       question: '7 - 2 = ?',
       answer: 5,
       explanation: 'Subtract 2 from 7.',
-      metadata: { grade: 3, topic: 'SUB', difficulty: 'easy', country: 'NZ', generated_by: 'ollama', generation_time: 350 },
+      metadata: {
+        grade: 3,
+        topic: 'SUB',
+        difficulty: 'easy',
+        country: 'NZ',
+        generated_by: 'ollama',
+        generation_time: 350,
+      },
     },
     {
       question: '4 × 3 = ?',
       answer: 12,
       explanation: 'Multiply 4 by 3.',
-      metadata: { grade: 3, topic: 'MUL', difficulty: 'medium', country: 'NZ', generated_by: 'ollama', generation_time: 500 },
+      metadata: {
+        grade: 3,
+        topic: 'MUL',
+        difficulty: 'medium',
+        country: 'NZ',
+        generated_by: 'ollama',
+        generation_time: 500,
+      },
     },
   ];
 
   it('should count correct answers by comparing selectedOption with String(answer)', () => {
     const answers = new Map<number, StudentAnswer>([
-      [0, { questionIndex: 0, selectedOption: '8', hintUsed: false, timeSpent: 10 }],
-      [1, { questionIndex: 1, selectedOption: '5', hintUsed: false, timeSpent: 15 }],
-      [2, { questionIndex: 2, selectedOption: '12', hintUsed: false, timeSpent: 20 }],
+      [
+        0,
+        {
+          questionIndex: 0,
+          selectedOption: '8',
+          hintUsed: false,
+          timeSpent: 10,
+        },
+      ],
+      [
+        1,
+        {
+          questionIndex: 1,
+          selectedOption: '5',
+          hintUsed: false,
+          timeSpent: 15,
+        },
+      ],
+      [
+        2,
+        {
+          questionIndex: 2,
+          selectedOption: '12',
+          hintUsed: false,
+          timeSpent: 20,
+        },
+      ],
     ]);
 
     const result = scoreAnswers(mockQuestions, answers, 45);
@@ -72,9 +117,33 @@ describe('scoreAnswers', () => {
 
   it('should count incorrect answers', () => {
     const answers = new Map<number, StudentAnswer>([
-      [0, { questionIndex: 0, selectedOption: '9', hintUsed: false, timeSpent: 10 }],
-      [1, { questionIndex: 1, selectedOption: '3', hintUsed: false, timeSpent: 15 }],
-      [2, { questionIndex: 2, selectedOption: '12', hintUsed: false, timeSpent: 20 }],
+      [
+        0,
+        {
+          questionIndex: 0,
+          selectedOption: '9',
+          hintUsed: false,
+          timeSpent: 10,
+        },
+      ],
+      [
+        1,
+        {
+          questionIndex: 1,
+          selectedOption: '3',
+          hintUsed: false,
+          timeSpent: 15,
+        },
+      ],
+      [
+        2,
+        {
+          questionIndex: 2,
+          selectedOption: '12',
+          hintUsed: false,
+          timeSpent: 20,
+        },
+      ],
     ]);
 
     const result = scoreAnswers(mockQuestions, answers, 45);
@@ -84,7 +153,15 @@ describe('scoreAnswers', () => {
 
   it('should count skipped (unanswered) questions', () => {
     const answers = new Map<number, StudentAnswer>([
-      [0, { questionIndex: 0, selectedOption: '8', hintUsed: false, timeSpent: 10 }],
+      [
+        0,
+        {
+          questionIndex: 0,
+          selectedOption: '8',
+          hintUsed: false,
+          timeSpent: 10,
+        },
+      ],
     ]);
 
     const result = scoreAnswers(mockQuestions, answers, 10);
@@ -106,8 +183,24 @@ describe('scoreAnswers', () => {
 
   it('should calculate percentage based on correct / total', () => {
     const answers = new Map<number, StudentAnswer>([
-      [0, { questionIndex: 0, selectedOption: '8', hintUsed: false, timeSpent: 10 }],
-      [1, { questionIndex: 1, selectedOption: '3', hintUsed: false, timeSpent: 15 }],
+      [
+        0,
+        {
+          questionIndex: 0,
+          selectedOption: '8',
+          hintUsed: false,
+          timeSpent: 10,
+        },
+      ],
+      [
+        1,
+        {
+          questionIndex: 1,
+          selectedOption: '3',
+          hintUsed: false,
+          timeSpent: 15,
+        },
+      ],
     ]);
 
     const result = scoreAnswers(mockQuestions, answers, 25);
@@ -151,9 +244,33 @@ describe('scoreAnswers', () => {
 
     it('should resolve letter selectedOption to option value and score correctly', () => {
       const answers = new Map<number, StudentAnswer>([
-        [0, { questionIndex: 0, selectedOption: 'B', hintUsed: false, timeSpent: 10 }],
-        [1, { questionIndex: 1, selectedOption: 'A', hintUsed: false, timeSpent: 15 }],
-        [2, { questionIndex: 2, selectedOption: 'C', hintUsed: false, timeSpent: 20 }],
+        [
+          0,
+          {
+            questionIndex: 0,
+            selectedOption: 'B',
+            hintUsed: false,
+            timeSpent: 10,
+          },
+        ],
+        [
+          1,
+          {
+            questionIndex: 1,
+            selectedOption: 'A',
+            hintUsed: false,
+            timeSpent: 15,
+          },
+        ],
+        [
+          2,
+          {
+            questionIndex: 2,
+            selectedOption: 'C',
+            hintUsed: false,
+            timeSpent: 20,
+          },
+        ],
       ]);
 
       const result = scoreAnswers(mockQuestions, answers, 45, questionOptions);
@@ -164,8 +281,24 @@ describe('scoreAnswers', () => {
 
     it('should mark wrong letter as incorrect', () => {
       const answers = new Map<number, StudentAnswer>([
-        [0, { questionIndex: 0, selectedOption: 'A', hintUsed: false, timeSpent: 10 }], // 'A'→'10', answer=8 → incorrect
-        [1, { questionIndex: 1, selectedOption: 'A', hintUsed: false, timeSpent: 15 }], // 'A'→'5',  answer=5 → correct
+        [
+          0,
+          {
+            questionIndex: 0,
+            selectedOption: 'A',
+            hintUsed: false,
+            timeSpent: 10,
+          },
+        ], // 'A'→'10', answer=8 → incorrect
+        [
+          1,
+          {
+            questionIndex: 1,
+            selectedOption: 'A',
+            hintUsed: false,
+            timeSpent: 15,
+          },
+        ], // 'A'→'5',  answer=5 → correct
       ]);
 
       const result = scoreAnswers(mockQuestions, answers, 25, questionOptions);
@@ -176,7 +309,15 @@ describe('scoreAnswers', () => {
 
     it('should still count skipped when letter options are provided', () => {
       const answers = new Map<number, StudentAnswer>([
-        [0, { questionIndex: 0, selectedOption: 'B', hintUsed: false, timeSpent: 10 }],
+        [
+          0,
+          {
+            questionIndex: 0,
+            selectedOption: 'B',
+            hintUsed: false,
+            timeSpent: 10,
+          },
+        ],
       ]);
 
       const result = scoreAnswers(mockQuestions, answers, 10, questionOptions);
