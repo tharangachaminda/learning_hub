@@ -1,0 +1,133 @@
+<div class="login-container">
+  <div class="login-card">
+    <h1 class="login-title">Student Login</h1>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+      <!-- Email Field -->
+      <div class="form-group">
+        <label for="email" class="form-label">
+          Email <span class="required-indicator" aria-hidden="true">*</span>
+        </label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="form-input"
+          placeholder="Enter your email"
+          autocomplete="email"
+          [attr.aria-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+          aria-describedby="email-error"
+        />
+        <div
+          id="email-error"
+          class="error-message"
+          role="alert"
+          *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+        >
+          <span *ngIf="loginForm.get('email')?.hasError('required')"
+            >Email is required.</span
+          >
+          <span *ngIf="loginForm.get('email')?.hasError('email')"
+            >Please enter a valid email address.</span
+          >
+        </div>
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password" class="form-label">
+          Password <span class="required-indicator" aria-hidden="true">*</span>
+        </label>
+        <div class="password-input-wrapper">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            class="form-input"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            [attr.aria-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            aria-describedby="password-error"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+            data-testid="password-toggle"
+          >
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        <div
+          id="password-error"
+          class="error-message"
+          role="alert"
+          *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+        >
+          <span *ngIf="loginForm.get('password')?.hasError('required')"
+            >Password is required.</span
+          >
+        </div>
+      </div>
+
+      <!-- Remember Me -->
+      <div class="form-group remember-me-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="rememberMe" />
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <!-- Login Error -->
+      <div
+        class="login-error"
+        role="alert"
+        aria-live="assertive"
+        *ngIf="loginError"
+        data-testid="login-error"
+      >
+        {{ loginError }}
+      </div>
+
+      <!-- CAPTCHA Placeholder (AC4: shown after 3 failed attempts) -->
+      <div
+        class="captcha-container"
+        *ngIf="showCaptcha"
+        data-testid="captcha-container"
+        role="region"
+        aria-label="CAPTCHA verification"
+      >
+        <p class="captcha-message">
+          Please complete the verification below to continue.
+        </p>
+        <!-- CAPTCHA widget integration point -->
+      </div>
+
+      <!-- Login Button -->
+      <button
+        type="submit"
+        class="login-button"
+        [disabled]="loginForm.invalid || isLoading"
+        data-testid="login-button"
+      >
+        <span *ngIf="isLoading" class="spinner" aria-hidden="true"></span>
+        <span>{{ isLoading ? 'Logging in...' : 'Login' }}</span>
+      </button>
+    </form>
+
+    <!-- Links -->
+    <div class="login-links">
+      <a
+        href="#"
+        class="forgot-password-link"
+        data-testid="forgot-password-link"
+      >
+        Forgot Password?
+      </a>
+      <a routerLink="/register" class="signup-link" data-testid="signup-link">
+        Don't have an account? Sign up
+      </a>
+    </div>
+  </div>
+</div>
