@@ -8,11 +8,15 @@ db.createCollection('users', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['email', 'role', 'createdAt'],
+      required: ['email', 'password', 'role', 'createdAt'],
       properties: {
         email: {
           bsonType: 'string',
           pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        },
+        password: {
+          bsonType: 'string',
+          description: 'Hashed password (bcrypt)'
         },
         role: {
           bsonType: 'string',
@@ -26,6 +30,13 @@ db.createCollection('users', {
             grade: { bsonType: 'number' },
             dateOfBirth: { bsonType: 'date' }
           }
+        },
+        learningGoals: {
+          bsonType: 'array',
+          items: { bsonType: 'string' }
+        },
+        selectedAvatar: {
+          bsonType: ['string', 'null']
         },
         createdAt: { bsonType: 'date' },
         updatedAt: { bsonType: 'date' }
@@ -160,6 +171,7 @@ db.progress.createIndex({ 'userId': 1, 'subject': 1 }, { unique: true });
 // Insert sample data
 const sampleUser = {
   email: 'demo@learninghub.com',
+  password: '$2a$10$hashed_placeholder_for_demo_user',
   role: 'student',
   profile: {
     firstName: 'Demo',
@@ -167,6 +179,8 @@ const sampleUser = {
     grade: 3,
     dateOfBirth: new Date('2016-05-15')
   },
+  learningGoals: ['math'],
+  selectedAvatar: 'avatar-0',
   createdAt: new Date(),
   updatedAt: new Date()
 };
