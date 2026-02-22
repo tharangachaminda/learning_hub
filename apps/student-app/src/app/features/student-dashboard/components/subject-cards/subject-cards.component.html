@@ -1,0 +1,49 @@
+<!-- Subject Cards Template (AC8, AC25) -->
+<div class="subject-cards" aria-label="Available subjects with progress">
+  <h3 class="section-title">📚 My Subjects</h3>
+
+  @if (subjects.length === 0) {
+  <div data-testid="no-subjects" class="empty-state">
+    <p>No subjects available yet. Check back soon! 🌈</p>
+  </div>
+  }
+
+  <div class="subjects-grid">
+    @for (subject of subjects; track subject.subject) {
+    <button
+      data-testid="subject-card"
+      class="subject-card"
+      type="button"
+      [attr.aria-label]="
+        'Practice ' +
+        subject.displayName +
+        ': ' +
+        subject.masteryPercentage +
+        '% mastery'
+      "
+      (click)="onSubjectClick(subject)"
+    >
+      <div class="card-icon">{{ subject.icon }}</div>
+      <h4 class="subject-name">{{ subject.displayName }}</h4>
+      <div class="progress-wrapper">
+        <div
+          class="progress-bar-fill"
+          role="progressbar"
+          [attr.aria-valuenow]="subject.masteryPercentage"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="
+            subject.displayName + ' mastery: ' + subject.masteryPercentage + '%'
+          "
+          [style.width.%]="subject.masteryPercentage"
+        ></div>
+      </div>
+      <p class="mastery-text">{{ subject.masteryPercentage }}% mastery</p>
+      <p class="questions-count">
+        {{ subject.questionsAnswered }} questions answered
+      </p>
+      <span class="practice-link">Practice ▶</span>
+    </button>
+    }
+  </div>
+</div>

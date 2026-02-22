@@ -1,0 +1,28 @@
+<!-- Recent Activity Template (AC6, AC25) -->
+<div class="recent-activity" aria-label="Recent practice sessions">
+  <h3 class="section-title">📝 Recent Activity</h3>
+
+  @if (recentActivity.length === 0) {
+  <div data-testid="no-activity" class="empty-state">
+    <p>No practice sessions yet. Start your first session! 🎯</p>
+  </div>
+  } @for (session of recentActivity; track session.id) {
+  <div data-testid="activity-entry" class="activity-entry">
+    <div class="entry-icon">📐</div>
+    <div class="entry-details">
+      <h4 class="entry-topic">{{ session.topic }}</h4>
+      <p class="entry-meta">
+        {{ session.correctAnswers }}/{{ session.questionsAnswered }} correct ·
+        {{ session.durationMinutes }} min
+      </p>
+    </div>
+    <div
+      class="entry-score"
+      [class.high-score]="session.score >= 80"
+      [class.low-score]="session.score < 60"
+    >
+      {{ session.score }}%
+    </div>
+  </div>
+  }
+</div>

@@ -1,0 +1,76 @@
+/* Recent Activity Styles (AC11, AC14) */
+
+.recent-activity {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.activity-entry {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  background: #f8f9fa;
+  transition: background 0.2s ease;
+}
+
+.activity-entry:hover {
+  background: #e9ecef;
+}
+
+.entry-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.entry-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-topic {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.125rem;
+  color: #333;
+}
+
+.entry-meta {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.entry-score {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #6c757d;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.entry-score.high-score {
+  color: #28a745;
+}
+
+.entry-score.low-score {
+  color: #dc3545;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem;
+  color: #6c757d;
+  font-size: 1rem;
+}

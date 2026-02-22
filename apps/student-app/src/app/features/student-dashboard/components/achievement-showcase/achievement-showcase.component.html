@@ -1,0 +1,25 @@
+<!-- Achievement Showcase Template (AC9, AC25) -->
+<div class="achievement-showcase" aria-label="Recent achievements">
+  <h3 class="section-title">🏆 Recent Achievements</h3>
+
+  @if (achievements.length === 0) {
+  <div data-testid="no-achievements" class="empty-state">
+    <p>No achievements yet. Start practicing to earn badges! 🌟</p>
+  </div>
+  }
+
+  <div class="badges-grid">
+    @for (achievement of achievements; track achievement.id) {
+    <div
+      data-testid="achievement-badge"
+      class="badge-card"
+      [attr.aria-label]="achievement.name + ': ' + achievement.description"
+    >
+      <div class="badge-icon">🏅</div>
+      <h4 class="badge-name">{{ achievement.name }}</h4>
+      <p class="badge-description">{{ achievement.description }}</p>
+      <span class="badge-points">+{{ achievement.pointValue }} pts</span>
+    </div>
+    }
+  </div>
+</div>

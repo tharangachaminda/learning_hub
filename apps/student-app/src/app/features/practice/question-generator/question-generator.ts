@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionGeneratorService } from './services/question-generator.service';
 import { StudentProfileService } from './services/student-profile.service';
 import { GenerationControlsComponent } from './components/generation-controls/generation-controls';
@@ -46,6 +46,10 @@ export class QuestionGeneratorComponent implements OnInit {
   private readonly generatorService = inject(QuestionGeneratorService);
   private readonly profileService = inject(StudentProfileService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Topic key from URL query param, used to pre-select in controls. */
+  initialTopic = signal<string>('');
 
   /** Current phase of the question generator flow. */
   phase = signal<'controls' | 'questions' | 'results'>('controls');
@@ -130,10 +134,15 @@ export class QuestionGeneratorComponent implements OnInit {
   profileCountry = computed(() => this.profileService.getCountry());
 
   /**
-   * Runs the health check on component initialisation.
+   * Runs the health check on component initialisation and reads
+   * the `topic` query parameter to pre-select in generation controls.
    */
   ngOnInit(): void {
     this.checkServiceHealth();
+    const topic = this.route.snapshot.queryParamMap.get('topic');
+    if (topic) {
+      this.initialTopic.set(topic);
+    }
   }
 
   /**

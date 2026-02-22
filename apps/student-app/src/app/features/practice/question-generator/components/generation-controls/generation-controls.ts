@@ -56,6 +56,9 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   /** Whether the backend service is healthy. */
   @Input() serviceHealthy = true;
 
+  /** Optional topic key from URL to pre-select (e.g. 'ADDITION'). */
+  @Input() initialTopic = '';
+
   /** Emits generation parameters when Generate is clicked. */
   @Output() generate = new EventEmitter<GenerationParams>();
 
@@ -80,13 +83,16 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.selectedGrade.set(this.grade);
-    this.updateTopicToFirst();
+    this.applyInitialTopicOrFirst();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['grade'] && !changes['grade'].firstChange) {
       this.selectedGrade.set(this.grade);
       this.updateTopicToFirst();
+    }
+    if (changes['initialTopic'] && !changes['initialTopic'].firstChange) {
+      this.applyInitialTopicOrFirst();
     }
   }
 
@@ -168,5 +174,19 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   private updateTopicToFirst(): void {
     const topics = this.availableTopics();
     this.selectedTopic.set(topics.length > 0 ? topics[0] : '');
+  }
+
+  /**
+   * Sets the selected topic to initialTopic if it exists in the
+   * available topics for the current grade; otherwise falls back
+   * to the first available topic.
+   */
+  private applyInitialTopicOrFirst(): void {
+    const topics = this.availableTopics();
+    if (this.initialTopic && topics.includes(this.initialTopic)) {
+      this.selectedTopic.set(this.initialTopic);
+    } else {
+      this.updateTopicToFirst();
+    }
   }
 }

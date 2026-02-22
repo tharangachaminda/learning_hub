@@ -1,0 +1,97 @@
+<!-- Student Dashboard Template (AC2, AC11, AC19, AC20, AC25) -->
+<div role="main" aria-label="Student dashboard" class="dashboard-container">
+  <!-- Loading State (AC19) -->
+  @if (loading) {
+  <div
+    data-testid="dashboard-loading"
+    class="loading-container"
+    aria-busy="true"
+    aria-label="Loading dashboard"
+  >
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading your dashboard...</span>
+    </div>
+    <p class="loading-text">Loading your dashboard... ✨</p>
+  </div>
+  }
+
+  <!-- Error State (AC20) -->
+  @if (error) {
+  <div data-testid="dashboard-error" class="error-container" role="alert">
+    <p class="error-icon">😟</p>
+    <p class="error-message">{{ error }}</p>
+    <button
+      class="btn btn-primary retry-btn"
+      (click)="loadDashboard()"
+      aria-label="Try loading dashboard again"
+    >
+      Try Again 🔄
+    </button>
+  </div>
+  }
+
+  <!-- Dashboard Content -->
+  @if (dashboardData && !loading) {
+  <!-- Welcome Banner (AC2, AC11) -->
+  <section
+    data-testid="welcome-banner"
+    class="welcome-banner"
+    aria-label="Welcome message"
+  >
+    <div class="welcome-content">
+      <h1 class="greeting">
+        {{ getGreeting() }}, {{ dashboardData.student.firstName }}! 👋
+      </h1>
+      <p class="motivational-text">
+        Ready to learn something amazing today? 🚀
+      </p>
+    </div>
+    <button
+      class="btn btn-outline-light logout-btn"
+      (click)="logout()"
+      aria-label="Log out"
+    >
+      Logout 🚪
+    </button>
+    @if (dashboardData.student.avatarUrl) {
+    <img
+      [src]="dashboardData.student.avatarUrl"
+      [alt]="dashboardData.student.firstName + '\'s avatar'"
+      class="student-avatar"
+    />
+    }
+  </section>
+
+  <!-- Dashboard Grid -->
+  <div class="dashboard-grid">
+    <!-- Daily Goal & Streak (AC3, AC4) -->
+    <app-daily-goal-widget
+      [dailyGoal]="dashboardData.dailyGoal"
+      [streak]="dashboardData.streak"
+    >
+    </app-daily-goal-widget>
+
+    <!-- AI Recommendations (AC5, AC7) -->
+    <app-ai-recommendations
+      [recommendations]="dashboardData.recommendations"
+      (startPractice)="onStartPractice($event)"
+    >
+    </app-ai-recommendations>
+
+    <!-- Recent Activity (AC6) -->
+    <app-recent-activity [recentActivity]="dashboardData.recentActivity">
+    </app-recent-activity>
+
+    <!-- Subject Cards (AC8) -->
+    <app-subject-cards
+      [subjects]="dashboardData.subjects"
+      (practiceSubject)="onPracticeSubject($event)"
+    >
+    </app-subject-cards>
+
+    <!-- Achievement Showcase (AC9) -->
+    <app-achievement-showcase [achievements]="dashboardData.achievements">
+    </app-achievement-showcase>
+  </div>
+  }
+</div>
