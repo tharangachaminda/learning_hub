@@ -1,0 +1,91 @@
+/* Daily Goal Widget Styles (AC11, AC14, AC15) */
+
+.daily-goal-widget {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.daily-goal-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+/* Goal Progress */
+.goal-minutes {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.completed {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1.75rem;
+}
+
+.separator {
+  color: #adb5bd;
+}
+
+.target {
+  color: #6c757d;
+}
+
+.progress-wrapper {
+  height: 12px;
+  background: #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+  min-width: 0;
+}
+
+/* Streak Section */
+.streak-section {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 1rem;
+}
+
+.streak-current {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.streak-flame {
+  font-size: 1.5rem;
+}
+
+.streak-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.streak-label {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.streak-best {
+  font-size: 0.875rem;
+  color: #adb5bd;
+  margin: 0;
+}

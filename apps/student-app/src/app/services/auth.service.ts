@@ -58,6 +58,9 @@ export interface LoginResponse {
 /** Key used for storing the auth token in web storage. */
 const AUTH_TOKEN_KEY = 'auth_token';
 
+/** Key used for storing the authenticated user info in web storage. */
+const AUTH_USER_KEY = 'auth_user';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -86,6 +89,7 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request).pipe(
       tap((response) => {
         this.storeToken(response.token, request.rememberMe);
+        this.storeUser(response.user, request.rememberMe);
       })
     );
   }
@@ -93,12 +97,14 @@ export class AuthService {
   /**
    * Clear all authentication data and end the user session.
    *
-   * Removes JWT tokens from both localStorage and sessionStorage
+   * Removes JWT tokens and user data from both localStorage and sessionStorage
    * to ensure complete session cleanup.
    */
   logout(): void {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    sessionStorage.removeItem(AUTH_USER_KEY);
   }
 
   /**
@@ -136,5 +142,50 @@ export class AuthService {
     } else {
       sessionStorage.setItem(AUTH_TOKEN_KEY, token);
     }
+  }
+
+  /**
+   * Store authenticated user info in the appropriate web storage.
+   *
+   * @param user - User object from the login response
+   * @param rememberMe - If true, store in localStorage; otherwise sessionStorage
+   */
+  private storeUser(user: LoginResponse['user'], rememberMe: boolean): void {
+    const json = JSON.stringify(user);
+    if (rememberMe) {
+      localStorage.setItem(AUTH_USER_KEY, json);
+    } else {
+      sessionStorage.setItem(AUTH_USER_KEY, json);
+    }
+  }
+
+  /**
+   * Retrieve the currently stored authenticated user.
+   *
+   * Checks localStorage first (persistent sessions), then sessionStorage.
+   *
+   * @returns The user object, or null if no user is stored
+   */
+  getUser(): LoginResponse['user'] | null {
+    const raw =
+      localStorage.getItem(AUTH_USER_KEY) ??
+      sessionStorage.getItem(AUTH_USER_KEY);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get the authenticated user's ID.
+   *
+   * @returns The user ID string, or null if not authenticated
+   */
+  getUserId(): string | null {
+    return this.getUser()?.id ?? null;
   }
 }

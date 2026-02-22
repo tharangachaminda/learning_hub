@@ -1,0 +1,38 @@
+<!-- Daily Goal Widget Template (AC3, AC4, AC15, AC25) -->
+<div class="daily-goal-widget" aria-label="Daily practice goal and streak">
+  <!-- Daily Goal Progress (AC3) -->
+  <div class="goal-section">
+    <h3 class="section-title">📚 Today's Goal</h3>
+    <p class="goal-minutes">
+      <span class="completed">{{ dailyGoal.completedMinutes }}</span>
+      <span class="separator"> / </span>
+      <span class="target">{{ dailyGoal.targetMinutes }} min</span>
+    </p>
+    <div class="progress-wrapper">
+      <div
+        class="progress-bar-fill"
+        role="progressbar"
+        [attr.aria-valuenow]="dailyGoal.percentage"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-label]="
+          dailyGoal.completedMinutes +
+          ' of ' +
+          dailyGoal.targetMinutes +
+          ' minutes completed'
+        "
+        [style.width.%]="dailyGoal.percentage"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Streak Counter (AC4) -->
+  <div class="streak-section">
+    <div data-testid="streak-counter" class="streak-current">
+      <span class="streak-flame">🔥</span>
+      <span class="streak-number">{{ streak.current }}</span>
+      <span class="streak-label">day streak</span>
+    </div>
+    <p class="streak-best">Best: {{ streak.longest }} days ⭐</p>
+  </div>
+</div>

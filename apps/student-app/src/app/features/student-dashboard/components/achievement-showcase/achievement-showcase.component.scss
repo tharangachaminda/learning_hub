@@ -1,0 +1,68 @@
+/* Achievement Showcase Styles (AC11, AC14) */
+
+.achievement-showcase {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.badges-grid {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.badge-card {
+  flex: 1 1 calc(33.333% - 0.5rem);
+  min-width: 100px;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  border-radius: 12px;
+  background: #fff8e1;
+  border: 2px solid #ffd54f;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.badge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
+}
+
+.badge-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: #333;
+}
+
+.badge-description {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin: 0 0 0.25rem;
+}
+
+.badge-points {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem;
+  color: #6c757d;
+  font-size: 1rem;
+}

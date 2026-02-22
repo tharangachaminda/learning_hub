@@ -3,7 +3,7 @@ id: US-UI-S-002
 title: Student Dashboard Screen
 epic: EPIC-UI-PHASE1-MVP
 priority: P0
-status: draft
+status: Ready for Review
 created: 2026-01-24
 assignee: TBD
 story_points: 5

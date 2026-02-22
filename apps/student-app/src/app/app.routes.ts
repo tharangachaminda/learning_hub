@@ -3,9 +3,16 @@ import { BadgeGalleryComponent } from './features/achievements/components/badge-
 import { Login } from './features/login/login';
 import { Registration } from './features/registration';
 import { QuestionGeneratorComponent } from './features/practice/question-generator/question-generator';
+import { StudentDashboardComponent } from './features/student-dashboard/student-dashboard.component';
 import { authGuard } from './guards/auth.guard';
 
 export const appRoutes: Route[] = [
+  {
+    path: 'dashboard',
+    component: StudentDashboardComponent,
+    title: 'My Dashboard',
+    canActivate: [authGuard],
+  },
   {
     path: 'achievements',
     component: BadgeGalleryComponent,
@@ -35,7 +42,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'dashboard',
     pathMatch: 'full',
   },
 ];

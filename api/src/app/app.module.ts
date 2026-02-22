@@ -7,6 +7,7 @@ import { MathQuestionsModule } from './math-questions/math-questions.module';
 import { OpenSearchModule } from './opensearch/opensearch.module';
 import { ProgressModule } from './progress/progress.module';
 import { AuthModule } from './auth/auth.module';
+import { StudentsModule } from './students/students.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
     MathQuestionsModule,
     ProgressModule,
     AuthModule,
+    StudentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

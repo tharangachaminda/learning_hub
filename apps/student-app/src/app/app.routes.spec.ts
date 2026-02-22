@@ -2,6 +2,7 @@ import { appRoutes } from './app.routes';
 import { Registration } from './features/registration';
 import { Login } from './features/login/login';
 import { QuestionGeneratorComponent } from './features/practice/question-generator/question-generator';
+import { StudentDashboardComponent } from './features/student-dashboard/student-dashboard.component';
 import { authGuard } from './guards/auth.guard';
 
 describe('appRoutes', () => {
@@ -79,8 +80,28 @@ describe('appRoutes', () => {
     expect(registerRoute?.canActivate).toBeUndefined();
   });
 
-  it('should redirect default path to login', () => {
+  it('should redirect default path to dashboard', () => {
     const defaultRoute = appRoutes.find((r) => r.path === '' && r.redirectTo);
-    expect(defaultRoute?.redirectTo).toBe('login');
+    expect(defaultRoute?.redirectTo).toBe('dashboard');
+  });
+
+  it('should contain a /dashboard route', () => {
+    const dashboardRoute = appRoutes.find((r) => r.path === 'dashboard');
+    expect(dashboardRoute).toBeDefined();
+  });
+
+  it('should map /dashboard to StudentDashboardComponent', () => {
+    const dashboardRoute = appRoutes.find((r) => r.path === 'dashboard');
+    expect(dashboardRoute?.component).toBe(StudentDashboardComponent);
+  });
+
+  it('should protect /dashboard route with authGuard', () => {
+    const dashboardRoute = appRoutes.find((r) => r.path === 'dashboard');
+    expect(dashboardRoute?.canActivate).toContain(authGuard);
+  });
+
+  it('should set title for /dashboard route', () => {
+    const dashboardRoute = appRoutes.find((r) => r.path === 'dashboard');
+    expect(dashboardRoute?.title).toBe('My Dashboard');
   });
 });
