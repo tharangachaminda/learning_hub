@@ -227,7 +227,17 @@ export class MathQuestionsController {
   }
 
   /**
-   * Converts difficulty level to grade number.
+   * Converts a DifficultyLevel enum value to its corresponding grade number.
+   * Used for curriculum level lookups and metadata in API responses.
+   *
+   * @param difficulty - The DifficultyLevel enum value
+   * @returns The numeric grade (3–8) corresponding to the difficulty
+   *
+   * @example
+   * ```typescript
+   * difficultyToGrade(DifficultyLevel.GRADE_5); // 5
+   * difficultyToGrade(DifficultyLevel.GRADE_8); // 8
+   * ```
    *
    * @private
    */
@@ -235,17 +245,36 @@ export class MathQuestionsController {
     switch (difficulty) {
       case DifficultyLevel.GRADE_3:
         return 3;
+      case DifficultyLevel.GRADE_4:
+        return 4;
+      case DifficultyLevel.GRADE_5:
+        return 5;
+      case DifficultyLevel.GRADE_6:
+        return 6;
+      case DifficultyLevel.GRADE_7:
+        return 7;
+      case DifficultyLevel.GRADE_8:
+        return 8;
       default:
         return 3;
     }
   }
 
   /**
-   * Parses difficulty level string to enum value
+   * Parses difficulty level string to enum value.
+   * Supports grade_3 through grade_8 with flexible input formats
+   * (e.g., "grade_5", "grade5", "GRADE_5").
    *
    * @param difficulty - Difficulty string from query parameter
    * @returns Corresponding DifficultyLevel enum value
-   * @throws Error if difficulty level is not supported
+   * @throws {Error} When difficulty level is not in the supported range (grades 3–8)
+   *
+   * @example
+   * ```typescript
+   * parseDifficultyLevel('grade_5'); // DifficultyLevel.GRADE_5
+   * parseDifficultyLevel('grade5');  // DifficultyLevel.GRADE_5
+   * parseDifficultyLevel('grade_9'); // throws Error
+   * ```
    *
    * @private
    */
@@ -256,6 +285,21 @@ export class MathQuestionsController {
       case 'grade_3':
       case 'grade3':
         return DifficultyLevel.GRADE_3;
+      case 'grade_4':
+      case 'grade4':
+        return DifficultyLevel.GRADE_4;
+      case 'grade_5':
+      case 'grade5':
+        return DifficultyLevel.GRADE_5;
+      case 'grade_6':
+      case 'grade6':
+        return DifficultyLevel.GRADE_6;
+      case 'grade_7':
+      case 'grade7':
+        return DifficultyLevel.GRADE_7;
+      case 'grade_8':
+      case 'grade8':
+        return DifficultyLevel.GRADE_8;
       default:
         throw new Error(
           `Unsupported difficulty level: ${difficulty}. Supported: ${Object.values(

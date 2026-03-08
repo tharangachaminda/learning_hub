@@ -19,7 +19,7 @@ import {
   GeneratedExplanationSchema,
   GeneratedExplanation,
   ExplanationStyle,
-  GRADE_LEVEL_PATTERNS,
+  getGradePatterns,
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 
@@ -513,8 +513,8 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         country: requestData.country || 'NZ',
       });
 
-      // Get grade-level patterns
-      const gradePatterns = GRADE_LEVEL_PATTERNS.GRADE_3; // For now, only Grade 3
+      // Get grade-level patterns dynamically based on student grade
+      const gradePatterns = getGradePatterns(request.grade);
       const countryContext = getCountryContext(request.country);
 
       // Create style-specific prompt

@@ -29,9 +29,49 @@ export enum DifficultyLevel {
    * Grade 3 difficulty level (ages 7-8)
    * - Single digit and simple double-digit arithmetic
    * - Numbers typically 0-100 for addition, 0-50 for subtraction
-   * - Aligns with NZ Curriculum Level 2-3 numeracy standards
+   * - Aligns with NZ Curriculum Level 2 numeracy standards
    */
   GRADE_3 = 'grade_3',
+
+  /**
+   * Grade 4 difficulty level (ages 8-9)
+   * - Double-digit arithmetic with carrying/borrowing
+   * - Numbers typically 0-1000
+   * - Aligns with NZ Curriculum Level 2 numeracy standards
+   */
+  GRADE_4 = 'grade_4',
+
+  /**
+   * Grade 5 difficulty level (ages 9-10)
+   * - Multi-digit operations, introduction to fractions/decimals
+   * - Numbers typically 0-10,000
+   * - Aligns with NZ Curriculum Level 3 numeracy standards
+   */
+  GRADE_5 = 'grade_5',
+
+  /**
+   * Grade 6 difficulty level (ages 10-11)
+   * - Complex multi-digit operations, fractions, decimals, percentages
+   * - Numbers typically 0-100,000
+   * - Aligns with NZ Curriculum Level 3 numeracy standards
+   */
+  GRADE_6 = 'grade_6',
+
+  /**
+   * Grade 7 difficulty level (ages 11-12)
+   * - Integers, ratios, proportions, intro to algebra
+   * - Negative numbers, larger number ranges
+   * - Aligns with NZ Curriculum Level 4 numeracy standards
+   */
+  GRADE_7 = 'grade_7',
+
+  /**
+   * Grade 8 difficulty level (ages 12-13)
+   * - Algebra, equations, advanced fractions/decimals
+   * - Complex problem-solving and reasoning
+   * - Aligns with NZ Curriculum Level 4 numeracy standards
+   */
+  GRADE_8 = 'grade_8',
 }
 
 /**
