@@ -190,7 +190,14 @@ describe('MathQuestionsController', () => {
         status: 'healthy',
         service: 'math-questions',
         capabilities: {
-          supportedDifficulties: [DifficultyLevel.GRADE_3],
+          supportedDifficulties: [
+            DifficultyLevel.GRADE_3,
+            DifficultyLevel.GRADE_4,
+            DifficultyLevel.GRADE_5,
+            DifficultyLevel.GRADE_6,
+            DifficultyLevel.GRADE_7,
+            DifficultyLevel.GRADE_8,
+          ],
           supportedOperations: [
             OperationType.ADDITION,
             OperationType.SUBTRACTION,
@@ -365,6 +372,52 @@ describe('MathQuestionsController', () => {
     });
   });
 
+  describe('difficultyToGrade — grade number mapping (US-QG-003)', () => {
+    const gradeTestCases = [
+      { difficulty: 'grade_4', expectedGrade: 4 },
+      { difficulty: 'grade_5', expectedGrade: 5 },
+      { difficulty: 'grade_6', expectedGrade: 6 },
+      { difficulty: 'grade_7', expectedGrade: 7 },
+      { difficulty: 'grade_8', expectedGrade: 8 },
+    ];
+
+    gradeTestCases.forEach(({ difficulty, expectedGrade }) => {
+      it(`should map ${difficulty} to grade number ${expectedGrade}`, async () => {
+        // AC-003: Each grade maps to correct numeric value for curriculum lookup
+        const requestBody = {
+          question: 'Test question?',
+          answer: 42,
+          difficulty,
+        };
+
+        jest
+          .spyOn(mockGenerator, 'generateEnhancedExplanation')
+          .mockResolvedValue('Mock explanation');
+
+        const result = await controller.generateExplanation(requestBody);
+
+        expect(result.metadata.grade_level).toBe(expectedGrade);
+      });
+    });
+
+    it('should still map grade_3 to grade number 3', async () => {
+      // Regression: Ensure existing grade_3 mapping is preserved
+      const requestBody = {
+        question: 'Test question?',
+        answer: 42,
+        difficulty: 'grade_3',
+      };
+
+      jest
+        .spyOn(mockGenerator, 'generateEnhancedExplanation')
+        .mockResolvedValue('Mock explanation');
+
+      const result = await controller.generateExplanation(requestBody);
+
+      expect(result.metadata.grade_level).toBe(3);
+    });
+  });
+
   describe('findSimilarQuestions', () => {
     it('should find similar questions using semantic search', async () => {
       const dto = {
@@ -505,6 +558,97 @@ describe('MathQuestionsController', () => {
       ).rejects.toThrow(
         'Semantic search service is not available. Please ensure OpenSearch is configured.'
       );
+    });
+  });
+
+  describe('parseDifficultyLevel — grades 4–8 support (US-QG-003)', () => {
+    it('should parse grade_4 to DifficultyLevel.GRADE_4', async () => {
+      // AC-001: grade_4 accepted as valid difficulty
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade_4', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_4,
+        1
+      );
+    });
+
+    it('should parse grade_5 to DifficultyLevel.GRADE_5', async () => {
+      // AC-001 + AC-002: grade_5 accepted and scoped correctly
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade_5', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_5,
+        1
+      );
+    });
+
+    it('should parse grade_6 to DifficultyLevel.GRADE_6', async () => {
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade_6', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_6,
+        1
+      );
+    });
+
+    it('should parse grade_7 to DifficultyLevel.GRADE_7', async () => {
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade_7', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_7,
+        1
+      );
+    });
+
+    it('should parse grade_8 to DifficultyLevel.GRADE_8', async () => {
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade_8', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_8,
+        1
+      );
+    });
+
+    it('should parse shorthand grade4 (without underscore)', async () => {
+      // Flexible input parsing: grade4 → GRADE_4
+      const mockQuestions: MathQuestion[] = [];
+      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+
+      await controller.generateQuestions('grade4', '1', 'addition');
+
+      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_4,
+        1
+      );
+    });
+
+    it('should reject grade_2 with clear error (AC-004)', async () => {
+      // AC-004: Invalid grades below range return 400 error
+      await expect(
+        controller.generateQuestions('grade_2', '1', 'addition')
+      ).rejects.toThrow('Unsupported difficulty level: grade_2');
+    });
+
+    it('should reject grade_9 with clear error (AC-004)', async () => {
+      // AC-004: Invalid grades above range return 400 error
+      await expect(
+        controller.generateQuestions('grade_9', '1', 'addition')
+      ).rejects.toThrow('Unsupported difficulty level: grade_9');
     });
   });
 });

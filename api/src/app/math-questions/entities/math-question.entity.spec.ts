@@ -87,5 +87,59 @@ describe('MathQuestion Entity', () => {
       // Testing difficulty levels align with story requirements (Grade 3 focus)
       expect(DifficultyLevel.GRADE_3).toBeDefined();
     });
+
+    it('should define DifficultyLevel enum with all grades 3–8', () => {
+      // US-QG-003 AC-001: System supports difficulty values grade_3 through grade_8
+      expect(DifficultyLevel.GRADE_3).toBe('grade_3');
+      expect(DifficultyLevel.GRADE_4).toBe('grade_4');
+      expect(DifficultyLevel.GRADE_5).toBe('grade_5');
+      expect(DifficultyLevel.GRADE_6).toBe('grade_6');
+      expect(DifficultyLevel.GRADE_7).toBe('grade_7');
+      expect(DifficultyLevel.GRADE_8).toBe('grade_8');
+    });
+
+    it('should have exactly 6 difficulty levels for grades 3–8', () => {
+      // Ensures no unexpected enum values are added
+      const values = Object.values(DifficultyLevel);
+      expect(values).toHaveLength(6);
+      expect(values).toEqual(
+        expect.arrayContaining([
+          'grade_3',
+          'grade_4',
+          'grade_5',
+          'grade_6',
+          'grade_7',
+          'grade_8',
+        ])
+      );
+    });
+  });
+
+  describe('MathQuestion with different grades', () => {
+    it('should create a MathQuestion with Grade 5 difficulty', () => {
+      // US-QG-003: Verify entity works with non-Grade-3 levels
+      const question = new MathQuestion(
+        '45 × 3 = ?',
+        135,
+        OperationType.ADDITION,
+        DifficultyLevel.GRADE_5,
+        ['Multiply 45 by 3', 'Answer is 135']
+      );
+
+      expect(question.difficulty).toBe(DifficultyLevel.GRADE_5);
+    });
+
+    it('should create a MathQuestion with Grade 8 difficulty', () => {
+      // US-QG-003: Verify entity works with highest supported grade
+      const question = new MathQuestion(
+        'Solve: 2x + 5 = 15',
+        5,
+        OperationType.ADDITION,
+        DifficultyLevel.GRADE_8,
+        ['Subtract 5 from both sides', 'Divide by 2', 'x = 5']
+      );
+
+      expect(question.difficulty).toBe(DifficultyLevel.GRADE_8);
+    });
   });
 });

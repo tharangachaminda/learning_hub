@@ -335,5 +335,60 @@ describe('OllamaService', () => {
       expect(result.metadata.generation_time).toBeLessThan(2000); // AC requirement: <2s
       expect(totalTime).toBeLessThan(2500); // Allow some margin for test execution
     });
+
+    it('should use grade-appropriate patterns for grade 5 (US-QG-003)', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Think about the relationship between the numbers. 45 divided by 9 equals 5 because 9 times 5 is 45.`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: '45 ÷ 9 = ?',
+        answer: 5,
+        grade: 5,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      expect(result.grade_level).toBe(5);
+      expect(result.explanation).toBeDefined();
+      // Encouragement should come from GRADE_5 phrases, not GRADE_3
+      const grade5Phrases = [
+        'Great reasoning!',
+        "You're developing strong skills!",
+        "Let's think about this carefully!",
+        'Excellent strategy!',
+        'Keep building on your ideas!',
+      ];
+      expect(grade5Phrases).toContain(result.encouragement);
+    });
+
+    it('should use grade-appropriate patterns for grade 8 (US-QG-003)', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `To solve 2x + 5 = 15, subtract 5 from both sides to get 2x = 10, then divide both sides by 2 to get x = 5.`,
+        },
+      });
+
+      const result = await service.generateExplanation({
+        question: 'Solve: 2x + 5 = 15',
+        answer: 5,
+        grade: 8,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      expect(result.grade_level).toBe(8);
+      // Encouragement should come from GRADE_8 phrases
+      const grade8Phrases = [
+        'Impressive mathematical reasoning!',
+        "You're thinking like a mathematician!",
+        "Let's approach this rigorously!",
+        'Sophisticated problem-solving!',
+        'Excellent use of logical reasoning!',
+      ];
+      expect(grade8Phrases).toContain(result.encouragement);
+    });
   });
 });

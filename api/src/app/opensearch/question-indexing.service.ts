@@ -212,6 +212,11 @@ export class QuestionIndexingService {
     // Map difficulty levels to normalized scores
     const scoreMap: Record<DifficultyLevel, number> = {
       [DifficultyLevel.GRADE_3]: 0.3,
+      [DifficultyLevel.GRADE_4]: 0.4,
+      [DifficultyLevel.GRADE_5]: 0.5,
+      [DifficultyLevel.GRADE_6]: 0.6,
+      [DifficultyLevel.GRADE_7]: 0.7,
+      [DifficultyLevel.GRADE_8]: 0.8,
     };
 
     return scoreMap[difficulty] || 0.3;

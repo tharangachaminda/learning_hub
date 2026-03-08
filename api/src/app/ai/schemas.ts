@@ -223,7 +223,21 @@ export const COUNTRY_CONTEXTS = {
 } as const;
 
 /**
- * Grade-level vocabulary and complexity patterns
+ * Grade-level vocabulary and complexity patterns for AI prompt engineering.
+ * Each grade defines age-appropriate vocabulary, sentence complexity,
+ * encouraging phrases, visual aids, and teaching approaches aligned
+ * with NZ Mathematics Curriculum levels.
+ *
+ * Grade-to-NZ-Curriculum mapping:
+ * - Grades 3–4 → Level 2
+ * - Grades 5–6 → Level 3
+ * - Grades 7–8 → Level 4
+ *
+ * @example
+ * ```typescript
+ * const patterns = GRADE_LEVEL_PATTERNS.GRADE_5;
+ * console.log(patterns.vocabularyLevel); // 'moderate'
+ * ```
  */
 export const GRADE_LEVEL_PATTERNS = {
   GRADE_3: {
@@ -251,6 +265,131 @@ export const GRADE_LEVEL_PATTERNS = {
       'Think of it like...',
     ],
   },
+  GRADE_4: {
+    vocabularyLevel: 'simple',
+    maxSyllablesPerWord: 2,
+    targetSentenceLength: 8, // 6-10 words
+    encouragingPhrases: [
+      'Good thinking!',
+      "You're on the right track!",
+      "Let's work through this!",
+      'Keep going, you can do it!',
+      'Nice problem-solving!',
+    ],
+    visualAidsKeywords: [
+      'draw a number line',
+      'use a hundreds chart',
+      'make an array',
+      'sketch a diagram',
+      'use place value blocks',
+    ],
+    teachingApproaches: [
+      'Break the problem into smaller parts',
+      'Use what you already know',
+      'Try a simpler number first',
+      'Look for a pattern',
+    ],
+  },
+  GRADE_5: {
+    vocabularyLevel: 'moderate',
+    maxSyllablesPerWord: 3,
+    targetSentenceLength: 10, // 8-12 words
+    encouragingPhrases: [
+      'Great reasoning!',
+      "You're developing strong skills!",
+      "Let's think about this carefully!",
+      'Excellent strategy!',
+      'Keep building on your ideas!',
+    ],
+    visualAidsKeywords: [
+      'draw a diagram',
+      'use a number line',
+      'create a table',
+      'sketch a model',
+      'use fraction strips',
+    ],
+    teachingApproaches: [
+      'Estimate first, then calculate',
+      'Look for relationships between numbers',
+      'Use place value understanding',
+      'Try working backwards',
+    ],
+  },
+  GRADE_6: {
+    vocabularyLevel: 'moderate',
+    maxSyllablesPerWord: 3,
+    targetSentenceLength: 12, // 10-14 words
+    encouragingPhrases: [
+      'Solid mathematical thinking!',
+      "You're making great connections!",
+      "Let's analyse this problem!",
+      'Strong approach!',
+      'Your reasoning is sound!',
+    ],
+    visualAidsKeywords: [
+      'create a ratio table',
+      'draw a bar model',
+      'use a double number line',
+      'sketch a pie chart',
+      'model with fractions',
+    ],
+    teachingApproaches: [
+      'Identify the key information',
+      'Consider multiple strategies',
+      'Use equivalent representations',
+      'Check your answer makes sense',
+    ],
+  },
+  GRADE_7: {
+    vocabularyLevel: 'moderate',
+    maxSyllablesPerWord: 4,
+    targetSentenceLength: 14, // 12-16 words
+    encouragingPhrases: [
+      'Excellent analytical thinking!',
+      "You're building strong mathematical reasoning!",
+      "Let's explore this systematically!",
+      'Well-structured approach!',
+      'Your logic is well-developed!',
+    ],
+    visualAidsKeywords: [
+      'plot on a coordinate plane',
+      'draw a graph',
+      'create an equation model',
+      'use algebra tiles',
+      'construct a geometric diagram',
+    ],
+    teachingApproaches: [
+      'Define your variables clearly',
+      'Look for generalisable patterns',
+      'Use algebraic reasoning',
+      'Verify with substitution',
+    ],
+  },
+  GRADE_8: {
+    vocabularyLevel: 'complex',
+    maxSyllablesPerWord: 4,
+    targetSentenceLength: 16, // 14-18 words
+    encouragingPhrases: [
+      'Impressive mathematical reasoning!',
+      "You're thinking like a mathematician!",
+      "Let's approach this rigorously!",
+      'Sophisticated problem-solving!',
+      'Excellent use of logical reasoning!',
+    ],
+    visualAidsKeywords: [
+      'graph the function',
+      'plot the relationship',
+      'model algebraically',
+      'use a Cartesian plane',
+      'construct a proof diagram',
+    ],
+    teachingApproaches: [
+      'Formulate the problem algebraically',
+      'Consider edge cases and constraints',
+      'Apply inverse operations strategically',
+      'Justify each step of your reasoning',
+    ],
+  },
 } as const;
 
 /**
@@ -258,6 +397,31 @@ export const GRADE_LEVEL_PATTERNS = {
  */
 export function getCountryContext(country: Country) {
   return COUNTRY_CONTEXTS[country] || COUNTRY_CONTEXTS.NZ;
+}
+
+/**
+ * Retrieves the grade-level patterns for a given numeric grade.
+ * Maps grade numbers (3–8) to their corresponding GRADE_LEVEL_PATTERNS entry.
+ * Clamps out-of-range grades to the nearest supported grade (3 or 8).
+ *
+ * @param grade - The numeric grade level (3–8)
+ * @returns The grade-level patterns object with vocabulary, phrases, and teaching approaches
+ *
+ * @example
+ * ```typescript
+ * const patterns = getGradePatterns(5);
+ * console.log(patterns.vocabularyLevel); // 'moderate'
+ * console.log(patterns.encouragingPhrases); // ['Great reasoning!', ...]
+ * ```
+ */
+export function getGradePatterns(
+  grade: number
+): (typeof GRADE_LEVEL_PATTERNS)[keyof typeof GRADE_LEVEL_PATTERNS] {
+  const gradeKey = `GRADE_${Math.max(
+    3,
+    Math.min(8, grade)
+  )}` as keyof typeof GRADE_LEVEL_PATTERNS;
+  return GRADE_LEVEL_PATTERNS[gradeKey] ?? GRADE_LEVEL_PATTERNS.GRADE_3;
 }
 
 /**
