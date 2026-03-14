@@ -428,7 +428,9 @@ describe('CurriculumPromptEngine', () => {
           });
 
           expect(prompt.systemPrompt).toMatch(/simple.*numeric|numeric.*only/i);
-          expect(prompt.systemPrompt).toMatch(/do NOT.*sentence|no.*word.*problem/i);
+          expect(prompt.systemPrompt).toMatch(
+            /do NOT.*sentence|no.*word.*problem/i
+          );
         });
       });
     });
@@ -446,7 +448,9 @@ describe('CurriculumPromptEngine', () => {
         country: 'NZ',
       });
 
-      expect(prompt.systemPrompt).not.toMatch(/do NOT.*sentence|no.*word.*problem/i);
+      expect(prompt.systemPrompt).not.toMatch(
+        /do NOT.*sentence|no.*word.*problem/i
+      );
     });
 
     /**
@@ -462,7 +466,9 @@ describe('CurriculumPromptEngine', () => {
         country: 'NZ',
       });
 
-      expect(prompt.systemPrompt).not.toMatch(/do NOT.*sentence|no.*word.*problem/i);
+      expect(prompt.systemPrompt).not.toMatch(
+        /do NOT.*sentence|no.*word.*problem/i
+      );
     });
   });
 
