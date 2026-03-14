@@ -75,6 +75,7 @@ export const GeneratedQuestionSchema = z.object({
     generation_time: z.number(),
     fallback_used: z.boolean().optional(),
     validation_score: z.number().min(0).max(1).optional(),
+    latexValid: z.boolean().optional(),
   }),
 });
 
@@ -432,10 +433,30 @@ export function parseLLMResponse(
 ): LLMQuestionResponse | null {
   try {
     // First try to parse as JSON (for structured responses)
-    const jsonMatch = rawResponse.match(/\{.*\}/);
+    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return LLMQuestionResponseSchema.parse(parsed);
+      const jsonStr = jsonMatch[0];
+
+      // Always sanitize LaTeX backslashes BEFORE JSON.parse.
+      // LLMs output LaTeX commands like \frac, \times, \sqrt inside JSON strings.
+      // These collide with valid JSON escape sequences (\f=formfeed, \t=tab, \b=backspace),
+      // causing JSON.parse to silently misinterpret them rather than failing.
+      // Fix: double-escape lone backslashes followed by 2+ alpha chars (LaTeX commands).
+      // Already-escaped \\frac is preserved by the negative lookbehind.
+      const sanitized = jsonStr.replace(/(?<!\\)\\([a-zA-Z]{2,})/g, '\\\\$1');
+
+      try {
+        const parsed = JSON.parse(sanitized);
+        return LLMQuestionResponseSchema.parse(parsed);
+      } catch {
+        // Sanitized parse failed — try original as last resort
+        try {
+          const parsed = JSON.parse(jsonStr);
+          return LLMQuestionResponseSchema.parse(parsed);
+        } catch {
+          // Still failed — fall through to regex parsing below
+        }
+      }
     }
 
     // Fallback to regex parsing for text responses

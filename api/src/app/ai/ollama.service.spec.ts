@@ -102,6 +102,7 @@ describe('OllamaService', () => {
           generated_by: 'llama3.1:latest',
           generation_time: expect.any(Number),
           validation_score: expect.any(Number),
+          latexValid: expect.any(Boolean),
         },
       });
     });
@@ -389,6 +390,188 @@ describe('OllamaService', () => {
         'Excellent use of logical reasoning!',
       ];
       expect(grade8Phrases).toContain(result.encouragement);
+    });
+  });
+
+  describe('LaTeX formatting in prompts', () => {
+    /**
+     * Test: Explanation prompt includes LaTeX formatting rules
+     * Why Essential: AC-003 requires explanations use LaTeX for all math expressions
+     * What Breaks: Explanations would contain plain text math instead of LaTeX
+     */
+    it('should include LaTeX formatting rules in explanation prompt sent to AI', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `Let's solve this! $7 + 5 = 12$. Great job!`,
+        },
+      });
+
+      await service.generateExplanation({
+        question: '7 + 5 = ?',
+        answer: 12,
+        grade: 3,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      // Inspect the prompt sent to the LLM
+      const postCall = mockAxios.post.mock.calls[0];
+      const promptBody = postCall[1];
+      const prompt = promptBody.prompt;
+
+      // Must include LaTeX delimiter instructions
+      expect(prompt).toContain('$...$');
+      expect(prompt).toContain('$$...$$');
+    });
+
+    /**
+     * Test: Explanation prompt includes LaTeX command references
+     * Why Essential: AC-003 requires proper LaTeX notation in explanations
+     * What Breaks: AI may use plain text for fractions/roots in explanations
+     */
+    it('should include LaTeX command references in explanation prompt', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: `To simplify $\\frac{6}{8}$, divide both by 2 to get $\\frac{3}{4}$.`,
+        },
+      });
+
+      await service.generateExplanation({
+        question: 'Simplify 6/8',
+        answer: 0.75,
+        grade: 5,
+        style: 'step-by-step',
+        country: 'NZ',
+      });
+
+      const postCall = mockAxios.post.mock.calls[0];
+      const prompt = postCall[1].prompt;
+
+      expect(prompt).toContain('\\frac');
+      expect(prompt).toContain('\\times');
+    });
+
+    /**
+     * Test: Question generation prompt includes LaTeX rules via CurriculumPromptEngine
+     * Why Essential: AC-001/AC-002 require all generated question content uses LaTeX
+     * What Breaks: Questions would contain plain text math expressions
+     */
+    it('should include LaTeX rules in question generation prompt sent to AI', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $15 + 8$?\nANSWER: 23\nEXPLANATION: $15 + 8 = 23$',
+        },
+      });
+
+      await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const postCall = mockAxios.post.mock.calls[0];
+      const prompt = postCall[1].prompt;
+
+      // CurriculumPromptEngine system prompt should contain LaTeX rules
+      expect(prompt).toContain('$...$');
+      expect(prompt).toContain('$$...$$');
+      expect(prompt).toContain('\\frac');
+    });
+  });
+
+  describe('Ollama generation timeout configuration', () => {
+    /**
+     * Test: Question generation uses 30s timeout for curriculum-aware prompts
+     * Why Essential: Curriculum prompts are long; 10s timeout causes premature fallback
+     * What Breaks: AI generation always times out, users never get LaTeX questions
+     */
+    it('should use 30s timeout for question generation requests', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $5 + 3$?\nANSWER: 8\nEXPLANATION: $5 + 3 = 8$',
+        },
+      });
+
+      await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const postCall = mockAxios.post.mock.calls[0];
+      const config = postCall[2]; // third argument is axios config
+      expect(config.timeout).toBe(30000);
+    });
+  });
+
+  describe('LaTeX validation in generation pipeline', () => {
+    /**
+     * Test: Generated question includes latexValid=true for valid LaTeX content
+     * Why Essential: REQ-QG-046 requires post-generation LaTeX validation
+     * What Breaks: No way to identify which questions have valid/invalid LaTeX
+     */
+    it('should include latexValid=true in metadata for valid LaTeX content', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $15 + 8$?\nANSWER: 23\nEXPLANATION: $15 + 8 = 23$',
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.latexValid).toBe(true);
+    });
+
+    /**
+     * Test: Generated question includes latexValid=false for malformed LaTeX
+     * Why Essential: REQ-QG-048 requires flagging invalid LaTeX for review
+     * What Breaks: Malformed LaTeX reaches students causing rendering errors
+     */
+    it('should include latexValid=false in metadata for malformed LaTeX', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $\\frac{3}{$?\nANSWER: 0\nEXPLANATION: Bad latex $\\frac{$',
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.latexValid).toBe(false);
+    });
+
+    /**
+     * Test: Fallback questions include latexValid in metadata
+     * Why Essential: Even fallback content should be validated
+     * What Breaks: Fallback questions bypass validation
+     */
+    it('should include latexValid in metadata for fallback questions', async () => {
+      mockAxios.post.mockRejectedValue(new Error('AI unavailable'));
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.latexValid).toBeDefined();
+      expect(typeof result.metadata.latexValid).toBe('boolean');
     });
   });
 });

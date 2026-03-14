@@ -316,6 +316,162 @@ describe('CurriculumPromptEngine', () => {
     });
   });
 
+  describe('LaTeX formatting rules', () => {
+    /**
+     * Test: System prompt includes LaTeX delimiter instructions
+     * Why Essential: AC-001 requires all math expressions use $...$ or $$...$$ delimiters
+     * What Breaks: AI won't produce LaTeX-wrapped math without explicit instructions
+     */
+    it('should include LaTeX delimiter instructions in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must instruct AI to use inline and display math delimiters
+      expect(systemPrompt).toContain('$...$');
+      expect(systemPrompt).toContain('$$...$$');
+    });
+
+    /**
+     * Test: System prompt includes LaTeX command style guide
+     * Why Essential: AC-002/AC-003 require proper LaTeX commands for fractions, multiplication, etc.
+     * What Breaks: AI may use plain text math or non-KaTeX-compatible commands
+     */
+    it('should include LaTeX command style guide in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'FRACTION_OPERATIONS',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must include key LaTeX commands
+      expect(systemPrompt).toContain('\\frac');
+      expect(systemPrompt).toContain('\\times');
+      expect(systemPrompt).toContain('\\div');
+      expect(systemPrompt).toContain('\\sqrt');
+      expect(systemPrompt).toContain('\\text');
+    });
+
+    /**
+     * Test: System prompt includes LaTeX usage examples
+     * Why Essential: AC-004 requires narrative text stays plain while math uses LaTeX
+     * What Breaks: AI may inconsistently apply LaTeX or wrap non-math text in delimiters
+     */
+    it('should include LaTeX formatting examples in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must include at least one positive example with LaTeX
+      expect(systemPrompt).toMatch(/\$\\frac\{/);
+      // Must explicitly state mandatory formatting requirement
+      expect(systemPrompt.toUpperCase()).toContain('MUST');
+    });
+
+    /**
+     * Test: LaTeX rules are present for ALL grades and topics
+     * Why Essential: AC-007 requires LaTeX works across all grades, topics, and formats
+     * What Breaks: LaTeX instructions might only appear for specific grade/topic combos
+     */
+    it('should include LaTeX rules regardless of grade and topic', () => {
+      const configs = [
+        { grade: 3, topic: 'ADDITION' },
+        { grade: 5, topic: 'FRACTION_OPERATIONS' },
+        { grade: 6, topic: 'ALGEBRAIC_EQUATIONS' },
+        { grade: 4, topic: 'MULTIPLICATION' },
+      ];
+
+      configs.forEach(({ grade, topic }) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade,
+          topic,
+          difficulty: 'medium',
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toContain('$...$');
+        expect(prompt.systemPrompt).toContain('$$...$$');
+        expect(prompt.systemPrompt).toContain('\\frac');
+      });
+    });
+  });
+
+  describe('Question format rules by difficulty and grade', () => {
+    const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
+
+    /**
+     * Test: Easy + basic ops + lower grades → simple numeric questions only
+     * Why Essential: Young students at easy level need "$5 + 3 = ?$", not word problems
+     * What Breaks: LLM generates confusing sentence-based questions for simple drills
+     */
+    it('should instruct simple numeric format for easy basic-op questions in grade 3-4', () => {
+      basicOps.forEach((topic) => {
+        [3, 4].forEach((grade) => {
+          const prompt = engine.generateCurriculumPrompt({
+            grade,
+            topic,
+            difficulty: 'easy',
+            country: 'NZ',
+          });
+
+          expect(prompt.systemPrompt).toMatch(/simple.*numeric|numeric.*only/i);
+          expect(prompt.systemPrompt).toMatch(
+            /do NOT.*sentence|no.*word.*problem/i
+          );
+        });
+      });
+    });
+
+    /**
+     * Test: Medium/hard difficulty → sentence questions are allowed
+     * Why Essential: Higher difficulty benefits from contextual word problems
+     * What Breaks: All difficulties forced into plain numeric format
+     */
+    it('should allow sentence questions for medium and hard difficulty', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).not.toMatch(
+        /do NOT.*sentence|no.*word.*problem/i
+      );
+    });
+
+    /**
+     * Test: Higher grades (5+) easy → no restriction on sentence format
+     * Why Essential: Older students handle word problems even at easy level
+     * What Breaks: Grade 7 easy questions forced into "$5 + 3$" format
+     */
+    it('should not restrict question format for higher grades even at easy difficulty', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 6,
+        topic: 'ADDITION',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).not.toMatch(
+        /do NOT.*sentence|no.*word.*problem/i
+      );
+    });
+  });
+
   describe('CurriculumPromptTemplate Interface', () => {
     it('should return complete prompt template structure', () => {
       const prompt = engine.generateCurriculumPrompt({

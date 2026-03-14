@@ -266,7 +266,7 @@ export class MathQuestionGenerator {
     const num2 = this.generateNumberForDifficulty(difficulty);
 
     const answer = num1 + num2;
-    const questionText = `${num1} + ${num2} = ?`;
+    const questionText = `$${num1} + ${num2} = ?$`;
 
     const solution = this.generateSolutionSteps(
       num1,
@@ -376,9 +376,9 @@ export class MathQuestionGenerator {
     sum: number
   ): string[] {
     return [
-      `Start with the first number: ${num1}`,
-      `Add the second number: ${num1} + ${num2}`,
-      `The answer is: ${sum}`,
+      `Start with the first number: $${num1}$`,
+      `Add the second number: $${num1} + ${num2}$`,
+      `The answer is: $${sum}$`,
     ];
   }
 
@@ -399,9 +399,9 @@ export class MathQuestionGenerator {
     difference: number
   ): string[] {
     return [
-      `Start with the first number: ${num1}`,
-      `Subtract the second number: ${num1} - ${num2}`,
-      `The answer is: ${difference}`,
+      `Start with the first number: $${num1}$`,
+      `Subtract the second number: $${num1} - ${num2}$`,
+      `The answer is: $${difference}$`,
     ];
   }
 }
