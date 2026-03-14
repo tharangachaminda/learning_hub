@@ -409,6 +409,63 @@ describe('CurriculumPromptEngine', () => {
     });
   });
 
+  describe('Question format rules by difficulty and grade', () => {
+    const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
+
+    /**
+     * Test: Easy + basic ops + lower grades → simple numeric questions only
+     * Why Essential: Young students at easy level need "$5 + 3 = ?$", not word problems
+     * What Breaks: LLM generates confusing sentence-based questions for simple drills
+     */
+    it('should instruct simple numeric format for easy basic-op questions in grade 3-4', () => {
+      basicOps.forEach((topic) => {
+        [3, 4].forEach((grade) => {
+          const prompt = engine.generateCurriculumPrompt({
+            grade,
+            topic,
+            difficulty: 'easy',
+            country: 'NZ',
+          });
+
+          expect(prompt.systemPrompt).toMatch(/simple.*numeric|numeric.*only/i);
+          expect(prompt.systemPrompt).toMatch(/do NOT.*sentence|no.*word.*problem/i);
+        });
+      });
+    });
+
+    /**
+     * Test: Medium/hard difficulty → sentence questions are allowed
+     * Why Essential: Higher difficulty benefits from contextual word problems
+     * What Breaks: All difficulties forced into plain numeric format
+     */
+    it('should allow sentence questions for medium and hard difficulty', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).not.toMatch(/do NOT.*sentence|no.*word.*problem/i);
+    });
+
+    /**
+     * Test: Higher grades (5+) easy → no restriction on sentence format
+     * Why Essential: Older students handle word problems even at easy level
+     * What Breaks: Grade 7 easy questions forced into "$5 + 3$" format
+     */
+    it('should not restrict question format for higher grades even at easy difficulty', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 6,
+        topic: 'ADDITION',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).not.toMatch(/do NOT.*sentence|no.*word.*problem/i);
+    });
+  });
+
   describe('CurriculumPromptTemplate Interface', () => {
     it('should return complete prompt template structure', () => {
       const prompt = engine.generateCurriculumPrompt({

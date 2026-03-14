@@ -364,6 +364,7 @@ QUESTION REQUIREMENTS:
       objectives[0]?.assessmentCriteria.join(', ') || 'accuracy'
     }
 
+${this.buildQuestionFormatRules(request)}
 MANDATORY LATEX FORMATTING:
 Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
 - Use $...$ for all inline math
@@ -378,5 +379,32 @@ You MUST respond with ONLY valid JSON in this exact format, nothing else:
 {"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation with LaTeX>"}
 
 Generate a ${request.topic} question that meets these curriculum requirements.`;
+  }
+
+  /**
+   * Builds question format style rules based on difficulty, grade, and topic.
+   *
+   * For easy difficulty + basic operations (addition, subtraction, multiplication, division)
+   * at lower grades (3-4), instructs LLM to produce simple numeric questions only.
+   * Medium and hard difficulties may include sentence-based or word problems.
+   *
+   * @param request - The curriculum prompt request containing difficulty, grade, and topic
+   * @returns A formatted string block for the system prompt, or empty string if no special rules apply
+   */
+  private buildQuestionFormatRules(request: CurriculumPromptRequest): string {
+    const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
+    const isBasicOp = basicOps.includes(request.topic.toUpperCase());
+    const isLowerGrade = request.grade <= 4;
+    const isEasy = request.difficulty === 'easy';
+
+    if (isEasy && isBasicOp && isLowerGrade) {
+      return `QUESTION FORMAT STYLE:
+Generate simple numeric questions ONLY (e.g. "$5 + 3 = ?$", "$12 \\times 4 = ?$").
+Do NOT use word problems, sentences, or story contexts for this question.
+Keep the format direct: a math expression followed by "= ?".
+`;
+    }
+
+    return '';
   }
 }

@@ -112,8 +112,8 @@ Implement LaTeX math expression support in AI question generation so that all ma
 
 ## File Operations Log
 
-- **MODIFIED** `api/src/app/ai/curriculum-prompt-engine.ts` — Added MATH FORMATTING RULES section to `buildSystemPrompt()`
-- **MODIFIED** `api/src/app/ai/curriculum-prompt-engine.spec.ts` — Added 4 LaTeX formatting rule tests
+- **MODIFIED** `api/src/app/ai/curriculum-prompt-engine.ts` — Added MATH FORMATTING RULES section to `buildSystemPrompt()`, added QUESTION FORMAT STYLE conditional block via `buildQuestionFormatRules()`
+- **MODIFIED** `api/src/app/ai/curriculum-prompt-engine.spec.ts` — Added 4 LaTeX formatting rule tests + 3 question format rules tests
 - **MODIFIED** `api/src/app/ai/ollama.service.ts` — Added LaTeX rules to `createExplanationPrompt()`, integrated `validateLatexContent()` in `generateMathQuestion()` and `generateValidatedFallback()`
 - **MODIFIED** `api/src/app/ai/ollama.service.spec.ts` — Added 6 LaTeX tests (3 prompt + 3 pipeline), updated 1 existing test
 - **CREATED** `api/src/app/ai/latex-validation.utils.ts` — LaTeX validation utility using KaTeX

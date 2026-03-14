@@ -443,10 +443,7 @@ export function parseLLMResponse(
       // causing JSON.parse to silently misinterpret them rather than failing.
       // Fix: double-escape lone backslashes followed by 2+ alpha chars (LaTeX commands).
       // Already-escaped \\frac is preserved by the negative lookbehind.
-      const sanitized = jsonStr.replace(
-        /(?<!\\)\\([a-zA-Z]{2,})/g,
-        '\\\\$1'
-      );
+      const sanitized = jsonStr.replace(/(?<!\\)\\([a-zA-Z]{2,})/g, '\\\\$1');
 
       try {
         const parsed = JSON.parse(sanitized);

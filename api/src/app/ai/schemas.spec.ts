@@ -68,24 +68,26 @@ describe('GRADE_LEVEL_PATTERNS', () => {
     it('should have simpler vocabulary for lower grades', () => {
       // Grade 3 should be simpler than or equal to Grade 8
       const g3Idx = vocabOrder.indexOf(
-        GRADE_LEVEL_PATTERNS.GRADE_3.vocabularyLevel as typeof vocabOrder[number]
+        GRADE_LEVEL_PATTERNS.GRADE_3
+          .vocabularyLevel as (typeof vocabOrder)[number]
       );
       const g8Idx = vocabOrder.indexOf(
-        GRADE_LEVEL_PATTERNS.GRADE_8.vocabularyLevel as typeof vocabOrder[number]
+        GRADE_LEVEL_PATTERNS.GRADE_8
+          .vocabularyLevel as (typeof vocabOrder)[number]
       );
       expect(g3Idx).toBeLessThanOrEqual(g8Idx);
     });
 
     it('should allow more syllables per word for higher grades', () => {
-      expect(GRADE_LEVEL_PATTERNS.GRADE_3.maxSyllablesPerWord).toBeLessThanOrEqual(
-        GRADE_LEVEL_PATTERNS.GRADE_8.maxSyllablesPerWord
-      );
+      expect(
+        GRADE_LEVEL_PATTERNS.GRADE_3.maxSyllablesPerWord
+      ).toBeLessThanOrEqual(GRADE_LEVEL_PATTERNS.GRADE_8.maxSyllablesPerWord);
     });
 
     it('should allow longer sentences for higher grades', () => {
-      expect(GRADE_LEVEL_PATTERNS.GRADE_3.targetSentenceLength).toBeLessThanOrEqual(
-        GRADE_LEVEL_PATTERNS.GRADE_8.targetSentenceLength
-      );
+      expect(
+        GRADE_LEVEL_PATTERNS.GRADE_3.targetSentenceLength
+      ).toBeLessThanOrEqual(GRADE_LEVEL_PATTERNS.GRADE_8.targetSentenceLength);
     });
   });
 });
@@ -151,7 +153,8 @@ describe('parseLLMResponse', () => {
   it('should parse JSON response containing LaTeX backslash commands', () => {
     // LLM returns JSON with LaTeX like \frac, \times, \sqrt which break JSON.parse
     // because \f = form feed, \t = tab, etc.
-    const raw = '{"question": "What is $\\frac{3}{4} + \\frac{1}{2}$?", "answer": 1, "explanation": "Use $\\frac{3}{4} + \\frac{2}{4} = \\frac{5}{4}$"}';
+    const raw =
+      '{"question": "What is $\\frac{3}{4} + \\frac{1}{2}$?", "answer": 1, "explanation": "Use $\\frac{3}{4} + \\frac{2}{4} = \\frac{5}{4}$"}';
     const result = parseLLMResponse(raw);
     expect(result).not.toBeNull();
     expect(result?.answer).toBe(1);
