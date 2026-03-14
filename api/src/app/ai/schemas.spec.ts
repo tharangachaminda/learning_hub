@@ -147,4 +147,23 @@ describe('parseLLMResponse', () => {
     const result = parseLLMResponse('random gibberish');
     expect(result).toBeNull();
   });
+
+  it('should parse JSON response containing LaTeX backslash commands', () => {
+    // LLM returns JSON with LaTeX like \frac, \times, \sqrt which break JSON.parse
+    // because \f = form feed, \t = tab, etc.
+    const raw = '{"question": "What is $\\frac{3}{4} + \\frac{1}{2}$?", "answer": 1, "explanation": "Use $\\frac{3}{4} + \\frac{2}{4} = \\frac{5}{4}$"}';
+    const result = parseLLMResponse(raw);
+    expect(result).not.toBeNull();
+    expect(result?.answer).toBe(1);
+    expect(result?.question).toContain('\\frac');
+  });
+
+  it('should parse JSON where LLM outputs single-escaped LaTeX backslashes', () => {
+    // LLM often outputs: {"question": "What is $\frac{1}{2}$?"}
+    // where \f is NOT a valid JSON escape → must be sanitized
+    const raw = String.raw`{"question": "What is $\frac{1}{2}$?", "answer": 0, "explanation": "The answer involves \times and \sqrt{4}"}`;
+    const result = parseLLMResponse(raw);
+    expect(result).not.toBeNull();
+    expect(result?.question).toContain('frac');
+  });
 });

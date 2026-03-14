@@ -481,6 +481,33 @@ describe('OllamaService', () => {
     });
   });
 
+  describe('Ollama generation timeout configuration', () => {
+    /**
+     * Test: Question generation uses 30s timeout for curriculum-aware prompts
+     * Why Essential: Curriculum prompts are long; 10s timeout causes premature fallback
+     * What Breaks: AI generation always times out, users never get LaTeX questions
+     */
+    it('should use 30s timeout for question generation requests', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $5 + 3$?\nANSWER: 8\nEXPLANATION: $5 + 3 = 8$',
+        },
+      });
+
+      await service.generateMathQuestion({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const postCall = mockAxios.post.mock.calls[0];
+      const config = postCall[2]; // third argument is axios config
+      expect(config.timeout).toBe(30000);
+    });
+  });
+
   describe('LaTeX validation in generation pipeline', () => {
     /**
      * Test: Generated question includes latexValid=true for valid LaTeX content

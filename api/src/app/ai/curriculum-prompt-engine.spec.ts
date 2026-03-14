@@ -377,8 +377,8 @@ describe('CurriculumPromptEngine', () => {
 
       // Must include at least one positive example with LaTeX
       expect(systemPrompt).toMatch(/\$\\frac\{/);
-      // Must instruct to keep narrative text as plain text
-      expect(systemPrompt.toLowerCase()).toContain('plain text');
+      // Must explicitly state mandatory formatting requirement
+      expect(systemPrompt.toUpperCase()).toContain('MUST');
     });
 
     /**

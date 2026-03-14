@@ -230,4 +230,63 @@ describe('MathQuestionGenerator Service', () => {
       expect(duration).toBeLessThan(100);
     });
   });
+
+  describe('Deterministic fallback LaTeX formatting', () => {
+    /**
+     * Test: Deterministic question text wraps math in LaTeX delimiters
+     * Why Essential: AC-006 requires "even simple arithmetic must use LaTeX"
+     * What Breaks: Frontend LaTeX renderer has no delimiters to render
+     */
+    it('should wrap question math expressions in LaTeX $...$ delimiters', async () => {
+      const questions = await generator.generateAdditionQuestions(
+        DifficultyLevel.GRADE_3,
+        5
+      );
+
+      questions.forEach((question) => {
+        // Question should contain LaTeX-delimited math: $num1 + num2 = ?$
+        expect(question.question).toMatch(/\$\d+\s*\+\s*\d+\s*=\s*\?\$/);
+      });
+    });
+
+    /**
+     * Test: Solution steps wrap math expressions in LaTeX delimiters
+     * Why Essential: Step-by-step solutions also display math to students
+     * What Breaks: Inconsistent formatting between questions and solutions
+     */
+    it('should wrap solution step math expressions in LaTeX delimiters', async () => {
+      const questions = await generator.generateAdditionQuestions(
+        DifficultyLevel.GRADE_3,
+        3
+      );
+
+      questions.forEach((question) => {
+        const steps = question.stepByStepSolution;
+        // Step 1: "Start with the first number: $num$"
+        expect(steps[0]).toMatch(/\$\d+\$/);
+        // Step 2: "Add the second number: $num1 + num2$"
+        expect(steps[1]).toMatch(/\$\d+\s*\+\s*\d+\$/);
+        // Step 3: "The answer is: $sum$"
+        expect(steps[2]).toMatch(/\$\d+\$/);
+      });
+    });
+
+    /**
+     * Test: OllamaService fallback also wraps math in LaTeX delimiters
+     * Why Essential: Pipeline consistency - AI fallback should match deterministic format
+     * What Breaks: Fallback questions bypass LaTeX formatting entirely
+     */
+    it('should produce LaTeX-wrapped question text in OllamaService fallback', async () => {
+      const questions = await generator.generateAdditionQuestions(
+        DifficultyLevel.GRADE_3,
+        1
+      );
+
+      const q = questions[0];
+      // The question should NOT be plain text like "5 + 3 = ?"
+      // It should be LaTeX-wrapped like "$5 + 3 = ?$"
+      expect(q.question).not.toMatch(/^\d+\s*\+\s*\d+\s*=\s*\?$/);
+      expect(q.question).toContain('$');
+    });
+  });
 });

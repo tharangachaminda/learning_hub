@@ -44,6 +44,9 @@ export class OllamaService {
   private readonly defaultModel = 'llama3.1:latest';
   private readonly curriculumPromptEngine: CurriculumPromptEngine;
 
+  /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */
+  private readonly generationTimeout = 30000;
+
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService
@@ -161,7 +164,7 @@ export class OllamaService {
             top_p: 0.9,
           },
         },
-        { timeout: 10000 }
+        { timeout: this.generationTimeout }
       );
 
       // Parse AI response using Zod validation
@@ -344,10 +347,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
 
-    const questionText = `${num1} + ${num2} = ?`;
-    const explanationText = `Add ${num1} and ${num2} together to get ${
+    const questionText = `$${num1} + ${num2} = ?$`;
+    const explanationText = `Add $${num1}$ and $${num2}$ together to get $${
       num1 + num2
-    }.`;
+    }$.`;
 
     // Validate LaTeX in fallback content (REQ-QG-046)
     const latexValidation = validateLatexContent(
@@ -660,12 +663,13 @@ Generate a ${
       request.grade
     } grader.
 
-MATH FORMATTING RULES:
-- Wrap ALL math expressions in LaTeX delimiters: $...$ for inline math, $$...$$ for display math
-- Use LaTeX commands: \\frac{a}{b} for fractions, \\times for multiplication, \\div for division, ^ for exponents, \\sqrt{} for roots
-- Use \\text{} for units inside math mode: $5 \\text{ cm}$
-- Keep narrative/instructional text as plain text outside delimiters
-- Example: "We add $\\frac{3}{4} + \\frac{1}{2}$" NOT "We add 3/4 + 1/2"
+MANDATORY LATEX FORMATTING:
+Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
+- Use $...$ for all inline math, $$...$$ for standalone equations
+- This includes ALL numbers, operators, fractions, and results — no exceptions
+- LaTeX commands: \\frac{a}{b}, \\times, \\div, ^, \\sqrt{}, \\text{} for units
+- CORRECT: "We add $5 + 3 = 8$" | "There are $12$ apples" | "$\\frac{3}{4} + \\frac{1}{2}$"
+- WRONG: "We add 5 + 3 = 8" | "There are 12 apples" | "3/4 + 1/2"
 
 IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
   }
