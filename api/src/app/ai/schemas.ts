@@ -75,6 +75,7 @@ export const GeneratedQuestionSchema = z.object({
     generation_time: z.number(),
     fallback_used: z.boolean().optional(),
     validation_score: z.number().min(0).max(1).optional(),
+    latexValid: z.boolean().optional(),
   }),
 });
 

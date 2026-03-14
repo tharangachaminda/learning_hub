@@ -316,6 +316,99 @@ describe('CurriculumPromptEngine', () => {
     });
   });
 
+  describe('LaTeX formatting rules', () => {
+    /**
+     * Test: System prompt includes LaTeX delimiter instructions
+     * Why Essential: AC-001 requires all math expressions use $...$ or $$...$$ delimiters
+     * What Breaks: AI won't produce LaTeX-wrapped math without explicit instructions
+     */
+    it('should include LaTeX delimiter instructions in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must instruct AI to use inline and display math delimiters
+      expect(systemPrompt).toContain('$...$');
+      expect(systemPrompt).toContain('$$...$$');
+    });
+
+    /**
+     * Test: System prompt includes LaTeX command style guide
+     * Why Essential: AC-002/AC-003 require proper LaTeX commands for fractions, multiplication, etc.
+     * What Breaks: AI may use plain text math or non-KaTeX-compatible commands
+     */
+    it('should include LaTeX command style guide in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'FRACTION_OPERATIONS',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must include key LaTeX commands
+      expect(systemPrompt).toContain('\\frac');
+      expect(systemPrompt).toContain('\\times');
+      expect(systemPrompt).toContain('\\div');
+      expect(systemPrompt).toContain('\\sqrt');
+      expect(systemPrompt).toContain('\\text');
+    });
+
+    /**
+     * Test: System prompt includes LaTeX usage examples
+     * Why Essential: AC-004 requires narrative text stays plain while math uses LaTeX
+     * What Breaks: AI may inconsistently apply LaTeX or wrap non-math text in delimiters
+     */
+    it('should include LaTeX formatting examples in system prompt', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const systemPrompt = prompt.systemPrompt;
+
+      // Must include at least one positive example with LaTeX
+      expect(systemPrompt).toMatch(/\$\\frac\{/);
+      // Must instruct to keep narrative text as plain text
+      expect(systemPrompt.toLowerCase()).toContain('plain text');
+    });
+
+    /**
+     * Test: LaTeX rules are present for ALL grades and topics
+     * Why Essential: AC-007 requires LaTeX works across all grades, topics, and formats
+     * What Breaks: LaTeX instructions might only appear for specific grade/topic combos
+     */
+    it('should include LaTeX rules regardless of grade and topic', () => {
+      const configs = [
+        { grade: 3, topic: 'ADDITION' },
+        { grade: 5, topic: 'FRACTION_OPERATIONS' },
+        { grade: 6, topic: 'ALGEBRAIC_EQUATIONS' },
+        { grade: 4, topic: 'MULTIPLICATION' },
+      ];
+
+      configs.forEach(({ grade, topic }) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade,
+          topic,
+          difficulty: 'medium',
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toContain('$...$');
+        expect(prompt.systemPrompt).toContain('$$...$$');
+        expect(prompt.systemPrompt).toContain('\\frac');
+      });
+    });
+  });
+
   describe('CurriculumPromptTemplate Interface', () => {
     it('should return complete prompt template structure', () => {
       const prompt = engine.generateCurriculumPrompt({

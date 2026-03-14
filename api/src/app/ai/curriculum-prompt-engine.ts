@@ -364,6 +364,15 @@ QUESTION REQUIREMENTS:
       objectives[0]?.assessmentCriteria.join(', ') || 'accuracy'
     }
 
+MATH FORMATTING RULES:
+- Wrap ALL math expressions in LaTeX delimiters: $...$ for inline math, $$...$$ for display math
+- Use LaTeX commands: \\frac{a}{b} for fractions, \\times for multiplication, \\div for division, ^ for exponents, \\sqrt{} for roots
+- Use \\text{} for units inside math mode: $5 \\text{ cm}$
+- Keep narrative/instructional text as plain text outside delimiters
+- Example: "What is $\\frac{3}{4} + \\frac{1}{2}$?" NOT "What is 3/4 + 1/2?"
+- Example: "Solve: $$2x + 5 = 15$$" for display-mode equations
+- Even simple arithmetic must use LaTeX: "What is $15 + 8$?" NOT "What is 15 + 8?"
+
 Generate a ${request.topic} question that meets these curriculum requirements.`;
   }
 }

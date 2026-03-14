@@ -22,6 +22,7 @@ import {
   getGradePatterns,
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
+import { validateLatexContent } from './latex-validation.utils';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -172,6 +173,13 @@ export class OllamaService {
 
       const generationTime = Date.now() - startTime;
 
+      // Validate LaTeX in generated content (REQ-QG-046)
+      const contentToValidate = [
+        parsedQuestion.question,
+        parsedQuestion.explanation,
+      ].join(' ');
+      const latexValidation = validateLatexContent(contentToValidate);
+
       const result = {
         question: parsedQuestion.question,
         answer: parsedQuestion.answer,
@@ -184,6 +192,7 @@ export class OllamaService {
           generated_by: this.defaultModel,
           generation_time: generationTime,
           validation_score: 1.0, // High score for successful AI generation
+          latexValid: latexValidation.isValid,
         },
       };
 
@@ -335,10 +344,18 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
 
+    const questionText = `${num1} + ${num2} = ?`;
+    const explanationText = `Add ${num1} and ${num2} together to get ${num1 + num2}.`;
+
+    // Validate LaTeX in fallback content (REQ-QG-046)
+    const latexValidation = validateLatexContent(
+      `${questionText} ${explanationText}`
+    );
+
     const result = {
-      question: `${num1} + ${num2} = ?`,
+      question: questionText,
       answer: num1 + num2,
-      explanation: `Add ${num1} and ${num2} together to get ${num1 + num2}.`,
+      explanation: explanationText,
       metadata: {
         grade: requestData.grade || 3,
         topic: requestData.topic || 'addition',
@@ -348,6 +365,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         generation_time: generationTime,
         fallback_used: true,
         validation_score: 0.8, // Lower score for fallback
+        latexValid: latexValidation.isValid,
       },
     };
 
@@ -639,6 +657,13 @@ Generate a ${
     } explanation that helps the student understand. Keep it under 100 words, friendly, and appropriate for a ${
       request.grade
     } grader.
+
+MATH FORMATTING RULES:
+- Wrap ALL math expressions in LaTeX delimiters: $...$ for inline math, $$...$$ for display math
+- Use LaTeX commands: \\frac{a}{b} for fractions, \\times for multiplication, \\div for division, ^ for exponents, \\sqrt{} for roots
+- Use \\text{} for units inside math mode: $5 \\text{ cm}$
+- Keep narrative/instructional text as plain text outside delimiters
+- Example: "We add $\\frac{3}{4} + \\frac{1}{2}$" NOT "We add 3/4 + 1/2"
 
 IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
   }

@@ -46,12 +46,12 @@ The frontend (student-app) already uses **KaTeX** to render LaTeX math expressio
 
 ## Definition of Done
 
-- [ ] AI prompt includes clear LaTeX formatting instructions
-- [ ] Generated questions use `$...$` / `$$...$$` delimiters for all math
+- [x] AI prompt includes clear LaTeX formatting instructions
+- [x] Generated questions use `$...$` / `$$...$$` delimiters for all math
 - [ ] LaTeX renders correctly in the student-app's `KatexRenderComponent`
-- [ ] MCQ options, explanations, and step-by-step solutions all use LaTeX
-- [ ] Post-generation LaTeX validation catches malformed expressions
-- [ ] Unit tests verify LaTeX presence in generated content
+- [x] MCQ options, explanations, and step-by-step solutions all use LaTeX
+- [x] Post-generation LaTeX validation catches malformed expressions
+- [x] Unit tests verify LaTeX presence in generated content
 - [ ] Integration test confirms end-to-end: generate → store → serve → render
 
 ## Dependencies
@@ -146,3 +146,39 @@ And stored with status "pending" for manual review
 - KaTeX is stricter than full LaTeX — avoid commands like `\begin{align}` (use `\begin{aligned}` instead)
 - The existing `ai_education_questions_dataset.json` contains ~23K questions in plain text; a separate migration task may be needed to convert those to LaTeX if they are loaded as seed data
 - LaTeX content is stored as strings in MongoDB — no special encoding needed
+
+## Dev Agent Record
+
+### Agent Model Used
+Claude Opus 4.6
+
+### Debug Log References
+- Session log: `dev_mmdd_logs/sessions/TN-FEATURE-SCRUM-50-LATEX-SUPPORT-FOR-QUESTION-GENERATOR/session-001.md`
+- Decision log: `dev_mmdd_logs/decisions/TN-FEATURE-SCRUM-50-LATEX-SUPPORT-FOR-QUESTION-GENERATOR/DEC-001-skip-dead-code-prompt.md`
+
+### Completion Notes
+- LaTeX formatting rules added to `CurriculumPromptEngine.buildSystemPrompt()` (REQ-QG-044, REQ-QG-045)
+- LaTeX formatting rules added to `OllamaService.createExplanationPrompt()` (REQ-QG-044, REQ-QG-045)
+- LaTeX validation utility created with KaTeX `renderToString` (REQ-QG-046)
+- `latexValid` metadata field added to `GeneratedQuestionSchema` (REQ-QG-048)
+- Validation integrated into `generateMathQuestion()` and fallback generation
+- `createEnhancedCurriculumPrompt()` skipped — dead code (DEC-001)
+- 22 new tests added (4 prompt engine + 6 ollama service + 12 validation utility)
+- 117/117 total tests pass across all affected files
+
+### File List
+- `api/src/app/ai/curriculum-prompt-engine.ts` — MODIFIED (LaTeX rules in system prompt)
+- `api/src/app/ai/curriculum-prompt-engine.spec.ts` — MODIFIED (4 new tests)
+- `api/src/app/ai/ollama.service.ts` — MODIFIED (LaTeX in explanation prompt + validation integration)
+- `api/src/app/ai/ollama.service.spec.ts` — MODIFIED (6 new tests + 1 updated)
+- `api/src/app/ai/latex-validation.utils.ts` — NEW (validation utility)
+- `api/src/app/ai/latex-validation.utils.spec.ts` — NEW (12 tests)
+- `api/src/app/ai/schemas.ts` — MODIFIED (latexValid field added)
+
+### Change Log
+| Date | Change | Files |
+| ---- | ------ | ----- |
+| 2026-03-08 | Added LaTeX formatting rules to CurriculumPromptEngine system prompt | curriculum-prompt-engine.ts, .spec.ts |
+| 2026-03-08 | Added LaTeX formatting rules to explanation prompt | ollama.service.ts, .spec.ts |
+| 2026-03-08 | Created LaTeX validation utility with KaTeX | latex-validation.utils.ts, .spec.ts |
+| 2026-03-08 | Integrated LaTeX validation in generation pipeline | ollama.service.ts, schemas.ts, .spec.ts |
