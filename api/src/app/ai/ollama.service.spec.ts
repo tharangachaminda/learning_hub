@@ -459,7 +459,8 @@ describe('OllamaService', () => {
     it('should include LaTeX rules in question generation prompt sent to AI', async () => {
       mockAxios.post.mockResolvedValue({
         data: {
-          response: 'QUESTION: What is $15 + 8$?\nANSWER: 23\nEXPLANATION: $15 + 8 = 23$',
+          response:
+            'QUESTION: What is $15 + 8$?\nANSWER: 23\nEXPLANATION: $15 + 8 = 23$',
         },
       });
 

@@ -345,7 +345,9 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const num2 = Math.floor(Math.random() * 10) + 1;
 
     const questionText = `${num1} + ${num2} = ?`;
-    const explanationText = `Add ${num1} and ${num2} together to get ${num1 + num2}.`;
+    const explanationText = `Add ${num1} and ${num2} together to get ${
+      num1 + num2
+    }.`;
 
     // Validate LaTeX in fallback content (REQ-QG-046)
     const latexValidation = validateLatexContent(

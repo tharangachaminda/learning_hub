@@ -1,7 +1,9 @@
 # Decision: Skip LaTeX Update for createEnhancedCurriculumPrompt()
 
 ## Decision ID: DEC-001
+
 ## Date: 2026-03-08
+
 ## Work Item: TN-FEATURE-SCRUM-50-LATEX-SUPPORT-FOR-QUESTION-GENERATOR
 
 ## Context

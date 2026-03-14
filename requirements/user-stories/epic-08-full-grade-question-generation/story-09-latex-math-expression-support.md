@@ -150,13 +150,16 @@ And stored with status "pending" for manual review
 ## Dev Agent Record
 
 ### Agent Model Used
+
 Claude Opus 4.6
 
 ### Debug Log References
+
 - Session log: `dev_mmdd_logs/sessions/TN-FEATURE-SCRUM-50-LATEX-SUPPORT-FOR-QUESTION-GENERATOR/session-001.md`
 - Decision log: `dev_mmdd_logs/decisions/TN-FEATURE-SCRUM-50-LATEX-SUPPORT-FOR-QUESTION-GENERATOR/DEC-001-skip-dead-code-prompt.md`
 
 ### Completion Notes
+
 - LaTeX formatting rules added to `CurriculumPromptEngine.buildSystemPrompt()` (REQ-QG-044, REQ-QG-045)
 - LaTeX formatting rules added to `OllamaService.createExplanationPrompt()` (REQ-QG-044, REQ-QG-045)
 - LaTeX validation utility created with KaTeX `renderToString` (REQ-QG-046)
@@ -167,6 +170,7 @@ Claude Opus 4.6
 - 117/117 total tests pass across all affected files
 
 ### File List
+
 - `api/src/app/ai/curriculum-prompt-engine.ts` — MODIFIED (LaTeX rules in system prompt)
 - `api/src/app/ai/curriculum-prompt-engine.spec.ts` — MODIFIED (4 new tests)
 - `api/src/app/ai/ollama.service.ts` — MODIFIED (LaTeX in explanation prompt + validation integration)
@@ -176,9 +180,10 @@ Claude Opus 4.6
 - `api/src/app/ai/schemas.ts` — MODIFIED (latexValid field added)
 
 ### Change Log
-| Date | Change | Files |
-| ---- | ------ | ----- |
-| 2026-03-08 | Added LaTeX formatting rules to CurriculumPromptEngine system prompt | curriculum-prompt-engine.ts, .spec.ts |
-| 2026-03-08 | Added LaTeX formatting rules to explanation prompt | ollama.service.ts, .spec.ts |
-| 2026-03-08 | Created LaTeX validation utility with KaTeX | latex-validation.utils.ts, .spec.ts |
-| 2026-03-08 | Integrated LaTeX validation in generation pipeline | ollama.service.ts, schemas.ts, .spec.ts |
+
+| Date       | Change                                                               | Files                                   |
+| ---------- | -------------------------------------------------------------------- | --------------------------------------- |
+| 2026-03-08 | Added LaTeX formatting rules to CurriculumPromptEngine system prompt | curriculum-prompt-engine.ts, .spec.ts   |
+| 2026-03-08 | Added LaTeX formatting rules to explanation prompt                   | ollama.service.ts, .spec.ts             |
+| 2026-03-08 | Created LaTeX validation utility with KaTeX                          | latex-validation.utils.ts, .spec.ts     |
+| 2026-03-08 | Integrated LaTeX validation in generation pipeline                   | ollama.service.ts, schemas.ts, .spec.ts |

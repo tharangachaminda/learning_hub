@@ -131,8 +131,7 @@ describe('LaTeX Validation Utils', () => {
      * What Breaks: One good expression might mask a bad one
      */
     it('should flag content as invalid if any expression is malformed', () => {
-      const content =
-        'Good: $5 + 3 = 8$. Bad: $\\frac{3}{$';
+      const content = 'Good: $5 + 3 = 8$. Bad: $\\frac{3}{$';
       const result = validateLatexContent(content);
 
       expect(result.isValid).toBe(false);
