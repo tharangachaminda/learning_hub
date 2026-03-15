@@ -50,7 +50,7 @@ export class QuestionGeneratorService {
     const params = new HttpParams()
       .set('difficulty', difficulty)
       .set('count', count.toString())
-      .set('type', type);
+      .set('topic', type);
 
     return this.http.get<GeneratedQuestion[]>(`${this.baseUrl}/generate`, {
       params,

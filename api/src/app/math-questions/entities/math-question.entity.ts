@@ -1,22 +1,4 @@
-/**
- * Enumeration of mathematical operation types supported by the question generator
- * Aligned with elementary mathematics curriculum requirements
- *
- * @example
- * ```typescript
- * const additionType = OperationType.ADDITION;
- * const subtractionType = OperationType.SUBTRACTION;
- * ```
- */
-export enum OperationType {
-  /** Addition operation for combining numbers (e.g., 5 + 3 = 8) */
-  ADDITION = 'addition',
-  /** Subtraction operation for finding differences (e.g., 8 - 3 = 5) */
-  SUBTRACTION = 'subtraction',
-}
-
-/**
- * Educational difficulty levels based on New Zealand Mathematics Curriculum
+/**\n * Educational difficulty levels based on New Zealand Mathematics Curriculum
  * Defines cognitive complexity and numerical ranges appropriate for each grade
  *
  * @example
@@ -75,17 +57,18 @@ export enum DifficultyLevel {
 }
 
 /**
- * Represents a mathematical question with answer and solution steps
- * Core entity for the AI-powered question generation system
+ * Represents a mathematical question with answer and solution steps.
+ * Core entity for the AI-powered question generation system.
+ * The operation field accepts any topic string from GRADE_TOPICS (e.g. 'ADDITION', 'FRACTION_BASICS').
  *
  * @example
  * ```typescript
  * const question = new MathQuestion(
- *   '5 + 3 = ?',
- *   8,
- *   OperationType.ADDITION,
- *   DifficultyLevel.GRADE_3,
- *   ['Start with 5', 'Add 3', 'The answer is 8']
+ *   'What is $\frac{1}{2} + \frac{1}{4}$?',
+ *   0.75,
+ *   'FRACTION_BASICS',
+ *   DifficultyLevel.GRADE_4,
+ *   ['Find common denominator', 'Add numerators', 'Answer is 3/4']
  * );
  * ```
  */
@@ -101,19 +84,19 @@ export class MathQuestion {
    *
    * @param question - The question text presented to the student
    * @param answer - The correct numerical answer
-   * @param operation - The type of mathematical operation
+   * @param operation - The topic/operation string from GRADE_TOPICS (e.g. 'ADDITION', 'FRACTION_BASICS', 'FINANCIAL_LITERACY')
    * @param difficulty - The educational difficulty level
    * @param stepByStepSolution - Array of solution explanation steps
    *
-   * @throws Error when question text is empty
-   * @throws Error when answer is not a valid number
+   * @throws {Error} When question text is empty
+   * @throws {Error} When answer is not a valid number
    *
    * @example
    * ```typescript
    * const mathQ = new MathQuestion(
-   *   '7 + 2 = ?',
-   *   9,
-   *   OperationType.ADDITION,
+   *   'What is $5 + 3$?',
+   *   8,
+   *   'ADDITION',
    *   DifficultyLevel.GRADE_3
    * );
    * ```
@@ -121,7 +104,7 @@ export class MathQuestion {
   constructor(
     public readonly question: string,
     public readonly answer: number,
-    public readonly operation: OperationType,
+    public readonly operation: string,
     public readonly difficulty: DifficultyLevel,
     public readonly stepByStepSolution: string[] = []
   ) {

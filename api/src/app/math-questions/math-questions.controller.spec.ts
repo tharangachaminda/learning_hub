@@ -1,11 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MathQuestionsController } from './math-questions.controller';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
-import {
-  DifficultyLevel,
-  OperationType,
-  MathQuestion,
-} from './entities/math-question.entity';
+import { DifficultyLevel, MathQuestion } from './entities/math-question.entity';
 import { SemanticSearchService } from '../opensearch/semantic-search.service';
 
 describe('MathQuestionsController', () => {
@@ -14,9 +10,9 @@ describe('MathQuestionsController', () => {
   let mockSemanticSearch: jest.Mocked<SemanticSearchService>;
 
   beforeEach(async () => {
-    // Create mock generator
+    // Create mock generator with generic generateQuestions method
     mockGenerator = {
-      generateAdditionQuestions: jest.fn(),
+      generateQuestions: jest.fn(),
       generateEnhancedExplanation: jest.fn(),
     } as any;
 
@@ -47,120 +43,200 @@ describe('MathQuestionsController', () => {
   });
 
   describe('generateQuestions', () => {
-    it('should generate default 10 Grade 3 addition questions', async () => {
-      // Arrange
+    it('should generate default 10 Grade 3 ADDITION questions', async () => {
+      // AC-001: Default topic ADDITION for grade_3
       const mockQuestions = [
         new MathQuestion(
-          '5 + 3 = ?',
+          '$5 + 3 = ?$',
           8,
-          OperationType.ADDITION,
-          DifficultyLevel.GRADE_3,
-          ['Step 1', 'Step 2']
-        ),
-        new MathQuestion(
-          '7 + 2 = ?',
-          9,
-          OperationType.ADDITION,
+          'ADDITION',
           DifficultyLevel.GRADE_3,
           ['Step 1', 'Step 2']
         ),
       ];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      // Act
       const result = await controller.generateQuestions();
 
-      // Assert
       expect(result).toEqual(mockQuestions);
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_3,
-        10
+        10,
+        'ADDITION'
       );
     });
 
-    it('should generate specified number of questions', async () => {
-      // Arrange
+    it('should generate specified count with explicit topic', async () => {
+      // AC-001: topic parameter accepted
       const mockQuestions = [
         new MathQuestion(
-          '5 + 3 = ?',
-          8,
-          OperationType.ADDITION,
+          '$8 - 3 = ?$',
+          5,
+          'SUBTRACTION',
           DifficultyLevel.GRADE_3,
           ['Step 1']
         ),
       ];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      // Act
       const result = await controller.generateQuestions(
         'grade_3',
         '5',
-        'addition'
+        'SUBTRACTION'
       );
 
-      // Assert
       expect(result).toEqual(mockQuestions);
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_3,
-        5
+        5,
+        'SUBTRACTION'
       );
     });
 
+    it('should accept SUBTRACTION without throwing not-yet-implemented', async () => {
+      // AC-005: The "not yet implemented" error for subtraction is removed
+      const mockQuestions = [
+        new MathQuestion(
+          '$10 - 4 = ?$',
+          6,
+          'SUBTRACTION',
+          DifficultyLevel.GRADE_3,
+          ['Step 1']
+        ),
+      ];
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
+
+      const result = await controller.generateQuestions(
+        'grade_3',
+        '5',
+        'SUBTRACTION'
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].operation).toBe('SUBTRACTION');
+    });
+
+    it('should accept FRACTION_BASICS for Grade 4', async () => {
+      // AC-001: Topic matching GRADE_TOPICS for the requested grade
+      const mockQuestions = [
+        new MathQuestion(
+          'What is $\\frac{1}{2} + \\frac{1}{4}$?',
+          0.75,
+          'FRACTION_BASICS',
+          DifficultyLevel.GRADE_4,
+          ['Find common denominator']
+        ),
+      ];
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
+
+      const result = await controller.generateQuestions(
+        'grade_4',
+        '5',
+        'FRACTION_BASICS'
+      );
+
+      expect(result).toEqual(mockQuestions);
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_4,
+        5,
+        'FRACTION_BASICS'
+      );
+    });
+
+    it('should accept FINANCIAL_LITERACY for Grade 8', async () => {
+      // AC-006: All 50 grade×topic combinations supported
+      const mockQuestions = [
+        new MathQuestion(
+          'Calculate total with 15% GST on $45 NZD',
+          51.75,
+          'FINANCIAL_LITERACY',
+          DifficultyLevel.GRADE_8,
+          ['Calculate GST']
+        ),
+      ];
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
+
+      const result = await controller.generateQuestions(
+        'grade_8',
+        '3',
+        'FINANCIAL_LITERACY'
+      );
+
+      expect(result).toEqual(mockQuestions);
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
+        DifficultyLevel.GRADE_8,
+        3,
+        'FINANCIAL_LITERACY'
+      );
+    });
+
+    it('should reject topic not available for the requested grade', async () => {
+      // AC-002: Invalid topic for grade returns 400 with valid topics list
+      await expect(
+        controller.generateQuestions('grade_3', '5', 'ALGEBRAIC_EQUATIONS')
+      ).rejects.toThrow(/Invalid topic.*ALGEBRAIC_EQUATIONS.*grade 3/i);
+    });
+
+    it('should include valid topics in error message for invalid topic', async () => {
+      // AC-002: Error lists valid topics for the grade
+      try {
+        await controller.generateQuestions(
+          'grade_3',
+          '5',
+          'FINANCIAL_LITERACY'
+        );
+        fail('Should have thrown');
+      } catch (error) {
+        expect(error.message).toContain('ADDITION');
+        expect(error.message).toContain('SUBTRACTION');
+        expect(error.message).toContain('MULTIPLICATION');
+        expect(error.message).toContain('DIVISION');
+        expect(error.message).toContain('PATTERN_RECOGNITION');
+      }
+    });
+
+    it('should reject completely unknown topic', async () => {
+      // AC-002: Unknown topic rejected
+      await expect(
+        controller.generateQuestions('grade_3', '5', 'QUANTUM_PHYSICS')
+      ).rejects.toThrow(/Invalid topic.*QUANTUM_PHYSICS/i);
+    });
+
     it('should limit maximum questions to 50', async () => {
-      // Arrange
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      // Act
-      await controller.generateQuestions('grade_3', '100', 'addition');
+      await controller.generateQuestions('grade_3', '100', 'ADDITION');
 
-      // Assert
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_3,
-        50 // Should be limited to 50
+        50,
+        'ADDITION'
       );
     });
 
     it('should handle invalid count and default to 10', async () => {
-      // Arrange
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      // Act
-      await controller.generateQuestions('grade_3', 'invalid', 'addition');
+      await controller.generateQuestions('grade_3', 'invalid', 'ADDITION');
 
-      // Assert
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_3,
-        10 // Should default to 10
+        10,
+        'ADDITION'
       );
     });
 
     it('should throw error for unsupported difficulty', async () => {
-      // Act & Assert
       await expect(
-        controller.generateQuestions('invalid_difficulty', '10', 'addition')
+        controller.generateQuestions('invalid_difficulty', '10', 'ADDITION')
       ).rejects.toThrow('Unsupported difficulty level: invalid_difficulty');
     });
 
-    it('should throw error for unsupported operation type', async () => {
-      // Act & Assert
-      await expect(
-        controller.generateQuestions('grade_3', '10', 'multiplication')
-      ).rejects.toThrow('Unsupported operation type: multiplication');
-    });
-
-    it('should throw error for subtraction (not yet implemented)', async () => {
-      // Act & Assert
-      await expect(
-        controller.generateQuestions('grade_3', '10', 'subtraction')
-      ).rejects.toThrow('Subtraction questions not yet implemented');
-    });
-
     it('should log performance warnings for slow generation', async () => {
-      // Arrange
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockImplementation(
+      mockGenerator.generateQuestions.mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(() => resolve(mockQuestions), 3100)
@@ -168,10 +244,8 @@ describe('MathQuestionsController', () => {
       );
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-      // Act
-      await controller.generateQuestions('grade_3', '10', 'addition');
+      await controller.generateQuestions('grade_3', '10', 'ADDITION');
 
-      // Assert
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Performance warning: Generation took')
       );
@@ -198,13 +272,10 @@ describe('MathQuestionsController', () => {
             DifficultyLevel.GRADE_7,
             DifficultyLevel.GRADE_8,
           ],
-          supportedOperations: [
-            OperationType.ADDITION,
-            OperationType.SUBTRACTION,
-          ],
+          supportedGrades: [3, 4, 5, 6, 7, 8],
           maxQuestionsPerRequest: 50,
           explanationStyles: ['visual', 'verbal', 'step-by-step', 'story'],
-          semanticSearch: true, // SemanticSearchService is provided in beforeEach
+          semanticSearch: true,
         },
         version: '2.0.0',
       });
@@ -512,7 +583,7 @@ describe('MathQuestionsController', () => {
         questionText: 'What is 5 + 3?',
         grade: 3,
         topic: 'addition',
-        operation: OperationType.ADDITION,
+        operation: 'ADDITION',
         excludeIds: ['q-001', 'q-002'],
         limit: 5,
       };
@@ -526,7 +597,7 @@ describe('MathQuestionsController', () => {
         {
           grade: 3,
           topic: 'addition',
-          operation: OperationType.ADDITION,
+          operation: 'ADDITION',
           excludeIds: ['q-001', 'q-002'],
           limit: 5,
         }
@@ -565,89 +636,97 @@ describe('MathQuestionsController', () => {
     it('should parse grade_4 to DifficultyLevel.GRADE_4', async () => {
       // AC-001: grade_4 accepted as valid difficulty
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade_4', '1', 'addition');
+      await controller.generateQuestions('grade_4', '1', 'ADDITION');
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_4,
-        1
+        1,
+        'ADDITION'
       );
     });
 
     it('should parse grade_5 to DifficultyLevel.GRADE_5', async () => {
       // AC-001 + AC-002: grade_5 accepted and scoped correctly
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade_5', '1', 'addition');
+      await controller.generateQuestions('grade_5', '1', 'ADVANCED_ARITHMETIC');
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_5,
-        1
+        1,
+        'ADVANCED_ARITHMETIC'
       );
     });
 
     it('should parse grade_6 to DifficultyLevel.GRADE_6', async () => {
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade_6', '1', 'addition');
+      await controller.generateQuestions('grade_6', '1', 'ALGEBRAIC_EQUATIONS');
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_6,
-        1
+        1,
+        'ALGEBRAIC_EQUATIONS'
       );
     });
 
     it('should parse grade_7 to DifficultyLevel.GRADE_7', async () => {
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade_7', '1', 'addition');
+      await controller.generateQuestions(
+        'grade_7',
+        '1',
+        'ALGEBRAIC_FOUNDATIONS'
+      );
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_7,
-        1
+        1,
+        'ALGEBRAIC_FOUNDATIONS'
       );
     });
 
     it('should parse grade_8 to DifficultyLevel.GRADE_8', async () => {
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade_8', '1', 'addition');
+      await controller.generateQuestions('grade_8', '1', 'FINANCIAL_LITERACY');
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_8,
-        1
+        1,
+        'FINANCIAL_LITERACY'
       );
     });
 
     it('should parse shorthand grade4 (without underscore)', async () => {
       // Flexible input parsing: grade4 → GRADE_4
       const mockQuestions: MathQuestion[] = [];
-      mockGenerator.generateAdditionQuestions.mockResolvedValue(mockQuestions);
+      mockGenerator.generateQuestions.mockResolvedValue(mockQuestions);
 
-      await controller.generateQuestions('grade4', '1', 'addition');
+      await controller.generateQuestions('grade4', '1', 'ADDITION');
 
-      expect(mockGenerator.generateAdditionQuestions).toHaveBeenCalledWith(
+      expect(mockGenerator.generateQuestions).toHaveBeenCalledWith(
         DifficultyLevel.GRADE_4,
-        1
+        1,
+        'ADDITION'
       );
     });
 
     it('should reject grade_2 with clear error (AC-004)', async () => {
-      // AC-004: Invalid grades below range return 400 error
       await expect(
-        controller.generateQuestions('grade_2', '1', 'addition')
+        controller.generateQuestions('grade_2', '1', 'ADDITION')
       ).rejects.toThrow('Unsupported difficulty level: grade_2');
     });
 
     it('should reject grade_9 with clear error (AC-004)', async () => {
-      // AC-004: Invalid grades above range return 400 error
       await expect(
-        controller.generateQuestions('grade_9', '1', 'addition')
+        controller.generateQuestions('grade_9', '1', 'ADDITION')
       ).rejects.toThrow('Unsupported difficulty level: grade_9');
     });
   });

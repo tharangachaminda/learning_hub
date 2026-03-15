@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  IsArray,
-  IsEnum,
-} from 'class-validator';
-import { OperationType } from '../entities/math-question.entity';
+import { IsString, IsOptional, IsNumber, IsArray } from 'class-validator';
 
 /**
  * DTO for finding similar questions
@@ -43,11 +36,11 @@ export class FindSimilarQuestionsDto {
   topic?: string;
 
   /**
-   * Optional operation filter
+   * Optional operation/topic filter (e.g., 'ADDITION', 'FRACTION_BASICS')
    */
   @IsOptional()
-  @IsEnum(OperationType)
-  operation?: OperationType;
+  @IsString()
+  operation?: string;
 
   /**
    * Optional list of question IDs to exclude from results
