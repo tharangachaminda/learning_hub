@@ -199,7 +199,7 @@ async function main() {
   const { VectorIndexService } = await import(
     '../api/src/app/opensearch/vector-index.service'
   );
-  const { MathQuestion, OperationType, DifficultyLevel } = await import(
+  const { MathQuestion, DifficultyLevel } = await import(
     '../api/src/app/math-questions/entities/math-question.entity'
   );
 

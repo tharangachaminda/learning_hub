@@ -190,48 +190,132 @@ export const GRADE_TOPICS: Record<number, Record<string, string[]>> = {
  * Question type display names for user-friendly presentation
  */
 export const QUESTION_TYPE_DISPLAY_NAMES: Record<string, string> = {
-  // Number Operations (Grades 3-8)
+  // Number Operations — Grades 3-4
   ADDITION: 'Addition',
   SUBTRACTION: 'Subtraction',
   MULTIPLICATION: 'Multiplication',
   DIVISION: 'Division',
   DECIMAL_BASICS: 'Decimals (Basic)',
-  DECIMAL_OPERATIONS: 'Decimal Operations',
   FRACTION_BASICS: 'Fractions (Basic)',
-  FRACTION_OPERATIONS: 'Fraction Operations',
+  PLACE_VALUE: 'Place Value',
 
-  // Patterns & Algebra (Grades 3-8)
+  // Number Operations — Grade 5+
+  ADVANCED_ARITHMETIC: 'Advanced Arithmetic',
+  DECIMAL_OPERATIONS: 'Decimal Operations',
+  FRACTION_OPERATIONS: 'Fraction Operations',
+  RATIO_PROPORTION: 'Ratio & Proportion',
+
+  // Number Operations — Grade 6+
+  LARGE_NUMBER_OPERATIONS: 'Large Number Operations',
+  ADVANCED_FRACTIONS_DECIMALS: 'Advanced Fractions & Decimals',
+
+  // Number Operations — Grade 7+
+  ADVANCED_NUMBER_OPERATIONS: 'Advanced Number Operations',
+  FRACTION_DECIMAL_MASTERY: 'Fraction & Decimal Mastery',
+
+  // Number Operations — Grade 8
+  PRIME_COMPOSITE_NUMBERS: 'Prime & Composite Numbers',
+  NEGATIVE_NUMBERS: 'Negative Numbers',
+  FRACTION_DECIMAL_PERCENTAGE: 'Fractions, Decimals & Percentages',
+  RATIOS_PROPORTIONS: 'Ratios & Proportions',
+  FINANCIAL_LITERACY: 'Financial Literacy',
+
+  // Patterns & Algebra — Grades 3-5
   PATTERN_RECOGNITION: 'Pattern Recognition',
   ALGEBRAIC_THINKING: 'Algebraic Thinking',
-  ALGEBRAIC_EQUATIONS: 'Algebraic Equations',
 
-  // Geometry & Measurement (Grades 4-8)
+  // Algebra — Grade 6+
+  ALGEBRAIC_EQUATIONS: 'Algebraic Equations',
+  ADVANCED_PATTERNS: 'Advanced Patterns',
+
+  // Algebra — Grade 7+
+  ALGEBRAIC_FOUNDATIONS: 'Algebraic Foundations',
+  NUMBER_PATTERNS: 'Number Patterns',
+  LINEAR_EQUATIONS: 'Linear Equations',
+  ALGEBRAIC_MANIPULATION: 'Algebraic Manipulation',
+
+  // Geometry & Measurement — Grades 4-5
   SHAPE_PROPERTIES: 'Shape Properties',
   TIME_MEASUREMENT: 'Time Measurement',
+
+  // Geometry & Measurement — Grade 6+
   AREA_VOLUME_CALCULATIONS: 'Area & Volume',
+  COORDINATE_GEOMETRY: 'Coordinate Geometry',
+  TRANSFORMATIONS_SYMMETRY: 'Transformations & Symmetry',
+  MEASUREMENT_MASTERY: 'Measurement Mastery',
+
+  // Geometry & Measurement — Grade 7+
+  GEOMETRY_SPATIAL_REASONING: 'Geometry & Spatial Reasoning',
+  MULTI_UNIT_CONVERSIONS: 'Multi-Unit Conversions',
+  PERIMETER_AREA_VOLUME: 'Perimeter, Area & Volume',
+  UNIT_CONVERSIONS: 'Unit Conversions',
+  SPEED_CALCULATIONS: 'Speed Calculations',
+
+  // Problem Solving & Data — Grade 6+
+  DATA_ANALYSIS: 'Data Analysis',
+  PROBABILITY_BASICS: 'Probability Basics',
+  ADVANCED_PROBLEM_SOLVING: 'Advanced Problem Solving',
+  MATHEMATICAL_REASONING: 'Mathematical Reasoning',
+  REAL_WORLD_APPLICATIONS: 'Real-World Applications',
+  DATA_ANALYSIS_PROBABILITY: 'Data Analysis & Probability',
 };
 
 /**
  * Maps question types to educational categories
  */
 export const QUESTION_TYPE_TO_CATEGORY: Record<string, string> = {
-  // Number Operations
+  // Number Operations — basic arithmetic & number sense
   ADDITION: 'number-operations',
   SUBTRACTION: 'number-operations',
   MULTIPLICATION: 'number-operations',
   DIVISION: 'number-operations',
   DECIMAL_BASICS: 'number-operations',
   FRACTION_BASICS: 'number-operations',
+  PLACE_VALUE: 'number-operations',
+  ADVANCED_ARITHMETIC: 'number-operations',
+  DECIMAL_OPERATIONS: 'number-operations',
+  FRACTION_OPERATIONS: 'number-operations',
+  RATIO_PROPORTION: 'number-operations',
+  LARGE_NUMBER_OPERATIONS: 'number-operations',
+  ADVANCED_FRACTIONS_DECIMALS: 'number-operations',
+  ADVANCED_NUMBER_OPERATIONS: 'number-operations',
+  FRACTION_DECIMAL_MASTERY: 'number-operations',
+  PRIME_COMPOSITE_NUMBERS: 'number-operations',
+  NEGATIVE_NUMBERS: 'number-operations',
+  FRACTION_DECIMAL_PERCENTAGE: 'number-operations',
+  RATIOS_PROPORTIONS: 'number-operations',
+  FINANCIAL_LITERACY: 'number-operations',
 
   // Algebra & Patterns
   PATTERN_RECOGNITION: 'algebra-patterns',
   ALGEBRAIC_THINKING: 'algebra-patterns',
   ALGEBRAIC_EQUATIONS: 'algebra-patterns',
+  ADVANCED_PATTERNS: 'algebra-patterns',
+  ALGEBRAIC_FOUNDATIONS: 'algebra-patterns',
+  NUMBER_PATTERNS: 'algebra-patterns',
+  LINEAR_EQUATIONS: 'algebra-patterns',
+  ALGEBRAIC_MANIPULATION: 'algebra-patterns',
 
   // Geometry & Measurement
   SHAPE_PROPERTIES: 'geometry-measurement',
   TIME_MEASUREMENT: 'geometry-measurement',
   AREA_VOLUME_CALCULATIONS: 'geometry-measurement',
+  COORDINATE_GEOMETRY: 'geometry-measurement',
+  TRANSFORMATIONS_SYMMETRY: 'geometry-measurement',
+  MEASUREMENT_MASTERY: 'geometry-measurement',
+  GEOMETRY_SPATIAL_REASONING: 'geometry-measurement',
+  MULTI_UNIT_CONVERSIONS: 'geometry-measurement',
+  PERIMETER_AREA_VOLUME: 'geometry-measurement',
+  UNIT_CONVERSIONS: 'geometry-measurement',
+  SPEED_CALCULATIONS: 'geometry-measurement',
+
+  // Problem Solving, Data & Reasoning
+  DATA_ANALYSIS: 'problem-solving-reasoning',
+  PROBABILITY_BASICS: 'problem-solving-reasoning',
+  ADVANCED_PROBLEM_SOLVING: 'problem-solving-reasoning',
+  MATHEMATICAL_REASONING: 'problem-solving-reasoning',
+  REAL_WORLD_APPLICATIONS: 'problem-solving-reasoning',
+  DATA_ANALYSIS_PROBABILITY: 'problem-solving-reasoning',
 };
 
 /**

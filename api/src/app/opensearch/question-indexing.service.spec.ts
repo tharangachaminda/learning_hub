@@ -4,7 +4,6 @@ import { EmbeddingService } from './embedding.service';
 import { VectorIndexService } from './vector-index.service';
 import {
   MathQuestion,
-  OperationType,
   DifficultyLevel,
 } from '../math-questions/entities/math-question.entity';
 
@@ -51,7 +50,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 5 + 3?',
         8,
-        OperationType.ADDITION,
+        'ADDITION',
         DifficultyLevel.GRADE_3,
         ['Step 1', 'Step 2']
       );
@@ -78,8 +77,8 @@ describe('QuestionIndexingService', () => {
         mockEmbedding384,
         {
           grade: '3',
-          topic: OperationType.ADDITION,
-          operation: OperationType.ADDITION,
+          topic: 'ADDITION',
+          operation: 'ADDITION',
           difficulty: DifficultyLevel.GRADE_3,
           difficulty_score: expect.any(Number),
           category: 'math',
@@ -92,7 +91,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 5 + 3?',
         8,
-        OperationType.ADDITION,
+        'ADDITION',
         DifficultyLevel.GRADE_3
       );
 
@@ -109,7 +108,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 5 + 3?',
         8,
-        OperationType.ADDITION,
+        'ADDITION',
         DifficultyLevel.GRADE_3
       );
 
@@ -132,7 +131,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 5 + 3?',
         8,
-        OperationType.ADDITION,
+        'ADDITION',
         DifficultyLevel.GRADE_3
       );
       question.id = 'q-002';
@@ -165,13 +164,13 @@ describe('QuestionIndexingService', () => {
         new MathQuestion(
           'What is 5 + 3?',
           8,
-          OperationType.ADDITION,
+          'ADDITION',
           DifficultyLevel.GRADE_3
         ),
         new MathQuestion(
           'Calculate 10 - 4',
           6,
-          OperationType.SUBTRACTION,
+          'SUBTRACTION',
           DifficultyLevel.GRADE_3
         ),
       ];
@@ -217,7 +216,7 @@ describe('QuestionIndexingService', () => {
         new MathQuestion(
           'What is 5 + 3?',
           8,
-          OperationType.ADDITION,
+          'ADDITION',
           DifficultyLevel.GRADE_3
         ),
       ];
@@ -237,7 +236,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 5 + 3?',
         8,
-        OperationType.ADDITION,
+        'ADDITION',
         DifficultyLevel.GRADE_3
       );
       question.id = 'q-001';
@@ -265,7 +264,7 @@ describe('QuestionIndexingService', () => {
       const question = new MathQuestion(
         'What is 10 - 4?',
         6,
-        OperationType.SUBTRACTION,
+        'SUBTRACTION',
         DifficultyLevel.GRADE_3
       );
       question.id = 'q-sub-001';
@@ -286,8 +285,8 @@ describe('QuestionIndexingService', () => {
         6,
         mockEmbedding384,
         expect.objectContaining({
-          topic: OperationType.SUBTRACTION,
-          operation: OperationType.SUBTRACTION,
+          topic: 'SUBTRACTION',
+          operation: 'SUBTRACTION',
         })
       );
     });

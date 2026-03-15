@@ -169,7 +169,7 @@ describe('QuestionGeneratorComponent', () => {
           r.url === '/api/math-questions/generate' &&
           r.params.get('difficulty') === 'grade_3' &&
           r.params.get('count') === '10' &&
-          r.params.get('type') === 'addition'
+          r.params.get('topic') === 'addition'
       );
       expect(req.request.method).toBe('GET');
       req.flush([mockQuestion]);

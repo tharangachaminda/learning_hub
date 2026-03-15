@@ -3,7 +3,7 @@
  *
  * Validates HTTP integration with the math-questions API endpoints:
  * - Health check: GET /api/math-questions/health
- * - Generate: GET /api/math-questions/generate?difficulty=...&count=...&type=...
+ * - Generate: GET /api/math-questions/generate?difficulty=...&count=...&topic=...
  */
 import { TestBed } from '@angular/core/testing';
 import {
@@ -95,7 +95,7 @@ describe('QuestionGeneratorService', () => {
           r.url === '/api/math-questions/generate' &&
           r.params.get('difficulty') === 'grade_3' &&
           r.params.get('count') === '10' &&
-          r.params.get('type') === 'addition'
+          r.params.get('topic') === 'addition'
       );
       expect(req.request.method).toBe('GET');
       req.flush([mockQuestion]);

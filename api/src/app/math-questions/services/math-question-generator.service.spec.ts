@@ -1,7 +1,6 @@
 import { MathQuestionGenerator } from './math-question-generator.service';
 import {
   MathQuestion,
-  OperationType,
   DifficultyLevel,
 } from '../entities/math-question.entity';
 
@@ -12,14 +11,12 @@ describe('MathQuestionGenerator Service', () => {
     generator = new MathQuestionGenerator();
   });
 
-  describe('generateAdditionQuestions', () => {
+  describe('generateQuestions', () => {
     it('should generate 10 unique Grade 3 addition questions', async () => {
-      // RED PHASE: This test MUST fail initially
-      // Testing AC-001: Generate 10 unique addition problems for Grade 3
-
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        10
+        10,
+        'ADDITION'
       );
 
       // Verify we get exactly 10 questions
@@ -27,7 +24,7 @@ describe('MathQuestionGenerator Service', () => {
 
       // Verify all questions are addition type
       questions.forEach((question) => {
-        expect(question.operation).toBe(OperationType.ADDITION);
+        expect(question.operation).toBe('ADDITION');
         expect(question.difficulty).toBe(DifficultyLevel.GRADE_3);
       });
 
@@ -38,12 +35,10 @@ describe('MathQuestionGenerator Service', () => {
     });
 
     it('should generate questions with appropriate Grade 3 difficulty range', async () => {
-      // RED PHASE: Testing AC-002 - appropriate difficulty for Grade 3
-      // Single-digit (3+5) to double-digit (15+7) range
-
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        5
+        5,
+        'ADDITION'
       );
 
       questions.forEach((question) => {
@@ -69,11 +64,10 @@ describe('MathQuestionGenerator Service', () => {
     });
 
     it('should include step-by-step solutions for each question', async () => {
-      // RED PHASE: Testing AC-003 - step-by-step solution explanations
-
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        3
+        3,
+        'ADDITION'
       );
 
       questions.forEach((question) => {
@@ -88,11 +82,13 @@ describe('MathQuestionGenerator Service', () => {
     });
 
     it('should complete generation within performance requirements', async () => {
-      // RED PHASE: Testing AC-004 - 3 second performance requirement
-
       const startTime = Date.now();
 
-      await generator.generateAdditionQuestions(DifficultyLevel.GRADE_3, 10);
+      await generator.generateQuestions(
+        DifficultyLevel.GRADE_3,
+        10,
+        'ADDITION'
+      );
 
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -102,24 +98,20 @@ describe('MathQuestionGenerator Service', () => {
     });
 
     it('should throw error for invalid parameters', async () => {
-      // RED PHASE: Testing edge cases and validation
-
-      // Should reject invalid count
       await expect(
-        generator.generateAdditionQuestions(DifficultyLevel.GRADE_3, 0)
+        generator.generateQuestions(DifficultyLevel.GRADE_3, 0, 'ADDITION')
       ).rejects.toThrow('Question count must be greater than 0');
 
       await expect(
-        generator.generateAdditionQuestions(DifficultyLevel.GRADE_3, -5)
+        generator.generateQuestions(DifficultyLevel.GRADE_3, -5, 'ADDITION')
       ).rejects.toThrow('Question count must be greater than 0');
     });
   });
 
   describe('Service instantiation', () => {
     it('should create MathQuestionGenerator instance', () => {
-      // RED PHASE: Basic service instantiation test
       expect(generator).toBeInstanceOf(MathQuestionGenerator);
-      expect(generator.generateAdditionQuestions).toBeDefined();
+      expect(generator.generateQuestions).toBeDefined();
     });
   });
 
@@ -238,9 +230,10 @@ describe('MathQuestionGenerator Service', () => {
      * What Breaks: Frontend LaTeX renderer has no delimiters to render
      */
     it('should wrap question math expressions in LaTeX $...$ delimiters', async () => {
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        5
+        5,
+        'ADDITION'
       );
 
       questions.forEach((question) => {
@@ -255,9 +248,10 @@ describe('MathQuestionGenerator Service', () => {
      * What Breaks: Inconsistent formatting between questions and solutions
      */
     it('should wrap solution step math expressions in LaTeX delimiters', async () => {
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        3
+        3,
+        'ADDITION'
       );
 
       questions.forEach((question) => {
@@ -277,9 +271,10 @@ describe('MathQuestionGenerator Service', () => {
      * What Breaks: Fallback questions bypass LaTeX formatting entirely
      */
     it('should produce LaTeX-wrapped question text in OllamaService fallback', async () => {
-      const questions = await generator.generateAdditionQuestions(
+      const questions = await generator.generateQuestions(
         DifficultyLevel.GRADE_3,
-        1
+        1,
+        'ADDITION'
       );
 
       const q = questions[0];
@@ -287,6 +282,42 @@ describe('MathQuestionGenerator Service', () => {
       // It should be LaTeX-wrapped like "$5 + 3 = ?$"
       expect(q.question).not.toMatch(/^\d+\s*\+\s*\d+\s*=\s*\?$/);
       expect(q.question).toContain('$');
+    });
+  });
+
+  describe('Multi-topic support', () => {
+    it('should return empty array for non-ADDITION topic without AI service', async () => {
+      const questions = await generator.generateQuestions(
+        DifficultyLevel.GRADE_3,
+        5,
+        'FRACTION_BASICS'
+      );
+
+      // Without OllamaService, non-ADDITION topics have no deterministic fallback
+      expect(questions).toEqual([]);
+    });
+
+    it('should accept any topic string parameter', async () => {
+      // ADDITION still works via deterministic fallback
+      const additionQs = await generator.generateQuestions(
+        DifficultyLevel.GRADE_3,
+        3,
+        'ADDITION'
+      );
+      expect(additionQs).toHaveLength(3);
+      additionQs.forEach((q) => {
+        expect(q.operation).toBe('ADDITION');
+      });
+    });
+
+    it('should validate count for any topic', async () => {
+      await expect(
+        generator.generateQuestions(
+          DifficultyLevel.GRADE_3,
+          0,
+          'GEOMETRY_BASICS'
+        )
+      ).rejects.toThrow('Question count must be greater than 0');
     });
   });
 });

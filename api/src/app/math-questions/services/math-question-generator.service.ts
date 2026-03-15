@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
   MathQuestion,
-  OperationType,
   DifficultyLevel,
 } from '../entities/math-question.entity';
 import { OllamaService } from '../../ai/ollama.service';
@@ -19,6 +18,62 @@ import { OllamaService } from '../../ai/ollama.service';
 @Injectable()
 export class MathQuestionGenerator {
   constructor(private readonly ollamaService?: OllamaService) {}
+
+  /**
+   * Generates mathematical questions for any topic and difficulty level.
+   * Attempts AI generation first, falls back to deterministic for basic arithmetic.
+   *
+   * @param difficulty - The educational difficulty level for question complexity
+   * @param count - Number of unique questions to generate (max 50)
+   * @param topic - Topic string from GRADE_TOPICS (e.g. 'ADDITION', 'FRACTION_BASICS', 'FINANCIAL_LITERACY')
+   * @returns Promise resolving to array of MathQuestion instances
+   *
+   * @throws {Error} When count is less than or equal to 0
+   *
+   * @example
+   * ```typescript
+   * const questions = await generator.generateQuestions(DifficultyLevel.GRADE_4, 5, 'FRACTION_BASICS');
+   * console.log(`Generated ${questions.length} fraction questions`);
+   * ```
+   */
+  async generateQuestions(
+    difficulty: DifficultyLevel,
+    count: number,
+    topic: string
+  ): Promise<MathQuestion[]> {
+    this.validateQuestionCount(count);
+
+    // Try AI generation first if OllamaService is available
+    if (this.ollamaService) {
+      try {
+        const aiQuestions = await this.generateWithAI(difficulty, count, topic);
+        if (aiQuestions && aiQuestions.length > 0) {
+          return aiQuestions;
+        }
+      } catch (error) {
+        console.warn(
+          'AI generation failed, falling back to deterministic:',
+          error.message
+        );
+      }
+    }
+
+    // Fallback to deterministic generation (only supports ADDITION)
+    if (topic === 'ADDITION') {
+      return this.generateDeterministicAdditionQuestions(
+        difficulty,
+        count,
+        topic
+      );
+    }
+
+    // For non-ADDITION topics without AI, return empty (AI is required)
+    console.warn(
+      `Deterministic fallback not available for topic '${topic}'. AI service required.`
+    );
+    return [];
+  }
+
   /**
    * Generates addition questions for specified difficulty level and count
    * Attempts AI generation first, falls back to deterministic if AI unavailable
@@ -96,7 +151,7 @@ export class MathQuestionGenerator {
         new MathQuestion(
           aiQuestion.question,
           aiQuestion.answer,
-          OperationType.ADDITION,
+          topic,
           difficulty,
           [aiQuestion.explanation] // stepByStepSolution from AI
         )
@@ -218,13 +273,14 @@ export class MathQuestionGenerator {
    */
   private async generateDeterministicAdditionQuestions(
     difficulty: DifficultyLevel,
-    count: number
+    count: number,
+    topic: string = 'ADDITION'
   ): Promise<MathQuestion[]> {
     const questions: MathQuestion[] = [];
     const usedQuestions = new Set<string>();
 
     while (questions.length < count) {
-      const question = this.generateSingleAdditionQuestion(difficulty);
+      const question = this.generateSingleAdditionQuestion(difficulty, topic);
 
       // Ensure uniqueness
       if (!usedQuestions.has(question.question)) {
@@ -259,7 +315,8 @@ export class MathQuestionGenerator {
    * @private
    */
   private generateSingleAdditionQuestion(
-    difficulty: DifficultyLevel
+    difficulty: DifficultyLevel,
+    topic: string = 'ADDITION'
   ): MathQuestion {
     // Generate numbers appropriate for Grade 3 (0-50 range)
     const num1 = this.generateNumberForDifficulty(difficulty);
@@ -268,20 +325,9 @@ export class MathQuestionGenerator {
     const answer = num1 + num2;
     const questionText = `$${num1} + ${num2} = ?$`;
 
-    const solution = this.generateSolutionSteps(
-      num1,
-      num2,
-      answer,
-      OperationType.ADDITION
-    );
+    const solution = this.generateSolutionSteps(num1, num2, answer, 'ADDITION');
 
-    return new MathQuestion(
-      questionText,
-      answer,
-      OperationType.ADDITION,
-      difficulty,
-      solution
-    );
+    return new MathQuestion(questionText, answer, topic, difficulty, solution);
   }
 
   /**
@@ -337,7 +383,7 @@ export class MathQuestionGenerator {
    * @example
    * ```typescript
    * // For 7 + 3 = 10
-   * const steps = generateSolutionSteps(7, 3, 10, OperationType.ADDITION);
+   * const steps = generateSolutionSteps(7, 3, 10, 'ADDITION');
    * // Returns: ["Start with the first number: 7", "Add the second number: 7 + 3", "The answer is: 10"]
    * ```
    *
@@ -347,12 +393,12 @@ export class MathQuestionGenerator {
     num1: number,
     num2: number,
     answer: number,
-    operation: OperationType
+    operation: string
   ): string[] {
     switch (operation) {
-      case OperationType.ADDITION:
+      case 'ADDITION':
         return this.generateAdditionSolutionSteps(num1, num2, answer);
-      case OperationType.SUBTRACTION:
+      case 'SUBTRACTION':
         return this.generateSubtractionSolutionSteps(num1, num2, answer);
       default:
         return [`The answer is: ${answer}`];

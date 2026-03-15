@@ -1,22 +1,20 @@
 import { Controller, Get, Query, Post, Body, Optional } from '@nestjs/common';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
-import {
-  MathQuestion,
-  DifficultyLevel,
-  OperationType,
-} from './entities/math-question.entity';
+import { MathQuestion, DifficultyLevel } from './entities/math-question.entity';
 import {
   SemanticSearchService,
   SearchResult,
 } from '../opensearch/semantic-search.service';
 import { FindSimilarQuestionsDto } from './dto/find-similar-questions.dto';
+import { GRADE_TOPICS } from '../ai/curriculum.types';
 
 /**
- * REST API controller for mathematical question generation
- * Provides endpoints for generating curriculum-aligned math problems
+ * REST API controller for mathematical question generation.
+ * Provides endpoints for generating curriculum-aligned math problems.
+ * Validates topics against GRADE_TOPICS per grade.
  *
  * @example
- * GET /api/math-questions/generate?difficulty=grade_3&count=10&type=addition
+ * GET /api/math-questions/generate?difficulty=grade_4&count=10&topic=FRACTION_BASICS
  */
 @Controller('math-questions')
 export class MathQuestionsController {
@@ -26,49 +24,51 @@ export class MathQuestionsController {
   ) {}
 
   /**
-   * Generates mathematical questions based on specified parameters
+   * Generates mathematical questions based on specified parameters.
+   * Validates the requested topic against GRADE_TOPICS for the given grade.
    *
-   * @param difficulty - Educational difficulty level (default: grade_3)
+   * @param difficulty - Educational difficulty level (default: 'grade_3')
    * @param count - Number of questions to generate (default: 10, max: 50)
-   * @param type - Type of mathematical operation (default: addition)
-   * @returns Array of generated MathQuestion objects
+   * @param topic - Topic string from GRADE_TOPICS (default: 'ADDITION')
+   * @returns Promise resolving to array of generated MathQuestion objects
+   *
+   * @throws {Error} When difficulty level is not supported (grades 3–8)
+   * @throws {Error} When topic is not valid for the requested grade
    *
    * @example
-   * GET /api/math-questions/generate?difficulty=grade_3&count=5&type=addition
+   * ```
+   * GET /api/math-questions/generate?difficulty=grade_4&count=5&topic=FRACTION_BASICS
+   * ```
    */
   @Get('generate')
   async generateQuestions(
     @Query('difficulty') difficulty: string = 'grade_3',
     @Query('count') count: string = '10',
-    @Query('type') type: string = 'addition'
+    @Query('topic') topic: string = 'ADDITION'
   ): Promise<MathQuestion[]> {
     const questionCount = Math.min(parseInt(count, 10) || 10, 50);
     const difficultyLevel = this.parseDifficultyLevel(difficulty);
-    const operationType = this.parseOperationType(type);
+    const gradeNumber = this.difficultyToGrade(difficultyLevel);
+
+    // Normalize topic to uppercase to match GRADE_TOPICS keys
+    const normalizedTopic = topic.toUpperCase();
+
+    // Validate topic against GRADE_TOPICS for the requested grade
+    this.validateTopicForGrade(normalizedTopic, gradeNumber);
 
     const startTime = Date.now();
 
-    let questions: MathQuestion[];
-
-    switch (operationType) {
-      case OperationType.ADDITION:
-        questions = await this.questionGenerator.generateAdditionQuestions(
-          difficultyLevel,
-          questionCount
-        );
-        break;
-      case OperationType.SUBTRACTION:
-        // Future implementation for subtraction
-        throw new Error('Subtraction questions not yet implemented');
-      default:
-        throw new Error(`Unsupported operation type: ${type}`);
-    }
+    const questions = await this.questionGenerator.generateQuestions(
+      difficultyLevel,
+      questionCount,
+      normalizedTopic
+    );
 
     const generationTime = Date.now() - startTime;
 
     // Log performance for monitoring
     console.log(
-      `Generated ${questionCount} ${type} questions in ${generationTime}ms`
+      `Generated ${questionCount} ${normalizedTopic} questions in ${generationTime}ms`
     );
 
     // Validate performance requirement (<3 seconds)
@@ -82,9 +82,9 @@ export class MathQuestionsController {
   }
 
   /**
-   * Health check endpoint for the math questions service
+   * Health check endpoint for the math questions service.
    *
-   * @returns Service status and capabilities
+   * @returns Service status and capabilities including supported grades
    */
   @Get('health')
   getServiceHealth(): object {
@@ -93,12 +93,12 @@ export class MathQuestionsController {
       service: 'math-questions',
       capabilities: {
         supportedDifficulties: Object.values(DifficultyLevel),
-        supportedOperations: Object.values(OperationType),
+        supportedGrades: [3, 4, 5, 6, 7, 8],
         maxQuestionsPerRequest: 50,
         explanationStyles: ['visual', 'verbal', 'step-by-step', 'story'],
         semanticSearch: this.semanticSearchService !== undefined,
       },
-      version: '2.0.0', // Updated with explanation generation
+      version: '2.0.0',
     };
   }
 
@@ -310,30 +310,36 @@ export class MathQuestionsController {
   }
 
   /**
-   * Parses operation type string to enum value
+   * Validates that a topic is available for the given grade.
+   * Uses GRADE_TOPICS from curriculum.types.ts as the source of truth.
    *
-   * @param type - Operation type string from query parameter
-   * @returns Corresponding OperationType enum value
-   * @throws Error if operation type is not supported
+   * @param topic - The topic string to validate (e.g. 'FRACTION_BASICS')
+   * @param grade - The grade number (3–8)
+   * @throws {Error} When topic is not valid for the grade, including list of valid topics
+   *
+   * @example
+   * ```typescript
+   * this.validateTopicForGrade('FRACTION_BASICS', 4); // passes
+   * this.validateTopicForGrade('ALGEBRAIC_EQUATIONS', 3); // throws with valid topics for grade 3
+   * ```
    *
    * @private
    */
-  private parseOperationType(type: string): OperationType {
-    const normalizedType = type.toLowerCase();
+  private validateTopicForGrade(topic: string, grade: number): void {
+    const gradeTopics = GRADE_TOPICS[grade];
+    if (!gradeTopics) {
+      throw new Error(
+        `Invalid topic '${topic}' for grade ${grade}. No topics defined for this grade.`
+      );
+    }
 
-    switch (normalizedType) {
-      case 'addition':
-      case 'add':
-        return OperationType.ADDITION;
-      case 'subtraction':
-      case 'subtract':
-        return OperationType.SUBTRACTION;
-      default:
-        throw new Error(
-          `Unsupported operation type: ${type}. Supported: ${Object.values(
-            OperationType
-          ).join(', ')}`
-        );
+    const validTopics = gradeTopics['mathematics'] || [];
+    if (!validTopics.includes(topic)) {
+      throw new Error(
+        `Invalid topic '${topic}' for grade ${grade}. Valid topics: ${validTopics.join(
+          ', '
+        )}`
+      );
     }
   }
 }

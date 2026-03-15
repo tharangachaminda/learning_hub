@@ -18,12 +18,12 @@ So that I can strengthen specific skills across the full curriculum
 
 ### Functional Requirements
 
-- [ ] **AC-001:** The `GET /generate` endpoint accepts a `topic` parameter matching any topic in `GRADE_TOPICS` for the requested grade
-- [ ] **AC-002:** Requesting a topic not available for a grade returns a 400 error listing valid topics for that grade
-- [ ] **AC-003:** Subtraction, multiplication, division, and all other topics generate questions without errors
-- [ ] **AC-004:** AI prompts include topic-specific context (category, display name) from `curriculum.types.ts`
-- [ ] **AC-005:** The "not yet implemented" error for subtraction is removed
-- [ ] **AC-006:** All 50 grade×topic combinations defined in `GRADE_TOPICS` are supported
+- [x] **AC-001:** The `GET /generate` endpoint accepts a `topic` parameter matching any topic in `GRADE_TOPICS` for the requested grade
+- [x] **AC-002:** Requesting a topic not available for a grade returns a 400 error listing valid topics for that grade
+- [x] **AC-003:** Subtraction, multiplication, division, and all other topics generate questions without errors
+- [x] **AC-004:** AI prompts include topic-specific context (category, display name) from `curriculum.types.ts`
+- [x] **AC-005:** The "not yet implemented" error for subtraction is removed
+- [x] **AC-006:** All 50 grade×topic combinations defined in `GRADE_TOPICS` are supported
 
 ### Technical Requirements
 
@@ -35,12 +35,12 @@ So that I can strengthen specific skills across the full curriculum
 
 ## Definition of Done
 
-- [ ] All 50 grade×topic combinations generate questions via AI
-- [ ] Controller removes hardcoded operation-type switching
-- [ ] Invalid topic for a given grade returns clear error with valid options
-- [ ] Unit tests verify topic validation per grade
-- [ ] Integration tests confirm generation for at least one topic per grade
-- [ ] Entity model updated to accommodate all topic types
+- [x] All 50 grade×topic combinations generate questions via AI
+- [x] Controller removes hardcoded operation-type switching
+- [x] Invalid topic for a given grade returns clear error with valid options
+- [x] Unit tests verify topic validation per grade
+- [x] Integration tests confirm generation for at least one topic per grade
+- [x] Entity model updated to accommodate all topic types
 
 ## Dependencies
 
