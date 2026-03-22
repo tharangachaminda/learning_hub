@@ -45,3 +45,15 @@ Thumbs.db
 
 .angular
 .codei-core
+
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
+
+# AI agent configurations (auto-generated, local only)
+.agents/
+.codex/
+.opencode/
+.github/skills/
+.github/agents/
+.github/prompts/
