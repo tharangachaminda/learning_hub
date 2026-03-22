@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   MathQuestion,
   DifficultyLevel,
 } from '../entities/math-question.entity';
 import { OllamaService } from '../../ai/ollama.service';
+import { QuestionsService } from '../../questions/questions.service';
 
 /**
  * Service responsible for generating mathematical questions for educational purposes
@@ -17,7 +18,18 @@ import { OllamaService } from '../../ai/ollama.service';
  */
 @Injectable()
 export class MathQuestionGenerator {
-  constructor(private readonly ollamaService?: OllamaService) {}
+  private readonly logger = new Logger(MathQuestionGenerator.name);
+
+  /**
+   * Creates a new MathQuestionGenerator instance.
+   *
+   * @param ollamaService - Optional AI service for LLM-powered question generation
+   * @param questionsService - Optional persistence service for auto-saving generated questions to MongoDB
+   */
+  constructor(
+    private readonly ollamaService?: OllamaService,
+    private readonly questionsService?: QuestionsService
+  ) {}
 
   /**
    * Generates mathematical questions for any topic and difficulty level.
@@ -42,13 +54,16 @@ export class MathQuestionGenerator {
     topic: string
   ): Promise<MathQuestion[]> {
     this.validateQuestionCount(count);
+    const startTime = Date.now();
+
+    let questions: MathQuestion[] = [];
 
     // Try AI generation first if OllamaService is available
     if (this.ollamaService) {
       try {
         const aiQuestions = await this.generateWithAI(difficulty, count, topic);
         if (aiQuestions && aiQuestions.length > 0) {
-          return aiQuestions;
+          questions = aiQuestions;
         }
       } catch (error) {
         console.warn(
@@ -59,19 +74,25 @@ export class MathQuestionGenerator {
     }
 
     // Fallback to deterministic generation (only supports ADDITION)
-    if (topic === 'ADDITION') {
-      return this.generateDeterministicAdditionQuestions(
+    if (questions.length === 0 && topic === 'ADDITION') {
+      questions = await this.generateDeterministicAdditionQuestions(
         difficulty,
         count,
         topic
       );
+    } else if (questions.length === 0) {
+      // For non-ADDITION topics without AI, return empty (AI is required)
+      console.warn(
+        `Deterministic fallback not available for topic '${topic}'. AI service required.`
+      );
     }
 
-    // For non-ADDITION topics without AI, return empty (AI is required)
-    console.warn(
-      `Deterministic fallback not available for topic '${topic}'. AI service required.`
-    );
-    return [];
+    // Auto-persist generated questions to MongoDB if QuestionsService is available
+    if (questions.length > 0 && this.questionsService) {
+      await this.persistQuestions(questions, difficulty, topic, startTime);
+    }
+
+    return questions;
   }
 
   /**
@@ -243,6 +264,50 @@ export class MathQuestionGenerator {
     }
 
     return `The answer is ${answer}. Let's practice more problems like this!`;
+  }
+
+  /**
+   * Persists generated questions to MongoDB via QuestionsService.
+   * Maps MathQuestion entities to the persistence schema format and saves in batch.
+   * Failures are logged but do not interrupt the generation flow.
+   *
+   * @param questions - Array of generated MathQuestion entities to persist
+   * @param difficulty - The difficulty level used for generation
+   * @param topic - The topic string used for generation
+   * @param startTime - Timestamp (ms) when generation started, used to calculate generationTime
+   *
+   * @private
+   */
+  private async persistQuestions(
+    questions: MathQuestion[],
+    difficulty: DifficultyLevel,
+    topic: string,
+    startTime: number
+  ): Promise<void> {
+    try {
+      const gradeNumber = this.difficultyToGrade(difficulty);
+      const generationTime = Date.now() - startTime;
+
+      const dtos = questions.map((q) => ({
+        questionText: q.question,
+        answer: q.answer,
+        grade: gradeNumber,
+        topic,
+        stepByStepSolution: q.stepByStepSolution,
+        metadata: {
+          generatedBy: this.ollamaService ? 'ollama' : 'deterministic',
+          difficulty: difficulty as string,
+          country: 'NZ',
+          generationTime,
+        },
+      }));
+
+      await this.questionsService.createMany(dtos);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to persist ${questions.length} generated questions: ${error.message}`
+      );
+    }
   }
 
   /**
