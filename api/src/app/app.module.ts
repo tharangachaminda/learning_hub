@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MathQuestionsModule } from './math-questions/math-questions.module';
+import { QuestionsModule } from './questions/questions.module';
 import { OpenSearchModule } from './opensearch/opensearch.module';
 import { ProgressModule } from './progress/progress.module';
 import { AuthModule } from './auth/auth.module';
@@ -26,6 +27,7 @@ import { StudentsModule } from './students/students.module';
     }),
     OpenSearchModule,
     MathQuestionsModule,
+    QuestionsModule,
     ProgressModule,
     AuthModule,
     StudentsModule,

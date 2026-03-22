@@ -35,13 +35,13 @@ So that we can reuse them in the future without calling the LLM every time
 
 ## Definition of Done
 
-- [ ] Mongoose schema created and connected to MongoDB
-- [ ] Generated questions are stored automatically on creation
-- [ ] Questions queryable by grade, topic, status, and format
-- [ ] Duplicate detection working
-- [ ] Batch generation stores all questions in a single operation
-- [ ] Unit tests cover service CRUD operations
-- [ ] Integration tests verify MongoDB read/write
+- [x] Mongoose schema created and connected to MongoDB
+- [x] Generated questions are stored automatically on creation
+- [x] Questions queryable by grade, topic, status, and format
+- [x] Duplicate detection working
+- [x] Batch generation stores all questions in a single operation
+- [x] Unit tests cover service CRUD operations
+- [x] Integration tests verify MongoDB read/write
 
 ## Dependencies
 
@@ -101,3 +101,53 @@ And each should have status "pending"
 - Query response time < 200ms for filtered queries
 - Zero duplicate questions in the database
 - Batch generation stores all questions atomically
+
+## Status
+
+**Ready for Review**
+
+## Dev Agent Record
+
+### Agent Model Used
+
+Claude Opus 4.6
+
+### Debug Log References
+
+- Session log: `dev_mmdd_logs/sessions/TN-FEATURE-SCRUM-44-PERSIST-GENERATED-QUESTIONS/session-001.md`
+
+### Completion Notes
+
+- All 5 tasks completed with TDD Red-Green-Refactor methodology
+- 133/133 tests passing across 8 test suites (schema, service, controller, module, persistence integration, existing generator, existing controller)
+- 3 pre-existing opensearch test failures unrelated to this story
+- Coverage check skipped per developer instruction
+
+### File List
+
+#### New Files
+
+- `api/src/app/questions/schemas/question.schema.ts` — Mongoose schema with enums, metadata, indexes (REQ-QG-019, REQ-QG-022)
+- `api/src/app/questions/schemas/question.schema.spec.ts` — 26 schema unit tests
+- `api/src/app/questions/questions.service.ts` — CRUD service with pagination, duplicate detection (REQ-QG-020)
+- `api/src/app/questions/questions.service.spec.ts` — 17 service unit tests
+- `api/src/app/questions/questions.controller.ts` — REST API with GET/POST endpoints (REQ-QG-021)
+- `api/src/app/questions/questions.controller.spec.ts` — 13 controller unit tests
+- `api/src/app/questions/dto/find-questions.dto.ts` — Query filter DTO with class-validator
+- `api/src/app/questions/dto/create-question.dto.ts` — Question creation DTO
+- `api/src/app/questions/dto/batch-generate-questions.dto.ts` — Batch generation DTO
+- `api/src/app/questions/questions.module.ts` — NestJS module wiring
+- `api/src/app/questions/questions.module.spec.ts` — 3 module tests
+- `api/src/app/math-questions/services/math-question-generator-persistence.spec.ts` — 7 persistence integration tests
+
+#### Modified Files
+
+- `api/src/app/math-questions/services/math-question-generator.service.ts` — Added optional QuestionsService, auto-persist after generation (REQ-QG-023)
+- `api/src/app/math-questions/math-questions.module.ts` — Added QuestionsService + Question schema imports
+- `api/src/app/app.module.ts` — Added QuestionsModule import
+
+### Change Log
+
+| Date       | Change                                      | Author             |
+| ---------- | ------------------------------------------- | ------------------ |
+| 2026-03-21 | Initial implementation — all tasks complete | Samare (dev-mmtdd) |
