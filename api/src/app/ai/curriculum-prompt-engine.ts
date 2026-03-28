@@ -365,6 +365,12 @@ QUESTION REQUIREMENTS:
     }
 
 ${this.buildQuestionFormatRules(request)}
+PROHIBITED QUESTION PATTERNS:
+- NEVER generate vague or self-referential questions like "What is the result of this MULTIPLICATION problem?" or "Solve this ADDITION problem" without an actual math expression.
+- Every question MUST contain concrete numbers and a specific mathematical operation (e.g. "$7 \\times 8 = ?$", "What is $12 + 5$?").
+- Do NOT ask ABOUT a math topic — ask an actual math problem with real numbers.
+- Do NOT generate questions that just name the operation without providing numbers to work with.
+
 MANDATORY LATEX FORMATTING:
 Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
 - Use $...$ for all inline math

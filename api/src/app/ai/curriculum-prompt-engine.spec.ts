@@ -409,6 +409,42 @@ describe('CurriculumPromptEngine', () => {
     });
   });
 
+  describe('Prohibited question patterns', () => {
+    /**
+     * Test: System prompt prohibits vague meta-questions (e.g. "What is the result of this MULTIPLICATION problem?")
+     * Why Essential: LLM sometimes generates self-referential questions that name the operation but contain no actual numbers
+     * What Breaks: Students see nonsensical questions with no math to solve
+     */
+    it('should prohibit vague meta-questions without concrete numbers', () => {
+      const configs = [
+        { grade: 3, topic: 'MULTIPLICATION', difficulty: 'easy' as const },
+        { grade: 5, topic: 'ADDITION', difficulty: 'medium' as const },
+        { grade: 7, topic: 'DIVISION', difficulty: 'hard' as const },
+        { grade: 4, topic: 'SUBTRACTION', difficulty: 'easy' as const },
+        {
+          grade: 6,
+          topic: 'FRACTION_OPERATIONS',
+          difficulty: 'medium' as const,
+        },
+      ];
+
+      configs.forEach(({ grade, topic, difficulty }) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade,
+          topic,
+          difficulty,
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toMatch(
+          /NEVER.*vague|NEVER.*self-referential/i
+        );
+        expect(prompt.systemPrompt).toMatch(/concrete numbers/i);
+        expect(prompt.systemPrompt).toMatch(/MUST contain/i);
+      });
+    });
+  });
+
   describe('Question format rules by difficulty and grade', () => {
     const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
 
