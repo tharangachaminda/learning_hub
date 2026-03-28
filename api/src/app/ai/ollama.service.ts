@@ -100,6 +100,28 @@ export class OllamaService {
       return HealthCheckSchema.parse(result);
     }
   }
+
+  /**
+   * Sends a raw prompt to Ollama and returns the text response.
+   * Used for refinement and other freeform LLM interactions.
+   */
+  async generateRaw(prompt: string): Promise<string> {
+    const response = await this.httpService.axiosRef.post(
+      `${this.ollamaUrl}/api/generate`,
+      {
+        model: this.defaultModel,
+        prompt,
+        stream: false,
+        options: {
+          temperature: 0.3,
+          top_p: 0.9,
+        },
+      },
+      { timeout: this.generationTimeout }
+    );
+    return response.data.response || '';
+  }
+
   /**
    * Generates a mathematical question using AI with curriculum-aware prompts and cultural context.
    *

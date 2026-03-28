@@ -122,6 +122,13 @@
   margin-bottom: 2.5rem;
 }
 
+a.stat-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  cursor: pointer;
+}
+
 .stat-card {
   background: #fff;
   border-radius: 12px;
@@ -258,6 +265,23 @@
 
   &:hover {
     background: #047857;
+  }
+}
+
+.generate-btn {
+  background: #4f46e5;
+
+  &:hover {
+    background: #4338ca;
+  }
+}
+
+.generate-card {
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+
+  h4 {
+    color: #3730a3;
   }
 }
 

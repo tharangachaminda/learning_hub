@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
+import { OllamaService } from '../ai/ollama.service';
 import { QuestionStatus, QuestionFormat } from './schemas/question.schema';
 
 const mockQuestion = {
@@ -63,6 +64,7 @@ describe('QuestionsController', () => {
       providers: [
         { provide: QuestionsService, useValue: mockQuestionsService },
         { provide: MathQuestionGenerator, useValue: mockMathGenerator },
+        { provide: OllamaService, useValue: { generateRaw: jest.fn() } },
       ],
     }).compile();
 
@@ -212,7 +214,9 @@ describe('QuestionsController', () => {
       expect(mathGenerator.generateQuestions).toHaveBeenCalledWith(
         expect.anything(),
         10,
-        'ADDITION'
+        'ADDITION',
+        false,
+        'medium'
       );
     });
 

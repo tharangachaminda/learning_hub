@@ -1,0 +1,147 @@
+<div class="lessons-page">
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Lessons Learned</h1>
+    </div>
+    <nav class="header-nav">
+      <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/generate">Generate</a>
+      <a routerLink="/review">Review Queue</a>
+      <button class="btn-link" (click)="logout()">Sign Out</button>
+    </nav>
+  </header>
+
+  <p class="page-desc">
+    These lessons are automatically injected into LLM prompts during question
+    generation so the AI avoids repeating past mistakes.
+  </p>
+
+  <!-- Alerts -->
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="gradeFilter">Grade</label>
+      <select
+        id="gradeFilter"
+        [(ngModel)]="filterGrade"
+        (ngModelChange)="onGradeFilterChange()"
+      >
+        <option [ngValue]="null">All Grades</option>
+        <option *ngFor="let g of grades" [ngValue]="g.grade">
+          Grade {{ g.grade }}
+        </option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="topicFilter">Topic</label>
+      <select
+        id="topicFilter"
+        [(ngModel)]="filterTopic"
+        (ngModelChange)="onFilterChange()"
+        [disabled]="!filterGrade"
+      >
+        <option value="">All Topics</option>
+        <option *ngFor="let t of filteredTopics" [value]="t.key">
+          {{ t.label }}
+        </option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="catFilter">Category</label>
+      <select
+        id="catFilter"
+        [(ngModel)]="filterCategory"
+        (ngModelChange)="onFilterChange()"
+      >
+        <option value="">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading…</p>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!isLoading && lessons.length === 0">
+    <p>
+      No lessons learned recorded yet. They will appear here when you record
+      mistakes during question review.
+    </p>
+  </div>
+
+  <!-- Lessons list -->
+  <div class="lessons-list" *ngIf="!isLoading && lessons.length > 0">
+    <div
+      class="lesson-card"
+      *ngFor="let lesson of lessons"
+      [class.inactive]="!lesson.isActive"
+    >
+      <div class="lesson-header">
+        <div class="lesson-badges">
+          <span class="badge grade-badge">Grade {{ lesson.grade }}</span>
+          <span class="badge topic-badge">{{ lesson.topic }}</span>
+          <span class="badge cat-badge">{{ lesson.category }}</span>
+          <span
+            class="badge active-badge"
+            [class.active]="lesson.isActive"
+            [class.inactive-badge]="!lesson.isActive"
+            >{{ lesson.isActive ? 'Active' : 'Inactive' }}</span
+          >
+        </div>
+        <div class="lesson-actions">
+          <button
+            class="btn btn-toggle"
+            (click)="toggleActive(lesson)"
+            [disabled]="actionInProgress === lesson._id"
+          >
+            {{ lesson.isActive ? 'Deactivate' : 'Activate' }}
+          </button>
+          <button
+            class="btn btn-delete"
+            (click)="deleteLesson(lesson._id)"
+            [disabled]="actionInProgress === lesson._id"
+            title="Delete"
+          >
+            🗑
+          </button>
+        </div>
+      </div>
+      <div class="lesson-body">
+        <div class="field-group">
+          <span class="field-label">Mistake</span>
+          <p>{{ lesson.mistakeDescription }}</p>
+        </div>
+        <div class="field-group">
+          <span class="field-label">Correction Instruction</span>
+          <p>{{ lesson.correctionInstruction }}</p>
+        </div>
+        <div
+          class="examples"
+          *ngIf="lesson.incorrectExample || lesson.correctedExample"
+        >
+          <div class="example" *ngIf="lesson.incorrectExample">
+            <span class="field-label">Incorrect Example</span>
+            <p class="example-text bad">{{ lesson.incorrectExample }}</p>
+          </div>
+          <div class="example" *ngIf="lesson.correctedExample">
+            <span class="field-label">Corrected Example</span>
+            <p class="example-text good">{{ lesson.correctedExample }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="lesson-footer">
+        <span
+          >By {{ lesson.recordedBy }} · {{ lesson.createdAt | date:'short'
+          }}</span
+        >
+      </div>
+    </div>
+  </div>
+</div>

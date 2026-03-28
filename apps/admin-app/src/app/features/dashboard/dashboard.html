@@ -25,34 +25,61 @@
     </div>
     } @if (stats && !isLoading) {
     <div class="stats-grid">
-      <div class="stat-card pending">
+      <a
+        class="stat-card pending"
+        routerLink="/review"
+        [queryParams]="{ status: 'pending' }"
+      >
         <div class="stat-value">{{ stats.pending }}</div>
         <div class="stat-label">Pending Review</div>
         <div class="stat-icon">⏳</div>
-      </div>
+      </a>
 
-      <div class="stat-card approved">
+      <a
+        class="stat-card approved"
+        routerLink="/review"
+        [queryParams]="{ status: 'approved' }"
+      >
         <div class="stat-value">{{ stats.approved }}</div>
         <div class="stat-label">Approved</div>
         <div class="stat-icon">✅</div>
-      </div>
+      </a>
 
-      <div class="stat-card rejected">
+      <a
+        class="stat-card rejected"
+        routerLink="/review"
+        [queryParams]="{ status: 'rejected' }"
+      >
         <div class="stat-value">{{ stats.rejected }}</div>
         <div class="stat-label">Rejected</div>
         <div class="stat-icon">❌</div>
-      </div>
+      </a>
 
-      <div class="stat-card total">
+      <a
+        class="stat-card total"
+        routerLink="/review"
+        [queryParams]="{ status: '' }"
+      >
         <div class="stat-value">{{ stats.total }}</div>
         <div class="stat-label">Total Questions</div>
         <div class="stat-icon">📊</div>
-      </div>
+      </a>
     </div>
 
     <div class="actions-section">
       <h3>Quick Actions</h3>
       <div class="action-cards">
+        <div class="action-card generate-card">
+          <h4>Generate Questions</h4>
+          <p>
+            Use AI to generate new curriculum-aligned questions for any grade
+            and topic.
+          </p>
+          <a routerLink="/generate" class="action-btn generate-btn"
+            >Generate Questions</a
+          >
+        </div>
+
         <div class="action-card" [class.has-pending]="stats.pending > 0">
           <h4>Review Queue</h4>
           <p>
@@ -60,9 +87,7 @@
             <strong>{{ stats.pending }}</strong> questions awaiting your review
             } @else { No questions pending review }
           </p>
-          <button class="action-btn" disabled title="Coming soon — US-QG-006">
-            Open Review Queue
-          </button>
+          <a routerLink="/review" class="action-btn"> Open Review Queue </a>
         </div>
 
         @if (isAdmin) {

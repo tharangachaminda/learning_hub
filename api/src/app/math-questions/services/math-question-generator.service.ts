@@ -51,7 +51,9 @@ export class MathQuestionGenerator {
   async generateQuestions(
     difficulty: DifficultyLevel,
     count: number,
-    topic: string
+    topic: string,
+    autoPersist = true,
+    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
   ): Promise<MathQuestion[]> {
     this.validateQuestionCount(count);
     const startTime = Date.now();
@@ -61,7 +63,12 @@ export class MathQuestionGenerator {
     // Try AI generation first if OllamaService is available
     if (this.ollamaService) {
       try {
-        const aiQuestions = await this.generateWithAI(difficulty, count, topic);
+        const aiQuestions = await this.generateWithAI(
+          difficulty,
+          count,
+          topic,
+          questionDifficulty
+        );
         if (aiQuestions && aiQuestions.length > 0) {
           questions = aiQuestions;
         }
@@ -88,7 +95,7 @@ export class MathQuestionGenerator {
     }
 
     // Auto-persist generated questions to MongoDB if QuestionsService is available
-    if (questions.length > 0 && this.questionsService) {
+    if (autoPersist && questions.length > 0 && this.questionsService) {
       await this.persistQuestions(questions, difficulty, topic, startTime);
     }
 
@@ -153,7 +160,8 @@ export class MathQuestionGenerator {
   private async generateWithAI(
     difficulty: DifficultyLevel,
     count: number,
-    topic: string
+    topic: string,
+    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
   ): Promise<MathQuestion[]> {
     const questions: MathQuestion[] = [];
     const gradeNumber = this.difficultyToGrade(difficulty);
@@ -162,7 +170,7 @@ export class MathQuestionGenerator {
       const aiQuestion = await this.ollamaService.generateMathQuestion({
         grade: gradeNumber,
         topic,
-        difficulty: 'medium',
+        difficulty: questionDifficulty,
         country: 'NZ',
       });
 

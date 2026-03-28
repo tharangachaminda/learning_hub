@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Question, QuestionSchema } from './schemas/question.schema';
+import {
+  LessonLearned,
+  LessonLearnedSchema,
+} from './schemas/lesson-learned.schema';
 import { QuestionsService } from './questions.service';
 import { QuestionsController } from './questions.controller';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
@@ -27,6 +31,7 @@ import { AuthModule } from '../auth/auth.module';
   imports: [
     MongooseModule.forFeature([
       { name: Question.name, schema: QuestionSchema },
+      { name: LessonLearned.name, schema: LessonLearnedSchema },
     ]),
     AiModule,
     AuthModule,

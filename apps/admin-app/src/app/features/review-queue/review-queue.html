@@ -1,0 +1,223 @@
+<div class="review-queue-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>Review Queue</h1>
+      <span class="user-badge">{{ userName }} ({{ userRole }})</span>
+    </div>
+    <nav class="header-nav">
+      <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/generate">Generate</a>
+      <a routerLink="/lessons-learned">Lessons Learned</a>
+      <button class="btn-link" (click)="logout()">Sign Out</button>
+    </nav>
+  </header>
+
+  <!-- Stats bar -->
+  <div class="stats-bar" *ngIf="stats">
+    <div class="stat-chip pending">Pending: {{ stats.pending }}</div>
+    <div class="stat-chip approved">Approved: {{ stats.approved }}</div>
+    <div class="stat-chip rejected">Rejected: {{ stats.rejected }}</div>
+    <div class="stat-chip total">Total: {{ stats.total }}</div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="statusFilter">Status</label>
+      <select
+        id="statusFilter"
+        [(ngModel)]="filterStatus"
+        (ngModelChange)="onFilterChange()"
+      >
+        <option value="">All</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="gradeFilter">Grade</label>
+      <select
+        id="gradeFilter"
+        [(ngModel)]="filterGrade"
+        (ngModelChange)="onGradeFilterChange()"
+      >
+        <option [ngValue]="null">All Grades</option>
+        <option *ngFor="let g of grades" [ngValue]="g.grade">
+          Grade {{ g.grade }}
+        </option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="topicFilter">Topic</label>
+      <select
+        id="topicFilter"
+        [(ngModel)]="filterTopic"
+        (ngModelChange)="onFilterChange()"
+        [disabled]="!filterGrade"
+      >
+        <option value="">All Topics</option>
+        <option *ngFor="let t of filteredTopics" [value]="t.key">
+          {{ t.label }}
+        </option>
+      </select>
+    </div>
+    <div class="filter-actions" *ngIf="selectedIds.size > 0">
+      <span class="selected-count">{{ selectedIds.size }} selected</span>
+      <button
+        class="btn btn-approve-sm"
+        (click)="bulkApprove()"
+        [disabled]="actionInProgress === 'bulk'"
+      >
+        Approve Selected
+      </button>
+      <button
+        class="btn btn-reject-sm"
+        (click)="bulkReject()"
+        [disabled]="actionInProgress === 'bulk'"
+      >
+        Reject Selected
+      </button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading questions…</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && questions.length === 0">
+    <p>No questions found matching your filters.</p>
+    <a routerLink="/generate" class="btn btn-primary">Generate Questions</a>
+  </div>
+
+  <!-- Question list -->
+  <div class="question-list" *ngIf="!isLoading && questions.length > 0">
+    <table class="q-table">
+      <thead>
+        <tr>
+          <th class="col-check">
+            <input
+              type="checkbox"
+              [(ngModel)]="selectAll"
+              (ngModelChange)="toggleSelectAll()"
+              aria-label="Select all questions"
+            />
+          </th>
+          <th class="col-question">Question</th>
+          <th class="col-grade">Grade</th>
+          <th class="col-topic">Topic</th>
+          <th class="col-difficulty">Difficulty</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let q of questions" [class.selected]="isSelected(q._id)">
+          <td class="col-check">
+            <input
+              type="checkbox"
+              [checked]="isSelected(q._id)"
+              (change)="toggleSelect(q._id)"
+              [attr.aria-label]="'Select question ' + q.questionText.substring(0, 30)"
+            />
+          </td>
+          <td class="col-question">
+            <button class="question-link" (click)="openDetail(q._id)">
+              <app-katex-render
+                [content]="(q.questionText | slice:0:120) + (q.questionText.length > 120 ? '…' : '')"
+              />
+            </button>
+            <div class="question-meta">
+              <span class="meta-tag">{{ q.format }}</span>
+              <span class="meta-tag" *ngIf="q.category">{{ q.category }}</span>
+            </div>
+          </td>
+          <td class="col-grade">{{ q.grade }}</td>
+          <td class="col-topic">{{ q.topic }}</td>
+          <td class="col-difficulty">
+            <span
+              class="difficulty-badge"
+              [ngClass]="'diff-' + (q.metadata?.difficulty || 'medium')"
+            >
+              {{ q.metadata?.difficulty || 'medium' }}
+            </span>
+          </td>
+          <td class="col-status">
+            <span class="status-badge" [ngClass]="getStatusClass(q.status)"
+              >{{ q.status }}</span
+            >
+            <div
+              class="rejection-reason"
+              *ngIf="q.status === 'rejected' && q.reviewNotes"
+            >
+              {{ q.reviewNotes }}
+            </div>
+          </td>
+          <td class="col-actions">
+            <div class="action-buttons">
+              <button
+                class="btn btn-approve-sm"
+                *ngIf="q.status !== 'approved'"
+                [disabled]="actionInProgress === q._id"
+                (click)="approveQuestion(q._id); $event.stopPropagation()"
+                title="Approve"
+              >
+                ✓
+              </button>
+              <button
+                class="btn btn-reject-sm"
+                *ngIf="q.status !== 'rejected'"
+                [disabled]="actionInProgress === q._id"
+                (click)="rejectQuestion(q._id); $event.stopPropagation()"
+                title="Reject"
+              >
+                ✗
+              </button>
+              <button
+                class="btn btn-edit-sm"
+                *ngIf="q.status === 'approved' || q.status === 'rejected'"
+                (click)="openDetail(q._id); $event.stopPropagation()"
+                title="Re-evaluate"
+              >
+                ↺
+              </button>
+              <button
+                class="btn btn-refine-sm"
+                (click)="openDetail(q._id); $event.stopPropagation()"
+                title="View / Refine"
+              >
+                ✎
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button
+      class="btn btn-page"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+    >
+      ← Prev
+    </button>
+    <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+    <button
+      class="btn btn-page"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+    >
+      Next →
+    </button>
+  </div>
+</div>
