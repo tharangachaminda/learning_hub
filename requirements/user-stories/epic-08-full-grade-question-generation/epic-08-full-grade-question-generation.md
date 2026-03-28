@@ -100,7 +100,8 @@ Expand the question generation backend from its current Grade 3 Addition-only ca
 | US-QG-003 | Extend Grade Support to Grades 3–8        | P0       | 5      | —            |
 | US-QG-004 | Enable All Math Topics per Grade          | P0       | 8      | US-QG-003    |
 | US-QG-005 | Persist Generated Questions in MongoDB    | P0       | 8      | US-QG-003    |
-| US-QG-006 | Admin/Teacher Question Approval Workflow  | P0       | 8      | US-QG-005    |
+| US-QG-005.5 | Admin/Teacher Login & Dashboard         | P0       | 8      | US-QG-005    |
+| US-QG-006 | Admin/Teacher Question Approval Workflow  | P0       | 8      | US-QG-005, US-QG-005.5 |
 | US-QG-007 | Support Multiple-Choice Question Format   | P1       | 5      | US-QG-004    |
 | US-QG-008 | Support Fill-in-the-Blank Question Format | P1       | 3      | US-QG-004    |
 | US-QG-009 | Support Word Problem Question Format      | P1       | 5      | US-QG-004    |
@@ -113,7 +114,8 @@ Expand the question generation backend from its current Grade 3 Addition-only ca
 2. **US-QG-011** (LaTeX support) — cross-cutting; should be integrated early so all subsequent content uses LaTeX
 3. **US-QG-004** (All topics) — opens the full topic matrix
 4. **US-QG-005** (MongoDB persistence) — can be parallel with US-QG-004
-5. **US-QG-006** (Approval workflow) — depends on persistence
+5. **US-QG-005.5** (Admin Login & Dashboard) — depends on persistence; provides auth infra for approval workflow
+6. **US-QG-006** (Approval workflow) — depends on persistence + admin auth
 6. **US-QG-007** (MCQ) — highest-value format
 7. **US-QG-009** (Word problems) — natural fit for AI
 8. **US-QG-008** (Fill-in-blank) — quick win

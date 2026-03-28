@@ -49,6 +49,7 @@ So that only high-quality, accurate questions reach learners
 ## Dependencies
 
 - US-QG-005 (MongoDB persistence with status field)
+- US-QG-005.5 (Admin/Teacher Login & Dashboard — provides JWT auth, role guards, and admin-app)
 
 ## Technical Implementation Notes
 

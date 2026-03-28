@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
@@ -13,6 +14,9 @@ import { DifficultyLevel } from '../math-questions/entities/math-question.entity
 import { QuestionDocument, QuestionFormat } from './schemas/question.schema';
 import { FindQuestionsDto } from './dto/find-questions.dto';
 import { BatchGenerateQuestionsDto } from './dto/batch-generate-questions.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 /**
  * REST API controller for persisted question management.
@@ -58,6 +62,20 @@ export class QuestionsController {
   async findAll(@Query() dto: FindQuestionsDto): Promise<PaginatedQuestions> {
     const { page = 1, limit = 20, ...filters } = dto;
     return this.questionsService.findAll(filters, page, limit);
+  }
+
+  /**
+   * Returns question counts grouped by status for the admin dashboard.
+   *
+   * Protected: requires admin or teacher role.
+   *
+   * @returns `{ pending, approved, rejected, total }`
+   */
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async getStats() {
+    return this.questionsService.getStats();
   }
 
   /**

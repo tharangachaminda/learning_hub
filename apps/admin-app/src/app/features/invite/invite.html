@@ -1,0 +1,132 @@
+<div class="invite-container">
+  <header class="invite-header">
+    <div class="header-left">
+      <h1>LearningHub Admin</h1>
+      <span class="role-badge">admin</span>
+    </div>
+    <div class="header-right">
+      <a routerLink="/dashboard" class="back-link">← Back to Dashboard</a>
+    </div>
+  </header>
+
+  <main class="invite-content">
+    <div class="invite-card">
+      <h2>Invite New User</h2>
+      <p class="subtitle">
+        Create a new admin or teacher account. The user will be able to log in
+        immediately with the credentials you set below.
+      </p>
+
+      @if (success) {
+      <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <span>{{ success }}</span>
+      </div>
+      } @if (error) {
+      <div class="alert alert-error">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ error }}</span>
+      </div>
+      }
+
+      <form [formGroup]="inviteForm" (ngSubmit)="onSubmit()" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              placeholder="Jane"
+              [class.invalid]="f['firstName'].touched && f['firstName'].invalid"
+            />
+            @if (f['firstName'].touched && f['firstName'].errors) {
+            <span class="field-error">
+              @if (f['firstName'].errors['required']) { First name is required }
+              @else if (f['firstName'].errors['minlength']) { At least 2
+              characters }
+            </span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              placeholder="Doe"
+              [class.invalid]="f['lastName'].touched && f['lastName'].invalid"
+            />
+            @if (f['lastName'].touched && f['lastName'].errors) {
+            <span class="field-error">
+              @if (f['lastName'].errors['required']) { Last name is required }
+              @else if (f['lastName'].errors['minlength']) { At least 2
+              characters }
+            </span>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="jane.doe@school.nz"
+            [class.invalid]="f['email'].touched && f['email'].invalid"
+          />
+          @if (f['email'].touched && f['email'].errors) {
+          <span class="field-error">
+            @if (f['email'].errors['required']) { Email is required } @else if
+            (f['email'].errors['email']) { Enter a valid email address }
+          </span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="password">Temporary Password</label>
+          <input
+            id="password"
+            type="text"
+            formControlName="password"
+            placeholder="e.g. TeacherPass1!"
+            [class.invalid]="f['password'].touched && f['password'].invalid"
+          />
+          <span class="field-hint"
+            >Min 8 chars, 1 uppercase, 1 number, 1 special character</span
+          >
+          @if (f['password'].touched && f['password'].errors) {
+          <span class="field-error">
+            @if (f['password'].errors['required']) { Password is required }
+            @else if (f['password'].errors['minlength']) { At least 8 characters
+            } @else if (f['password'].errors['pattern']) { Must contain
+            uppercase, number, and special character }
+          </span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="role">Role</label>
+          <select
+            id="role"
+            formControlName="role"
+            [class.invalid]="f['role'].touched && f['role'].invalid"
+          >
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-btn" [disabled]="isLoading">
+            @if (isLoading) {
+            <span class="btn-spinner"></span>
+            Creating Account... } @else { Create Account }
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>

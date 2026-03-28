@@ -1,17 +1,26 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterStudentDto } from './dto/register-student.dto';
 import { LoginStudentDto } from './dto/login-student.dto';
+import { LoginAdminDto } from './dto/login-admin.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 
 /**
- * Controller for student authentication endpoints.
+ * Controller for authentication endpoints.
  *
  * Route prefix: `auth` (combined with the global `/api` prefix
  * gives `/api/auth/…`).
- *
- * Endpoints consumed by the student-app:
- *   POST /api/auth/student/register  – create a new student account
- *   GET  /api/auth/check-email/:email – check email uniqueness
  */
 @Controller('auth')
 export class AuthController {
@@ -48,5 +57,39 @@ export class AuthController {
   @Get('check-email/:email')
   async checkEmail(@Param('email') email: string) {
     return this.authService.checkEmailExists(email);
+  }
+
+  /**
+   * Authenticate an admin or teacher.
+   *
+   * POST /api/auth/admin/login
+   */
+  @Post('admin/login')
+  async adminLogin(@Body() dto: LoginAdminDto) {
+    return this.authService.loginAdmin(dto);
+  }
+
+  /**
+   * Invite-only registration for admin/teacher accounts.
+   * Requires a valid admin JWT.
+   *
+   * POST /api/auth/admin/register
+   */
+  @Post('admin/register')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminRegister(@Body() dto: RegisterAdminDto) {
+    return this.authService.registerAdmin(dto);
+  }
+
+  /**
+   * Return the current user's profile from the JWT.
+   *
+   * GET /api/auth/me
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Request() req: any) {
+    return this.authService.getProfile(req.user.userId);
   }
 }

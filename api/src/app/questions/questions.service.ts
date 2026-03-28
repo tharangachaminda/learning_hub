@@ -216,4 +216,26 @@ export class QuestionsService {
       throw error;
     }
   }
+
+  async getStats(): Promise<{
+    pending: number;
+    approved: number;
+    rejected: number;
+    total: number;
+  }> {
+    const [pending, approved, rejected, total] = await Promise.all([
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.PENDING })
+        .exec(),
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.APPROVED })
+        .exec(),
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.REJECTED })
+        .exec(),
+      this.questionModel.countDocuments().exec(),
+    ]);
+
+    return { pending, approved, rejected, total };
+  }
 }

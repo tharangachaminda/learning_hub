@@ -1,6 +1,7 @@
 import {
   Injectable,
   ConflictException,
+  ForbiddenException,
   InternalServerErrorException,
   UnauthorizedException,
   Logger,
@@ -12,6 +13,8 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from './schemas/user.schema';
 import { RegisterStudentDto } from './dto/register-student.dto';
 import { LoginStudentDto } from './dto/login-student.dto';
+import { LoginAdminDto } from './dto/login-admin.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
 
 /**
  * Service handling student authentication operations.
@@ -119,5 +122,89 @@ export class AuthService {
   async checkEmailExists(email: string): Promise<{ exists: boolean }> {
     const user = await this.userModel.findOne({ email }).exec();
     return { exists: !!user };
+  }
+
+  async loginAdmin(dto: LoginAdminDto) {
+    const user = await this.userModel.findOne({ email: dto.email }).exec();
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const passwordValid = await bcrypt.compare(dto.password, user.password);
+    if (!passwordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (!['admin', 'teacher'].includes(user.role)) {
+      throw new ForbiddenException('Insufficient role');
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+    const token = this.jwtService.sign(payload);
+
+    this.logger.log(`Admin/teacher logged in: ${user.email} (${user.role})`);
+
+    return {
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: `${user.profile.firstName} ${user.profile.lastName}`,
+        role: user.role,
+      },
+    };
+  }
+
+  async registerAdmin(dto: RegisterAdminDto) {
+    const existing = await this.userModel.findOne({ email: dto.email }).exec();
+    if (existing) {
+      throw new ConflictException('Email is already registered');
+    }
+
+    try {
+      const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+      const user = new this.userModel({
+        email: dto.email,
+        password: hashedPassword,
+        role: dto.role,
+        profile: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+        },
+      });
+
+      const saved = await user.save();
+      this.logger.log(
+        `Admin/teacher registered: ${saved.email} (${saved.role})`
+      );
+
+      const result = saved.toObject();
+      delete result.password;
+      return result;
+    } catch (error) {
+      this.logger.error('Admin registration failed', error);
+      throw new InternalServerErrorException('Registration failed');
+    }
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select('-password')
+      .exec();
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      profile: user.profile,
+    };
   }
 }
