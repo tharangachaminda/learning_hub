@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
@@ -58,6 +59,7 @@ describe('AuthService', () => {
     }));
     userModel.findOne = jest.fn();
     userModel.findById = jest.fn();
+    userModel.find = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -226,6 +228,148 @@ describe('AuthService', () => {
       await expect(service.getProfile('nonexistent')).rejects.toThrow(
         UnauthorizedException
       );
+    });
+  });
+
+  describe('getStaffUsers', () => {
+    it('should return list of admin/teacher users without passwords', async () => {
+      const staffUsers = [
+        {
+          _id: { toString: () => 'admin-id-123' },
+          email: 'admin@learninghub.local',
+          role: 'admin',
+          profile: { firstName: 'System', lastName: 'Admin' },
+          isActive: true,
+          createdAt: new Date('2024-01-01'),
+        },
+        {
+          _id: { toString: () => 'teacher-id-456' },
+          email: 'teacher@school.nz',
+          role: 'teacher',
+          profile: { firstName: 'Jane', lastName: 'Teacher' },
+          isActive: true,
+          createdAt: new Date('2024-02-01'),
+        },
+      ];
+
+      userModel.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue(staffUsers),
+          }),
+        }),
+      });
+
+      const result = await service.getStaffUsers();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].email).toBe('admin@learninghub.local');
+      expect(result[1].role).toBe('teacher');
+      expect(userModel.find).toHaveBeenCalledWith({
+        role: { $in: ['admin', 'teacher'] },
+      });
+    });
+  });
+
+  describe('getStaffStats', () => {
+    it('should return correct stats breakdown', async () => {
+      const staffUsers = [
+        { role: 'admin', isActive: true },
+        { role: 'teacher', isActive: true },
+        { role: 'teacher', isActive: false },
+      ];
+
+      userModel.find.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(staffUsers),
+        }),
+      });
+
+      const result = await service.getStaffStats();
+
+      expect(result).toEqual({
+        total: 3,
+        active: 2,
+        disabled: 1,
+        admins: 1,
+        teachers: 2,
+      });
+    });
+  });
+
+  describe('toggleUserStatus', () => {
+    it('should disable a staff user', async () => {
+      const mockUser = {
+        _id: { toString: () => 'teacher-id-456' },
+        email: 'teacher@school.nz',
+        role: 'teacher',
+        isActive: true,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      userModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      const result = await service.toggleUserStatus('teacher-id-456', false);
+
+      expect(result.isActive).toBe(false);
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should enable a disabled staff user', async () => {
+      const mockUser = {
+        _id: { toString: () => 'teacher-id-456' },
+        email: 'teacher@school.nz',
+        role: 'teacher',
+        isActive: false,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+
+      userModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      const result = await service.toggleUserStatus('teacher-id-456', true);
+
+      expect(result.isActive).toBe(true);
+    });
+
+    it('should throw NotFoundException for unknown user', async () => {
+      userModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.toggleUserStatus('unknown-id', false)
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException for student accounts', async () => {
+      userModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockStudentUser),
+      });
+
+      await expect(
+        service.toggleUserStatus('student-id-789', false)
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('loginAdmin - disabled account', () => {
+    it('should reject disabled admin with ForbiddenException', async () => {
+      const disabledAdmin = { ...mockAdminUser, isActive: false };
+      userModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(disabledAdmin),
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.loginAdmin({
+          email: 'admin@learninghub.local',
+          password: 'AdminPass1!',
+        })
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

@@ -53,6 +53,26 @@ export interface InviteResponse {
   };
 }
 
+export interface StaffUser {
+  id: string;
+  email: string;
+  role: string;
+  profile: {
+    firstName: string;
+    lastName: string;
+  };
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface StaffStats {
+  total: number;
+  active: number;
+  disabled: number;
+  admins: number;
+  teachers: number;
+}
+
 const AUTH_TOKEN_KEY = 'admin_auth_token';
 const AUTH_USER_KEY = 'admin_auth_user';
 
@@ -119,6 +139,31 @@ export class AuthService {
 
   isAdmin(): boolean {
     return this.getRole() === 'admin';
+  }
+
+  getStaffUsers(): Observable<StaffUser[]> {
+    return this.http.get<StaffUser[]>(`${this.authApiUrl}/admin/users`);
+  }
+
+  getStaffStats(): Observable<StaffStats> {
+    return this.http.get<StaffStats>(`${this.authApiUrl}/admin/users/stats`);
+  }
+
+  toggleUserStatus(
+    userId: string,
+    isActive: boolean
+  ): Observable<{
+    id: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+  }> {
+    return this.http.patch<{
+      id: string;
+      email: string;
+      role: string;
+      isActive: boolean;
+    }>(`${this.authApiUrl}/admin/users/${userId}/status`, { isActive });
   }
 
   private storeToken(token: string): void {

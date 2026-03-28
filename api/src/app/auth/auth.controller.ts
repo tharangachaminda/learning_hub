@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   UseGuards,
@@ -91,5 +92,44 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@Request() req: any) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  /**
+   * List all admin/teacher users.
+   *
+   * GET /api/auth/admin/users
+   */
+  @Get('admin/users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getStaffUsers() {
+    return this.authService.getStaffUsers();
+  }
+
+  /**
+   * Get staff user stats (total, active, disabled, by role).
+   *
+   * GET /api/auth/admin/users/stats
+   */
+  @Get('admin/users/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getStaffStats() {
+    return this.authService.getStaffStats();
+  }
+
+  /**
+   * Enable or disable a staff user account.
+   *
+   * PATCH /api/auth/admin/users/:id/status
+   */
+  @Patch('admin/users/:id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async toggleUserStatus(
+    @Param('id') id: string,
+    @Body() body: { isActive: boolean }
+  ) {
+    return this.authService.toggleUserStatus(id, body.isActive);
   }
 }

@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
@@ -139,6 +140,10 @@ export class AuthService {
       throw new ForbiddenException('Insufficient role');
     }
 
+    if (user.isActive === false) {
+      throw new ForbiddenException('Account is disabled');
+    }
+
     const payload = {
       sub: user._id.toString(),
       email: user.email,
@@ -176,6 +181,7 @@ export class AuthService {
           firstName: dto.firstName,
           lastName: dto.lastName,
         },
+        isActive: true,
       });
 
       const saved = await user.save();
@@ -205,6 +211,69 @@ export class AuthService {
       email: user.email,
       role: user.role,
       profile: user.profile,
+    };
+  }
+
+  /**
+   * List all admin/teacher users with basic info.
+   */
+  async getStaffUsers() {
+    const users = await this.userModel
+      .find({ role: { $in: ['admin', 'teacher'] } })
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return users.map((u) => ({
+      id: u._id.toString(),
+      email: u.email,
+      role: u.role,
+      profile: u.profile,
+      isActive: u.isActive !== false,
+      createdAt: (u as any).createdAt,
+    }));
+  }
+
+  /**
+   * Return summary stats for admin/teacher users.
+   */
+  async getStaffStats() {
+    const staff = await this.userModel
+      .find({ role: { $in: ['admin', 'teacher'] } })
+      .select('role isActive')
+      .exec();
+
+    const total = staff.length;
+    const active = staff.filter((u) => u.isActive !== false).length;
+    const disabled = total - active;
+    const admins = staff.filter((u) => u.role === 'admin').length;
+    const teachers = staff.filter((u) => u.role === 'teacher').length;
+
+    return { total, active, disabled, admins, teachers };
+  }
+
+  /**
+   * Enable or disable a staff user account.
+   */
+  async toggleUserStatus(userId: string, isActive: boolean) {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!['admin', 'teacher'].includes(user.role)) {
+      throw new ForbiddenException('Can only toggle staff accounts');
+    }
+
+    user.isActive = isActive;
+    await user.save();
+
+    this.logger.log(`User ${user.email} ${isActive ? 'enabled' : 'disabled'}`);
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
     };
   }
 }
