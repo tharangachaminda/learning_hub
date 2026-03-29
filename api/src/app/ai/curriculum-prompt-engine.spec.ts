@@ -409,6 +409,42 @@ describe('CurriculumPromptEngine', () => {
     });
   });
 
+  describe('Prohibited question patterns', () => {
+    /**
+     * Test: System prompt prohibits vague meta-questions (e.g. "What is the result of this MULTIPLICATION problem?")
+     * Why Essential: LLM sometimes generates self-referential questions that name the operation but contain no actual numbers
+     * What Breaks: Students see nonsensical questions with no math to solve
+     */
+    it('should prohibit vague meta-questions without concrete numbers', () => {
+      const configs = [
+        { grade: 3, topic: 'MULTIPLICATION', difficulty: 'easy' as const },
+        { grade: 5, topic: 'ADDITION', difficulty: 'medium' as const },
+        { grade: 7, topic: 'DIVISION', difficulty: 'hard' as const },
+        { grade: 4, topic: 'SUBTRACTION', difficulty: 'easy' as const },
+        {
+          grade: 6,
+          topic: 'FRACTION_OPERATIONS',
+          difficulty: 'medium' as const,
+        },
+      ];
+
+      configs.forEach(({ grade, topic, difficulty }) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade,
+          topic,
+          difficulty,
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toMatch(
+          /NEVER.*vague|NEVER.*self-referential/i
+        );
+        expect(prompt.systemPrompt).toMatch(/concrete numbers/i);
+        expect(prompt.systemPrompt).toMatch(/MUST contain/i);
+      });
+    });
+  });
+
   describe('Question format rules by difficulty and grade', () => {
     const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
 
@@ -496,6 +532,63 @@ describe('CurriculumPromptEngine', () => {
       expect(prompt.systemPrompt.length).toBeGreaterThan(0);
       expect(typeof prompt.curriculumContext).toBe('string');
       expect(prompt.curriculumContext.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Difficulty level guidance in prompts', () => {
+    it.each(['easy', 'medium', 'hard'] as const)(
+      'should include %s difficulty guidance in the system prompt',
+      (diff) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade: 4,
+          topic: 'MULTIPLICATION',
+          difficulty: diff,
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toContain(
+          `DIFFICULTY LEVEL: ${diff.toUpperCase()}`
+        );
+        expect(prompt.systemPrompt).toContain(
+          `${diff.toUpperCase()} difficulty`
+        );
+      }
+    );
+
+    it('should include EASY-specific guidance (small numbers, no word problems)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/small.*simple.*numbers/i);
+      expect(prompt.systemPrompt).toMatch(/single.step/i);
+    });
+
+    it('should include HARD-specific guidance (larger numbers, multi-step, word problems)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'MULTIPLICATION',
+        difficulty: 'hard',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/larger|complex/i);
+      expect(prompt.systemPrompt).toMatch(/multi.step/i);
+      expect(prompt.systemPrompt).toMatch(/word problem/i);
+    });
+
+    it('should include MEDIUM-specific guidance (moderate numbers)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 4,
+        topic: 'DIVISION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/moderate.*numbers/i);
     });
   });
 });

@@ -16,7 +16,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // Enable CORS for frontend communication
@@ -39,7 +39,7 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
   );
   Logger.log(
-    `📡 CORS enabled for Angular applications on ports 4200, 4201, 4202`
+    `📡 CORS enabled for Angular applications on ports 4200, 4201, 4202, 4203`
   );
 }
 

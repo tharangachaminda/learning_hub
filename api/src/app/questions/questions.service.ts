@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -7,6 +7,10 @@ import {
   QuestionStatus,
   QuestionFormat,
 } from './schemas/question.schema';
+import {
+  LessonLearned,
+  LessonLearnedDocument,
+} from './schemas/lesson-learned.schema';
 
 /**
  * Filter criteria for querying persisted questions.
@@ -65,7 +69,9 @@ export class QuestionsService {
    */
   constructor(
     @InjectModel(Question.name)
-    private readonly questionModel: Model<QuestionDocument>
+    private readonly questionModel: Model<QuestionDocument>,
+    @InjectModel(LessonLearned.name)
+    private readonly lessonLearnedModel: Model<LessonLearnedDocument>
   ) {}
 
   /**
@@ -214,6 +220,225 @@ export class QuestionsService {
         return (error as any).insertedDocs as QuestionDocument[];
       }
       throw error;
+    }
+  }
+
+  async getStats(): Promise<{
+    pending: number;
+    approved: number;
+    rejected: number;
+    total: number;
+  }> {
+    const [pending, approved, rejected, total] = await Promise.all([
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.PENDING })
+        .exec(),
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.APPROVED })
+        .exec(),
+      this.questionModel
+        .countDocuments({ status: QuestionStatus.REJECTED })
+        .exec(),
+      this.questionModel.countDocuments().exec(),
+    ]);
+
+    return { pending, approved, rejected, total };
+  }
+
+  /**
+   * Reviews a question — approve or reject with optional notes.
+   * When rejecting with reviewNotes, automatically creates a lesson learned entry.
+   */
+  async reviewQuestion(
+    id: string,
+    status: QuestionStatus,
+    reviewedBy: string,
+    reviewNotes?: string
+  ): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    question.status = status;
+    question.reviewedBy = reviewedBy;
+    question.reviewedAt = new Date();
+    if (reviewNotes) {
+      question.reviewNotes = reviewNotes;
+    }
+
+    await question.save();
+    this.logger.log(`Question ${id} ${status} by ${reviewedBy}`);
+
+    // Auto-create a lesson learned entry on rejection with notes
+    if (status === QuestionStatus.REJECTED && reviewNotes) {
+      try {
+        await this.lessonLearnedModel.create({
+          grade: question.grade,
+          topic: question.topic,
+          category: 'other',
+          mistakeDescription: reviewNotes,
+          correctionInstruction: reviewNotes,
+          incorrectExample: question.questionText,
+          questionId: id,
+          recordedBy: reviewedBy,
+          isActive: true,
+        });
+        this.logger.log(
+          `Auto-created lesson learned for rejected question ${id}`
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to auto-create lesson learned for question ${id}: ${err.message}`
+        );
+      }
+    }
+
+    return question;
+  }
+
+  /**
+   * Updates a question's content after refinement.
+   */
+  async applyRefinement(
+    id: string,
+    refinedData: {
+      questionText: string;
+      answer: number | string;
+      explanation?: string;
+      stepByStepSolution?: string[];
+      options?: string[];
+    },
+    instruction: string,
+    refinedBy: string
+  ): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    // Record refinement history
+    const entry = {
+      instruction,
+      previousQuestionText: question.questionText,
+      previousAnswer: question.answer,
+      refinedQuestionText: refinedData.questionText,
+      refinedAnswer: refinedData.answer,
+      refinedBy,
+      refinedAt: new Date(),
+    };
+
+    question.refinementHistory = question.refinementHistory || [];
+    question.refinementHistory.push(entry);
+
+    // Apply refinement
+    question.questionText = refinedData.questionText;
+    question.answer = refinedData.answer;
+    if (refinedData.explanation !== undefined) {
+      question.explanation = refinedData.explanation;
+    }
+    if (refinedData.stepByStepSolution !== undefined) {
+      question.stepByStepSolution = refinedData.stepByStepSolution;
+    }
+    if (refinedData.options !== undefined) {
+      question.options = refinedData.options;
+    }
+
+    // Reset to pending so it can be re-reviewed after refinement
+    question.status = QuestionStatus.PENDING;
+
+    await question.save();
+    this.logger.log(`Question ${id} refined by ${refinedBy}`);
+    return question;
+  }
+
+  // ── Lessons Learned ──────────────────────────────────────────
+
+  /**
+   * Creates a new lesson learned entry.
+   */
+  async createLessonLearned(
+    dto: Partial<LessonLearned>,
+    recordedBy: string
+  ): Promise<LessonLearnedDocument> {
+    return this.lessonLearnedModel.create({ ...dto, recordedBy });
+  }
+
+  /**
+   * Returns all lesson learned entries, optionally filtered.
+   */
+  async getLessonsLearned(filters?: {
+    grade?: number;
+    topic?: string;
+    category?: string;
+    isActive?: boolean;
+  }): Promise<LessonLearnedDocument[]> {
+    const query: Record<string, unknown> = {};
+    if (filters?.grade !== undefined) query.grade = filters.grade;
+    if (filters?.topic) query.topic = filters.topic;
+    if (filters?.category) query.category = filters.category;
+    if (filters?.isActive !== undefined) query.isActive = filters.isActive;
+
+    return this.lessonLearnedModel.find(query).sort({ createdAt: -1 }).exec();
+  }
+
+  /**
+   * Returns active lessons learned for a specific grade/topic,
+   * formatted for injection into LLM prompts.
+   */
+  async getLessonsForPrompt(grade: number, topic: string): Promise<string> {
+    const lessons = await this.lessonLearnedModel
+      .find({
+        isActive: true,
+        $or: [
+          { grade, topic },
+          { grade, topic: 'ALL' },
+          { grade: 0, topic },
+          { grade: 0, topic: 'ALL' },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .exec();
+
+    if (lessons.length === 0) return '';
+
+    const lines = lessons.map(
+      (l, i) =>
+        `${i + 1}. [${l.category}] ${l.mistakeDescription} → ${
+          l.correctionInstruction
+        }`
+    );
+
+    return (
+      'IMPORTANT — LESSONS FROM PAST REVIEWS (avoid these mistakes):\n' +
+      lines.join('\n')
+    );
+  }
+
+  /**
+   * Toggles a lesson learned active/inactive.
+   */
+  async toggleLessonLearned(
+    id: string,
+    isActive: boolean
+  ): Promise<LessonLearnedDocument> {
+    const lesson = await this.lessonLearnedModel.findById(id).exec();
+    if (!lesson) {
+      throw new NotFoundException(`Lesson ${id} not found`);
+    }
+    lesson.isActive = isActive;
+    await lesson.save();
+    return lesson;
+  }
+
+  /**
+   * Deletes a lesson learned entry.
+   */
+  async deleteLessonLearned(id: string): Promise<void> {
+    const result = await this.lessonLearnedModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException(`Lesson ${id} not found`);
     }
   }
 }

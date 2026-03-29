@@ -268,6 +268,30 @@ const sampleProgress = {
 
 db.progress.insertOne(sampleProgress);
 
+// Seed default admin user (password: Asdf@123456)
+// bcrypt hash generated with 10 rounds for "Asdf@123456"
+const adminUser = {
+  email: 'admin@learninghub.local',
+  password: '$2b$10$6xufvP3/aDa3PAiHCWO4beWdxL9EboKWfprTVvCCT4.C2Qp7JzLnC',
+  role: 'admin',
+  profile: {
+    firstName: 'System',
+    lastName: 'Admin',
+  },
+  learningGoals: [],
+  selectedAvatar: null,
+  createdAt: new Date(),
+  updatedAt: new Date()
+};
+
+// Only insert if admin user doesn't already exist
+if (db.users.countDocuments({ email: 'admin@learninghub.local' }) === 0) {
+  db.users.insertOne(adminUser);
+  print('Default admin user seeded: admin@learninghub.local');
+} else {
+  print('Admin user already exists, skipping seed.');
+}
+
 print('LearningHub database initialized successfully!');
 print('Created collections: users, questions, sessions, progress');
 print('Added sample data for demo purposes');

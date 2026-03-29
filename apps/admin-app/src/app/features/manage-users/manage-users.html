@@ -1,0 +1,227 @@
+<div class="manage-users-container">
+  <header class="page-header">
+    <div class="header-left">
+      <h1>LearningHub Admin</h1>
+      <span class="role-badge">admin</span>
+    </div>
+    <div class="header-right">
+      <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+      <button class="logout-btn" (click)="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="page-title-row">
+      <h2>Manage Users</h2>
+      <button class="invite-toggle-btn" (click)="toggleInviteForm()">
+        @if (showInviteForm) { Cancel } @else { + Invite User }
+      </button>
+    </div>
+
+    <!-- Stats Bar -->
+    @if (stats) {
+    <div class="stats-bar">
+      <div class="mini-stat">
+        <span class="mini-stat-value">{{ stats.total }}</span>
+        <span class="mini-stat-label">Total</span>
+      </div>
+      <div class="mini-stat active">
+        <span class="mini-stat-value">{{ stats.active }}</span>
+        <span class="mini-stat-label">Active</span>
+      </div>
+      <div class="mini-stat disabled">
+        <span class="mini-stat-value">{{ stats.disabled }}</span>
+        <span class="mini-stat-label">Disabled</span>
+      </div>
+      <div class="mini-stat admins">
+        <span class="mini-stat-value">{{ stats.admins }}</span>
+        <span class="mini-stat-label">Admins</span>
+      </div>
+      <div class="mini-stat teachers">
+        <span class="mini-stat-value">{{ stats.teachers }}</span>
+        <span class="mini-stat-label">Teachers</span>
+      </div>
+    </div>
+    }
+
+    <!-- Invite Form (collapsible) -->
+    @if (showInviteForm) {
+    <div class="invite-panel">
+      <h3>Invite New User</h3>
+
+      @if (inviteSuccess) {
+      <div class="alert alert-success">✅ {{ inviteSuccess }}</div>
+      } @if (inviteError) {
+      <div class="alert alert-error">⚠️ {{ inviteError }}</div>
+      }
+
+      <form [formGroup]="inviteForm" (ngSubmit)="submitInvite()" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              placeholder="Jane"
+              [class.invalid]="f['firstName'].touched && f['firstName'].invalid"
+            />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              placeholder="Doe"
+              [class.invalid]="f['lastName'].touched && f['lastName'].invalid"
+            />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="jane@school.nz"
+              [class.invalid]="f['email'].touched && f['email'].invalid"
+            />
+          </div>
+          <div class="form-group">
+            <label for="password">Temp Password</label>
+            <input
+              id="password"
+              type="text"
+              formControlName="password"
+              placeholder="TeacherPass1!"
+              [class.invalid]="f['password'].touched && f['password'].invalid"
+            />
+          </div>
+          <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" formControlName="role">
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group form-action">
+            <button type="submit" class="submit-btn" [disabled]="isInviting">
+              @if (isInviting) { Creating... } @else { Create Account }
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    }
+
+    <!-- Filters -->
+    <div class="filters-row">
+      <div class="filter-group">
+        <label for="roleFilter">Role:</label>
+        <select id="roleFilter" [(ngModel)]="roleFilter">
+          <option value="all">All Roles</option>
+          <option value="admin">Admins</option>
+          <option value="teacher">Teachers</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="statusFilter">Status:</label>
+        <select id="statusFilter" [(ngModel)]="statusFilter">
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="disabled">Disabled</option>
+        </select>
+      </div>
+      <span class="filter-count">{{ filteredUsers.length }} users</span>
+    </div>
+
+    <!-- Loading / Error -->
+    @if (isLoading) {
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading users...</p>
+    </div>
+    } @if (error) {
+    <div class="alert alert-error">
+      {{ error }}
+      <button class="retry-btn" (click)="loadData()">Retry</button>
+    </div>
+    }
+
+    <!-- Users Table -->
+    @if (!isLoading && !error) {
+    <div class="users-table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers; track user.id) {
+          <tr [class.disabled-row]="!user.isActive">
+            <td>
+              <div
+                class="avatar"
+                [class.admin-avatar]="user.role === 'admin'"
+                [class.inactive-avatar]="!user.isActive"
+              >
+                {{ getUserInitials(user) }}
+              </div>
+            </td>
+            <td class="name-cell">
+              <span class="user-name"
+                >{{ user.profile.firstName }} {{ user.profile.lastName }}</span
+              >
+            </td>
+            <td class="email-cell">{{ user.email }}</td>
+            <td>
+              <span
+                class="role-chip"
+                [class.role-admin]="user.role === 'admin'"
+                [class.role-teacher]="user.role === 'teacher'"
+              >
+                {{ user.role }}
+              </span>
+            </td>
+            <td>
+              <span
+                class="status-chip"
+                [class.status-active]="user.isActive"
+                [class.status-disabled]="!user.isActive"
+              >
+                {{ user.isActive ? 'Active' : 'Disabled' }}
+              </span>
+            </td>
+            <td class="date-cell">{{ user.createdAt | date:'mediumDate' }}</td>
+            <td>
+              <button
+                class="toggle-btn"
+                [class.enable-btn]="!user.isActive"
+                [class.disable-btn]="user.isActive"
+                (click)="toggleStatus(user)"
+                [title]="user.isActive ? 'Disable this user' : 'Enable this user'"
+              >
+                {{ user.isActive ? 'Disable' : 'Enable' }}
+              </button>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="7" class="empty-row">
+              No users match the current filters.
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </main>
+</div>

@@ -351,6 +351,8 @@ CURRICULUM CONTEXT:
 - Teaching Approaches: ${teachingMethods}
 - Target Students: Year ${request.grade} (Level ${level})
 
+DIFFICULTY LEVEL: ${request.difficulty.toUpperCase()}
+${this.buildDifficultyGuidance(request)}
 QUESTION REQUIREMENTS:
 1. Align with NZ Curriculum Level ${level} ${strand} strand
 2. Focus specifically on ${request.topic}
@@ -363,8 +365,15 @@ QUESTION REQUIREMENTS:
 7. Ensure questions are assessable using: ${
       objectives[0]?.assessmentCriteria.join(', ') || 'accuracy'
     }
+8. Match the ${request.difficulty.toUpperCase()} difficulty level described above
 
 ${this.buildQuestionFormatRules(request)}
+PROHIBITED QUESTION PATTERNS:
+- NEVER generate vague or self-referential questions like "What is the result of this MULTIPLICATION problem?" or "Solve this ADDITION problem" without an actual math expression.
+- Every question MUST contain concrete numbers and a specific mathematical operation (e.g. "$7 \\times 8 = ?$", "What is $12 + 5$?").
+- Do NOT ask ABOUT a math topic — ask an actual math problem with real numbers.
+- Do NOT generate questions that just name the operation without providing numbers to work with.
+
 MANDATORY LATEX FORMATTING:
 Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
 - Use $...$ for all inline math
@@ -378,7 +387,9 @@ RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
 {"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation with LaTeX>"}
 
-Generate a ${request.topic} question that meets these curriculum requirements.`;
+Generate a ${request.difficulty.toUpperCase()} difficulty ${
+      request.topic
+    } question that meets these curriculum requirements.`;
   }
 
   /**
@@ -406,5 +417,37 @@ Keep the format direct: a math expression followed by "= ?".
     }
 
     return '';
+  }
+
+  /**
+   * Builds difficulty-specific guidance for the LLM to scale question complexity.
+   *
+   * - EASY: smaller numbers, single-step operations, straightforward format
+   * - MEDIUM: moderate numbers, may require intermediate steps
+   * - HARD: larger numbers, multi-step reasoning, word problems, real-world context
+   *
+   * @param request - The curriculum prompt request
+   * @returns Formatted difficulty guidance block for the system prompt
+   */
+  private buildDifficultyGuidance(request: CurriculumPromptRequest): string {
+    const grade = request.grade;
+
+    switch (request.difficulty) {
+      case 'easy':
+        if (grade <= 4) {
+          return `- EASY means: use small, simple numbers appropriate for Grade ${grade}; single-step operation; no word problems or multi-part reasoning; straightforward computation.
+`;
+        }
+        return `- EASY means: use straightforward numbers appropriate for Grade ${grade}; single-step operation; minimal complexity; brief context is okay but keep the math simple.
+`;
+      case 'medium':
+        return `- MEDIUM means: use moderate numbers appropriate for Grade ${grade}; may involve a brief real-world context; single to two-step operations; some carrying/borrowing is acceptable.
+`;
+      case 'hard':
+        return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; word problems with real-world context required; may combine operations or require careful thinking.
+`;
+      default:
+        return '';
+    }
   }
 }

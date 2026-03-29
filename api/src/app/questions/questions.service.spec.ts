@@ -8,6 +8,7 @@ import {
   QuestionStatus,
   QuestionFormat,
 } from './schemas/question.schema';
+import { LessonLearned } from './schemas/lesson-learned.schema';
 
 /**
  * Helper factory to build a valid question DTO for tests.
@@ -82,7 +83,20 @@ describe('QuestionsService', () => {
             insertMany: jest.fn(),
             find: jest.fn(),
             findById: jest.fn(),
+            findByIdAndUpdate: jest.fn(),
             countDocuments: jest.fn(),
+            exec: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(LessonLearned.name),
+          useValue: {
+            new: jest.fn(),
+            constructor: jest.fn(),
+            create: jest.fn(),
+            find: jest.fn(),
+            findByIdAndUpdate: jest.fn(),
+            findByIdAndDelete: jest.fn(),
             exec: jest.fn(),
           },
         },

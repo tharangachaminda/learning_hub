@@ -3,16 +3,39 @@ import {
   Get,
   Param,
   Post,
+  Patch,
+  Delete,
   Body,
   Query,
   Logger,
+  UseGuards,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
+import { OllamaService } from '../ai/ollama.service';
 import { DifficultyLevel } from '../math-questions/entities/math-question.entity';
-import { QuestionDocument, QuestionFormat } from './schemas/question.schema';
+import {
+  QuestionDocument,
+  QuestionFormat,
+  QuestionStatus,
+} from './schemas/question.schema';
 import { FindQuestionsDto } from './dto/find-questions.dto';
 import { BatchGenerateQuestionsDto } from './dto/batch-generate-questions.dto';
+import { ReviewQuestionDto } from './dto/review-question.dto';
+import { RefineQuestionDto } from './dto/refine-question.dto';
+import {
+  CreateLessonLearnedDto,
+  ToggleLessonLearnedDto,
+} from './dto/lesson-learned.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import {
+  GRADE_TOPICS,
+  QUESTION_TYPE_DISPLAY_NAMES,
+} from '../ai/curriculum.types';
 
 /**
  * REST API controller for persisted question management.
@@ -40,7 +63,8 @@ export class QuestionsController {
    */
   constructor(
     private readonly questionsService: QuestionsService,
-    private readonly mathGenerator: MathQuestionGenerator
+    private readonly mathGenerator: MathQuestionGenerator,
+    private readonly ollamaService: OllamaService
   ) {}
 
   /**
@@ -61,15 +85,52 @@ export class QuestionsController {
   }
 
   /**
+   * Returns question counts grouped by status for the admin dashboard.
+   */
+  @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async getStats() {
+    return this.questionsService.getStats();
+  }
+
+  /**
+   * Returns grade/topic structure for the frontend UI.
+   */
+  @Get('curriculum')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  getCurriculum() {
+    const grades = Object.entries(GRADE_TOPICS).map(([grade, subjects]) => ({
+      grade: Number(grade),
+      topics: (subjects['mathematics'] || []).map((topic: string) => ({
+        key: topic,
+        label: QUESTION_TYPE_DISPLAY_NAMES[topic] || topic,
+      })),
+    }));
+    return { grades };
+  }
+
+  /**
+   * Returns all lesson learned entries, optionally filtered.
+   */
+  @Get('lessons-learned')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async getLessonsLearned(
+    @Query('grade') grade?: string,
+    @Query('topic') topic?: string,
+    @Query('category') category?: string
+  ) {
+    const filters: Record<string, unknown> = {};
+    if (grade) filters['grade'] = Number(grade);
+    if (topic) filters['topic'] = topic;
+    if (category) filters['category'] = category;
+    return this.questionsService.getLessonsLearned(filters);
+  }
+
+  /**
    * Returns a single stored question by its MongoDB ObjectId.
-   *
-   * @param id - The question document's `_id`
-   * @returns The matching QuestionDocument, or `null` if not found
-   *
-   * @example
-   * ```
-   * GET /api/questions/507f1f77bcf86cd799439011
-   * ```
    */
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<QuestionDocument | null> {
@@ -77,25 +138,12 @@ export class QuestionsController {
   }
 
   /**
-   * Generates questions via AI and persists them to MongoDB (AC-006).
-   *
-   * Converts the grade number to a `DifficultyLevel` enum, triggers
-   * the AI generator, maps the results to the Question schema format,
-   * and batch-inserts them with `pending` status.
-   *
-   * @param dto - Batch generation parameters (grade, topic, count, format)
-   * @returns Object with `stored` count and array of saved `questions`
-   *
-   * @throws {Error} When AI generation or persistence fails
-   *
-   * @example
-   * ```
-   * POST /api/questions/batch-generate
-   * Body: { "grade": 4, "topic": "MULTIPLICATION", "count": 10 }
-   * Response: { "stored": 10, "questions": [...] }
-   * ```
+   * Generates questions via AI and persists them to MongoDB.
+   * Protected: requires admin or teacher role.
    */
   @Post('batch-generate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
   async batchGenerate(
     @Body() dto: BatchGenerateQuestionsDto
   ): Promise<{ stored: number; questions: QuestionDocument[] }> {
@@ -108,11 +156,14 @@ export class QuestionsController {
 
     const startTime = Date.now();
 
-    // Generate questions via AI pipeline
+    // Generate questions via AI pipeline (skip auto-persist; controller
+    // persists with richer data including explanation, category, format)
     const generated = await this.mathGenerator.generateQuestions(
       difficulty,
       count,
-      dto.topic
+      dto.topic,
+      false,
+      dto.difficulty ?? 'medium'
     );
 
     // Map generated MathQuestion entities to Question schema format
@@ -128,7 +179,7 @@ export class QuestionsController {
       metadata: {
         generatedBy: 'llama3.1:latest',
         generationTime: Date.now() - startTime,
-        difficulty: difficulty,
+        difficulty: dto.difficulty ?? 'medium',
         country: 'NZ',
       },
     }));
@@ -145,13 +196,256 @@ export class QuestionsController {
     return { stored: stored.length, questions: stored };
   }
 
+  // ── Review Workflow ────────────────────────────────────────────
+
   /**
-   * Converts a grade number (3–8) to a DifficultyLevel enum value.
-   *
-   * @param grade - Grade number
-   * @returns Corresponding DifficultyLevel enum value
-   * @private
+   * Approves or rejects a question.
    */
+  @Patch(':id/review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async reviewQuestion(
+    @Param('id') id: string,
+    @Body() dto: ReviewQuestionDto,
+    @Request() req: any
+  ) {
+    const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.questionsService.reviewQuestion(
+      id,
+      dto.status,
+      reviewedBy,
+      dto.reviewNotes
+    );
+  }
+
+  /**
+   * Bulk approve/reject multiple questions.
+   */
+  @Post('bulk-review')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async bulkReview(
+    @Body()
+    body: {
+      questionIds: string[];
+      status: QuestionStatus;
+      reviewNotes?: string;
+    },
+    @Request() req: any
+  ) {
+    const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
+    const results = await Promise.allSettled(
+      body.questionIds.map((id) =>
+        this.questionsService.reviewQuestion(
+          id,
+          body.status,
+          reviewedBy,
+          body.reviewNotes
+        )
+      )
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    return { succeeded, failed, total: body.questionIds.length };
+  }
+
+  // ── LLM Refinement ────────────────────────────────────────────
+
+  /**
+   * Sends the question + correction instruction to the LLM and returns
+   * a refined version. Does NOT auto-apply — the frontend previews first.
+   */
+  @Post(':id/refine')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async refineQuestion(
+    @Param('id') id: string,
+    @Body() dto: RefineQuestionDto
+  ) {
+    const question = await this.questionsService.findOne(id);
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    // Fetch lessons learned for this grade/topic to enhance prompt
+    const lessonsPrompt = await this.questionsService.getLessonsForPrompt(
+      question.grade,
+      question.topic
+    );
+
+    const prompt = this.buildRefinementPrompt(
+      question,
+      dto.instruction,
+      lessonsPrompt
+    );
+
+    try {
+      const response = await this.ollamaService.generateRaw(prompt);
+      const refined = this.parseRefinementResponse(response);
+      return {
+        original: {
+          questionText: question.questionText,
+          answer: question.answer,
+          explanation: question.explanation,
+          stepByStepSolution: question.stepByStepSolution,
+          options: question.options,
+        },
+        refined,
+        instruction: dto.instruction,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Refinement failed for question ${id}: ${error.message}`
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Applies a previously previewed refinement to the question.
+   */
+  @Patch(':id/apply-refinement')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async applyRefinement(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      questionText: string;
+      answer: number | string;
+      explanation?: string;
+      stepByStepSolution?: string[];
+      options?: string[];
+      instruction: string;
+    },
+    @Request() req: any
+  ) {
+    const refinedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.questionsService.applyRefinement(
+      id,
+      {
+        questionText: body.questionText,
+        answer: body.answer,
+        explanation: body.explanation,
+        stepByStepSolution: body.stepByStepSolution,
+        options: body.options,
+      },
+      body.instruction,
+      refinedBy
+    );
+  }
+
+  // ── Lessons Learned (mutations) ─────────────────────────────
+
+  @Post('lessons-learned')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async createLessonLearned(
+    @Body() dto: CreateLessonLearnedDto,
+    @Request() req: any
+  ) {
+    const recordedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.questionsService.createLessonLearned(dto, recordedBy);
+  }
+
+  @Patch('lessons-learned/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async toggleLessonLearned(
+    @Param('id') id: string,
+    @Body() dto: ToggleLessonLearnedDto
+  ) {
+    return this.questionsService.toggleLessonLearned(id, dto.isActive);
+  }
+
+  @Delete('lessons-learned/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async deleteLessonLearned(@Param('id') id: string) {
+    await this.questionsService.deleteLessonLearned(id);
+    return { deleted: true };
+  }
+
+  // ── Private Helpers ────────────────────────────────────────────
+
+  private buildRefinementPrompt(
+    question: QuestionDocument,
+    instruction: string,
+    lessonsPrompt: string
+  ): string {
+    let prompt = `You are a mathematics education expert reviewing generated questions for the NZ Curriculum.
+
+CURRENT QUESTION:
+- Question: ${question.questionText}
+- Answer: ${question.answer}
+- Explanation: ${question.explanation || 'None'}
+- Grade: ${question.grade}
+- Topic: ${question.topic}
+- Format: ${question.format}`;
+
+    if (question.options?.length) {
+      prompt += `\n- Options: ${question.options.join(', ')}`;
+    }
+    if (question.stepByStepSolution?.length) {
+      prompt += `\n- Step-by-step: ${question.stepByStepSolution.join(' | ')}`;
+    }
+
+    prompt += `
+
+REVIEWER'S CORRECTION INSTRUCTION:
+${instruction}`;
+
+    if (lessonsPrompt) {
+      prompt += `\n\n${lessonsPrompt}`;
+    }
+
+    prompt += `
+
+TASK: Refine the question according to the reviewer's instruction. Maintain curriculum alignment for Grade ${question.grade} NZ Mathematics.
+
+Respond in VALID JSON format only:
+{
+  "questionText": "refined question text (use $...$ for LaTeX)",
+  "answer": <refined answer (number or string)>,
+  "explanation": "refined explanation",
+  "stepByStepSolution": ["step 1", "step 2", ...],
+  "options": ["option A", "option B", ...] or []
+}`;
+
+    return prompt;
+  }
+
+  private parseRefinementResponse(response: string): {
+    questionText: string;
+    answer: number | string;
+    explanation: string;
+    stepByStepSolution: string[];
+    options: string[];
+  } {
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in LLM response');
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        questionText: parsed.questionText || '',
+        answer: parsed.answer ?? '',
+        explanation: parsed.explanation || '',
+        stepByStepSolution: parsed.stepByStepSolution || [],
+        options: parsed.options || [],
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to parse refinement response: ${error.message}`
+      );
+      throw new Error(
+        'Failed to parse LLM refinement response. Please try again.'
+      );
+    }
+  }
+
   private gradeToDifficulty(grade: number): DifficultyLevel {
     const mapping: Record<number, DifficultyLevel> = {
       3: DifficultyLevel.GRADE_3,
@@ -164,13 +458,6 @@ export class QuestionsController {
     return mapping[grade] ?? DifficultyLevel.GRADE_3;
   }
 
-  /**
-   * Maps a topic string to its curriculum category.
-   *
-   * @param topic - Topic key (e.g. 'ADDITION', 'ALGEBRAIC_EQUATIONS')
-   * @returns Category string
-   * @private
-   */
   private topicToCategory(topic: string): string {
     const categoryMap: Record<string, string> = {
       ADDITION: 'number-operations',

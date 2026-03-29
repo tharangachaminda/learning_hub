@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { MathQuestionsController } from './math-questions.controller';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
 import { AiModule } from '../ai/ai.module';
-import { Question, QuestionSchema } from '../questions/schemas/question.schema';
-import { QuestionsService } from '../questions/questions.service';
+import { QuestionsModule } from '../questions/questions.module';
 
 /**
  * NestJS module for mathematical question generation functionality
@@ -22,14 +20,9 @@ import { QuestionsService } from '../questions/questions.service';
  * ```
  */
 @Module({
-  imports: [
-    AiModule,
-    MongooseModule.forFeature([
-      { name: Question.name, schema: QuestionSchema },
-    ]),
-  ],
+  imports: [AiModule, QuestionsModule],
   controllers: [MathQuestionsController],
-  providers: [MathQuestionGenerator, QuestionsService],
+  providers: [MathQuestionGenerator],
   exports: [MathQuestionGenerator],
 })
 export class MathQuestionsModule {}

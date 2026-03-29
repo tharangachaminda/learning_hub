@@ -1,0 +1,144 @@
+<div class="generate-container">
+  <header class="page-header">
+    <div class="header-left">
+      <h1>LearningHub Admin</h1>
+      <span class="role-badge">{{ userRole }}</span>
+    </div>
+    <div class="header-right">
+      <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+      <a routerLink="/review" class="nav-link">Review Queue</a>
+      <button class="logout-btn" (click)="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="page-content">
+    <div class="page-title-row">
+      <h2>Generate Questions</h2>
+    </div>
+
+    @if (isLoadingCurriculum) {
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading curriculum data...</p>
+    </div>
+    } @else {
+
+    <!-- Generation Form -->
+    <div class="gen-form-card">
+      <h3>Configure Generation</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="gradeSelect">Grade</label>
+          <select
+            id="gradeSelect"
+            [(ngModel)]="selectedGrade"
+            (ngModelChange)="onGradeChange()"
+          >
+            <option [ngValue]="null">Select a grade...</option>
+            @for (g of grades; track g.grade) {
+            <option [ngValue]="g.grade">Grade {{ g.grade }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="topicSelect">Topic</label>
+          <select
+            id="topicSelect"
+            [(ngModel)]="selectedTopic"
+            [disabled]="!selectedGrade"
+          >
+            <option value="">Select a topic...</option>
+            @for (t of availableTopics; track t.key) {
+            <option [value]="t.key">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="difficultySelect">Difficulty</label>
+          <select id="difficultySelect" [(ngModel)]="selectedDifficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div class="form-group count-group">
+          <label for="countInput">Count</label>
+          <input
+            id="countInput"
+            type="number"
+            [(ngModel)]="count"
+            min="1"
+            max="50"
+          />
+        </div>
+
+        <div class="form-group form-action">
+          <button
+            class="generate-btn"
+            (click)="generate()"
+            [disabled]="!selectedGrade || !selectedTopic || isGenerating"
+          >
+            @if (isGenerating) {
+            <span class="btn-spinner"></span> Generating... } @else { Generate
+            Questions }
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    @if (error) {
+    <div class="alert alert-error">
+      <span>{{ error }}</span>
+    </div>
+    }
+
+    <!-- Results -->
+    @if (result) {
+    <div class="results-section">
+      <div class="results-header">
+        <h3>
+          Generated {{ result.stored }} question{{ result.stored !== 1 ? 's' :
+          '' }}
+        </h3>
+        <button class="review-btn" (click)="navigateToReview()">
+          Go to Review Queue →
+        </button>
+      </div>
+
+      <div class="questions-list">
+        @for (q of result.questions; track q._id; let i = $index) {
+        <div class="question-card">
+          <div class="q-number">Q{{ i + 1 }}</div>
+          <div class="q-body">
+            <div class="q-text">
+              <app-katex-render [content]="q.questionText" />
+            </div>
+            <div class="q-meta">
+              <span class="q-answer"
+                >Answer:
+                <strong><app-katex-render [content]="'' + q.answer" /></strong
+              ></span>
+              <span
+                class="q-badge q-difficulty"
+                [attr.data-level]="q.metadata?.difficulty || 'medium'"
+                >{{ q.metadata?.difficulty || 'medium' }}</span
+              >
+              <span class="q-badge q-pending">Pending</span>
+            </div>
+            @if (q.explanation) {
+            <div class="q-explanation">
+              <app-katex-render [content]="q.explanation" />
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    } }
+  </div>
+</div>

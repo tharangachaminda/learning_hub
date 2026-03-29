@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
+import { OllamaService } from '../ai/ollama.service';
 import { QuestionStatus, QuestionFormat } from './schemas/question.schema';
 
 const mockQuestion = {
@@ -63,6 +64,7 @@ describe('QuestionsController', () => {
       providers: [
         { provide: QuestionsService, useValue: mockQuestionsService },
         { provide: MathQuestionGenerator, useValue: mockMathGenerator },
+        { provide: OllamaService, useValue: { generateRaw: jest.fn() } },
       ],
     }).compile();
 
@@ -212,7 +214,9 @@ describe('QuestionsController', () => {
       expect(mathGenerator.generateQuestions).toHaveBeenCalledWith(
         expect.anything(),
         10,
-        'ADDITION'
+        'ADDITION',
+        false,
+        'medium'
       );
     });
 
@@ -256,6 +260,40 @@ describe('QuestionsController', () => {
       // Verify createMany was called with all questions
       const createManyArgs = questionsService.createMany.mock.calls[0][0];
       expect(createManyArgs).toHaveLength(2);
+    });
+
+    it('should store difficulty as easy/medium/hard, not grade level', async () => {
+      const dto = {
+        grade: 4,
+        topic: 'MULTIPLICATION',
+        count: 1,
+        difficulty: 'hard' as const,
+      };
+
+      mathGenerator.generateQuestions.mockResolvedValue([
+        {
+          question: 'What is $12 \\times 8$?',
+          answer: 96,
+          operation: 'MULTIPLICATION',
+          difficulty: 'grade_4',
+          stepByStepSolution: ['12 × 8 = 96'],
+        },
+      ] as any);
+      questionsService.createMany.mockResolvedValue([mockQuestion] as any);
+
+      await controller.batchGenerate(dto);
+
+      const createManyArgs = questionsService.createMany.mock.calls[0][0];
+      expect(createManyArgs[0].metadata.difficulty).toBe('hard');
+    });
+
+    it('should default difficulty to medium when not specified', async () => {
+      const dto = { grade: 3, topic: 'ADDITION', count: 1 };
+
+      await controller.batchGenerate(dto);
+
+      const createManyArgs = questionsService.createMany.mock.calls[0][0];
+      expect(createManyArgs[0].metadata.difficulty).toBe('medium');
     });
   });
 });

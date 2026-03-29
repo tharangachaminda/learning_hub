@@ -66,6 +66,40 @@ export class QuestionMetadata {
   validationScore?: number;
 }
 
+/**
+ * Records a single refinement step in the question's review lifecycle.
+ */
+@Schema({ _id: false })
+export class RefinementEntry {
+  /** The instruction sent to the LLM for refinement */
+  @Prop({ type: String, required: true })
+  instruction: string;
+
+  /** The previous version of the question text before refinement */
+  @Prop({ type: String })
+  previousQuestionText: string;
+
+  /** The previous answer before refinement */
+  @Prop({ type: Object })
+  previousAnswer: number | string;
+
+  /** The refined question text returned by the LLM */
+  @Prop({ type: String })
+  refinedQuestionText: string;
+
+  /** The refined answer returned by the LLM */
+  @Prop({ type: Object })
+  refinedAnswer: number | string;
+
+  /** Who requested the refinement */
+  @Prop({ type: String })
+  refinedBy: string;
+
+  /** When the refinement occurred */
+  @Prop({ type: Date, default: Date.now })
+  refinedAt: Date;
+}
+
 /** Mongoose hydrated document type for the Question schema */
 export type QuestionDocument = HydratedDocument<Question>;
 
@@ -174,6 +208,14 @@ export class Question {
   /** Timestamp when the question was reviewed */
   @Prop({ type: Date })
   reviewedAt: Date;
+
+  /** Optional notes from the reviewer explaining the decision */
+  @Prop({ type: String })
+  reviewNotes: string;
+
+  /** History of LLM refinement steps applied to this question */
+  @Prop({ type: [RefinementEntry], default: [] })
+  refinementHistory: RefinementEntry[];
 }
 
 export const QuestionSchema = SchemaFactory.createForClass(Question);

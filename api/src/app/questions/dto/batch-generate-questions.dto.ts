@@ -44,4 +44,9 @@ export class BatchGenerateQuestionsDto {
   @IsOptional()
   @IsEnum(QuestionFormat)
   format?: QuestionFormat;
+
+  /** Within-grade difficulty: easy, medium, or hard (default: medium) */
+  @IsOptional()
+  @IsString()
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
