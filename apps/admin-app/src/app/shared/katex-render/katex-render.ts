@@ -60,8 +60,11 @@ export class KatexRenderComponent {
    * Handles block (`$$...$$`) and inline (`$...$`) expressions.
    */
   private renderLatex(text: string): string {
+    // Pre-process to fix common LLM issues (unpaired $, bare LaTeX commands)
+    const preprocessed = this.preprocessLatex(text);
+
     // First, process block LaTeX ($$...$$)
-    let result = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
+    let result = preprocessed.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
       return this.renderExpression(latex.trim(), true);
     });
 
@@ -74,6 +77,67 @@ export class KatexRenderComponent {
     );
 
     return result;
+  }
+
+  /**
+   * Fixes common LaTeX formatting issues from LLM output:
+   * - Unpaired `$` delimiters (e.g., `$8 \div 4 = ?` missing closing `$`)
+   * - Bare LaTeX commands without any `$` delimiters
+   */
+  private preprocessLatex(text: string): string {
+    if (!text) return text;
+
+    // Handle block delimiters first — replace $$ pairs with placeholders
+    const blockPlaceholders: string[] = [];
+    let processed = text.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
+      blockPlaceholders.push(match);
+      return `__BLOCK_${blockPlaceholders.length - 1}__`;
+    });
+
+    // Count remaining single $ (inline delimiters)
+    const singleDollars: number[] = [];
+    for (let i = 0; i < processed.length; i++) {
+      if (
+        processed[i] === '$' &&
+        !processed.substring(i).startsWith('__BLOCK_')
+      ) {
+        singleDollars.push(i);
+      }
+    }
+
+    if (singleDollars.length % 2 !== 0) {
+      // Odd number of $ — find the unpaired one and close it
+      // Most common LLM issue: opening $ without closing $
+      const lastDollar = singleDollars[singleDollars.length - 1];
+      const afterDollar = processed.substring(lastDollar + 1).trimEnd();
+      if (afterDollar.length > 0) {
+        // Content after the last $ — add closing $ at the end
+        processed = processed.trimEnd() + '$';
+      } else {
+        // $ at the very end with no content — likely a stray $, remove it
+        processed =
+          processed.substring(0, lastDollar) +
+          processed.substring(lastDollar + 1);
+      }
+    }
+
+    // If no $ delimiters at all but contains LaTeX commands, wrap the expression
+    const latexCommandRe =
+      /\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over|text)\b/;
+    if (!processed.includes('$') && latexCommandRe.test(processed)) {
+      // Try to isolate the math expression (numbers and operators)
+      processed = processed.replace(
+        /((?:\d+\s*)?\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over|text)\b[\s\S]*)/,
+        (match) => `$${match.trim()}$`
+      );
+    }
+
+    // Restore block placeholders
+    for (let i = 0; i < blockPlaceholders.length; i++) {
+      processed = processed.replace(`__BLOCK_${i}__`, blockPlaceholders[i]);
+    }
+
+    return processed;
   }
 
   /**

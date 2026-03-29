@@ -179,7 +179,7 @@ export class QuestionsController {
       metadata: {
         generatedBy: 'llama3.1:latest',
         generationTime: Date.now() - startTime,
-        difficulty: difficulty,
+        difficulty: dto.difficulty ?? 'medium',
         country: 'NZ',
       },
     }));

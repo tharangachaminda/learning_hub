@@ -574,4 +574,92 @@ describe('OllamaService', () => {
       expect(typeof result.metadata.latexValid).toBe('boolean');
     });
   });
+
+  describe('LaTeX delimiter normalization', () => {
+    /**
+     * Test: LLM response with missing closing $ gets fixed
+     * Why Essential: LLMs frequently omit closing $ delimiters
+     * What Breaks: Raw LaTeX text shown to users instead of rendered math
+     */
+    it('should fix question text with missing closing $ from LLM response', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: '$8 \\div 4 = ?',
+            answer: 2,
+            explanation: 'Divide 8 by 4.',
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'division',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      // Should have paired $ delimiters
+      const dollars = result.question.match(/\$/g) || [];
+      expect(dollars.length % 2).toBe(0);
+      expect(result.question).toMatch(/\$.*\\div.*\$$/);
+    });
+
+    /**
+     * Test: Properly paired $ delimiters are preserved as-is
+     * Why Essential: Normalization must not break already-correct LaTeX
+     * What Breaks: Double-wrapping or mangling valid LaTeX expressions
+     */
+    it('should preserve already-paired $ delimiters', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: '$15 \\div 3 = ?$',
+            answer: 5,
+            explanation: '$15 \\div 3 = 5$',
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'division',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      // $ count should be even (properly paired)
+      const dollars = result.question.match(/\$/g) || [];
+      expect(dollars.length % 2).toBe(0);
+    });
+
+    /**
+     * Test: Bare LaTeX commands without $ get wrapped
+     * Why Essential: Some LLM responses contain LaTeX commands but no delimiters
+     * What Breaks: \div, \times etc. shown as literal text
+     */
+    it('should wrap bare LaTeX commands in $ delimiters', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: '8 \\div 4 = ?',
+            answer: 2,
+            explanation: '8 divided by 4 is 2.',
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'division',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      // The LaTeX command should now be wrapped in $ delimiters
+      expect(result.question).toContain('$');
+      const dollars = result.question.match(/\$/g) || [];
+      expect(dollars.length % 2).toBe(0);
+    });
+  });
 });

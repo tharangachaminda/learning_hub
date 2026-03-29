@@ -534,4 +534,61 @@ describe('CurriculumPromptEngine', () => {
       expect(prompt.curriculumContext.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Difficulty level guidance in prompts', () => {
+    it.each(['easy', 'medium', 'hard'] as const)(
+      'should include %s difficulty guidance in the system prompt',
+      (diff) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade: 4,
+          topic: 'MULTIPLICATION',
+          difficulty: diff,
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toContain(
+          `DIFFICULTY LEVEL: ${diff.toUpperCase()}`
+        );
+        expect(prompt.systemPrompt).toContain(
+          `${diff.toUpperCase()} difficulty`
+        );
+      }
+    );
+
+    it('should include EASY-specific guidance (small numbers, no word problems)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/small.*simple.*numbers/i);
+      expect(prompt.systemPrompt).toMatch(/single.step/i);
+    });
+
+    it('should include HARD-specific guidance (larger numbers, multi-step, word problems)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'MULTIPLICATION',
+        difficulty: 'hard',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/larger|complex/i);
+      expect(prompt.systemPrompt).toMatch(/multi.step/i);
+      expect(prompt.systemPrompt).toMatch(/word problem/i);
+    });
+
+    it('should include MEDIUM-specific guidance (moderate numbers)', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 4,
+        topic: 'DIVISION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toMatch(/moderate.*numbers/i);
+    });
+  });
 });

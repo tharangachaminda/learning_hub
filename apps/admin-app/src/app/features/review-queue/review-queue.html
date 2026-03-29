@@ -111,6 +111,7 @@
             />
           </th>
           <th class="col-question">Question</th>
+          <th class="col-answer">Answer</th>
           <th class="col-grade">Grade</th>
           <th class="col-topic">Topic</th>
           <th class="col-difficulty">Difficulty</th>
@@ -138,6 +139,9 @@
               <span class="meta-tag">{{ q.format }}</span>
               <span class="meta-tag" *ngIf="q.category">{{ q.category }}</span>
             </div>
+          </td>
+          <td class="col-answer">
+            <strong><app-katex-render [content]="'' + q.answer" /></strong>
           </td>
           <td class="col-grade">{{ q.grade }}</td>
           <td class="col-topic">{{ q.topic }}</td>
