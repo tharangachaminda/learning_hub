@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { getCurriculumContext } from './curriculum.types';
 import {
   QuestionGenerationRequestSchema,
   QuestionGenerationRequest,
@@ -13,7 +12,6 @@ import {
   HealthCheck,
   getCountryContext,
   parseLLMResponse,
-  Country,
   ExplanationRequestSchema,
   ExplanationRequest,
   GeneratedExplanationSchema,
@@ -223,11 +221,9 @@ export class OllamaService {
 
       return GeneratedQuestionSchema.parse(result);
     } catch (error) {
-      // Fallback to deterministic generation with validation
-      return this.generateValidatedFallback(
-        requestData,
-        Date.now() - startTime
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`LLM question generation failed: ${message}`);
+      throw new Error(`LLM question generation failed: ${message}`);
     }
   }
 
@@ -309,36 +305,28 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
 
     // Fallback to regex parsing with validation
-    try {
-      const questionMatch = aiResponse.match(
-        /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/
+    const questionMatch = aiResponse.match(/QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/);
+    const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
+    const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+?)$/);
+
+    if (!questionMatch || !answerMatch) {
+      throw new Error(
+        'Failed to parse AI response: no valid question/answer found'
       );
-      const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
-      const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+?)$/);
-
-      let question =
-        questionMatch?.[1]?.trim() ||
-        `What is the result of this ${request.topic} problem?`;
-      const answer = parseInt(answerMatch?.[1] || '0', 10);
-      const explanation =
-        explanationMatch?.[1]?.trim() || 'Solve step by step.';
-
-      // Ensure question contains proper math format
-      question = this.formatQuestionForMath(question, request.topic);
-
-      return {
-        question: this.normalizeLatexDelimiters(question),
-        answer,
-        explanation: this.normalizeLatexDelimiters(explanation),
-      };
-    } catch (error) {
-      // Final fallback with basic structure
-      return {
-        question: `Solve this ${request.topic} problem: ? = ?`,
-        answer: 10,
-        explanation: 'Work through this step by step.',
-      };
     }
+
+    let question = questionMatch[1].trim();
+    const answer = parseInt(answerMatch[1], 10);
+    const explanation = explanationMatch?.[1]?.trim() || 'Solve step by step.';
+
+    // Ensure question contains proper math format
+    question = this.formatQuestionForMath(question, request.topic);
+
+    return {
+      question: this.normalizeLatexDelimiters(question),
+      answer,
+      explanation: this.normalizeLatexDelimiters(explanation),
+    };
   }
 
   /**
@@ -411,46 +399,6 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   }
 
   /**
-   * Generates validated deterministic fallback question when AI fails.
-   */
-  private generateValidatedFallback(
-    requestData: any,
-    generationTime: number
-  ): GeneratedQuestion {
-    // Simple deterministic generation with validation
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-
-    const questionText = `$${num1} + ${num2} = ?$`;
-    const explanationText = `Add $${num1}$ and $${num2}$ together to get $${
-      num1 + num2
-    }$.`;
-
-    // Validate LaTeX in fallback content (REQ-QG-046)
-    const latexValidation = validateLatexContent(
-      `${questionText} ${explanationText}`
-    );
-
-    const result = {
-      question: questionText,
-      answer: num1 + num2,
-      explanation: explanationText,
-      metadata: {
-        grade: requestData.grade || 3,
-        topic: requestData.topic || 'addition',
-        difficulty: requestData.difficulty || 'medium',
-        country: (requestData.country || 'NZ') as Country,
-        generated_by: 'deterministic_fallback',
-        generation_time: generationTime,
-        fallback_used: true,
-        validation_score: 0.8, // Lower score for fallback
-        latexValid: latexValidation.isValid,
-      },
-    };
-
-    return GeneratedQuestionSchema.parse(result);
-  }
-
   /**
    * Validates the mathematical accuracy and educational appropriateness of AI-generated questions.
    *

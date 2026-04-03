@@ -58,44 +58,27 @@ export class MathQuestionGenerator {
     this.validateQuestionCount(count);
     const startTime = Date.now();
 
-    let questions: MathQuestion[] = [];
-
-    // Try AI generation first if OllamaService is available
-    if (this.ollamaService) {
-      try {
-        const aiQuestions = await this.generateWithAI(
-          difficulty,
-          count,
-          topic,
-          questionDifficulty
-        );
-        if (aiQuestions && aiQuestions.length > 0) {
-          questions = aiQuestions;
-        }
-      } catch (error) {
-        console.warn(
-          'AI generation failed, falling back to deterministic:',
-          error.message
-        );
-      }
+    if (!this.ollamaService) {
+      throw new Error(
+        'LLM service is not available. Cannot generate questions.'
+      );
     }
 
-    // Fallback to deterministic generation (only supports ADDITION)
-    if (questions.length === 0 && topic === 'ADDITION') {
-      questions = await this.generateDeterministicAdditionQuestions(
-        difficulty,
-        count,
-        topic
-      );
-    } else if (questions.length === 0) {
-      // For non-ADDITION topics without AI, return empty (AI is required)
-      console.warn(
-        `Deterministic fallback not available for topic '${topic}'. AI service required.`
+    const questions = await this.generateWithAI(
+      difficulty,
+      count,
+      topic,
+      questionDifficulty
+    );
+
+    if (questions.length === 0) {
+      throw new Error(
+        `LLM failed to generate any questions for topic '${topic}'.`
       );
     }
 
     // Auto-persist generated questions to MongoDB if QuestionsService is available
-    if (autoPersist && questions.length > 0 && this.questionsService) {
+    if (autoPersist && this.questionsService) {
       await this.persistQuestions(questions, difficulty, topic, startTime);
     }
 
@@ -122,29 +105,7 @@ export class MathQuestionGenerator {
     difficulty: DifficultyLevel,
     count: number
   ): Promise<MathQuestion[]> {
-    this.validateQuestionCount(count);
-
-    // Try AI generation first if OllamaService is available
-    if (this.ollamaService) {
-      try {
-        const aiQuestions = await this.generateWithAI(
-          difficulty,
-          count,
-          'addition'
-        );
-        if (aiQuestions && aiQuestions.length > 0) {
-          return aiQuestions;
-        }
-      } catch (error) {
-        console.warn(
-          'AI generation failed, falling back to deterministic:',
-          error.message
-        );
-      }
-    }
-
-    // Fallback to deterministic generation
-    return this.generateDeterministicAdditionQuestions(difficulty, count);
+    return this.generateQuestions(difficulty, count, 'addition', false);
   }
 
   /**
@@ -175,7 +136,6 @@ export class MathQuestionGenerator {
       });
 
       // Convert AI question format to MathQuestion entity
-      // Use the AI-generated explanation from question generation
       questions.push(
         new MathQuestion(
           aiQuestion.question,
@@ -336,36 +296,6 @@ export class MathQuestionGenerator {
   }
 
   /**
-   * Generates addition questions using deterministic algorithm
-   *
-   * @param difficulty - The educational difficulty level for question complexity
-   * @param count - Number of unique questions to generate
-   * @returns Promise resolving to array of MathQuestion instances
-   *
-   * @private
-   */
-  private async generateDeterministicAdditionQuestions(
-    difficulty: DifficultyLevel,
-    count: number,
-    topic: string = 'ADDITION'
-  ): Promise<MathQuestion[]> {
-    const questions: MathQuestion[] = [];
-    const usedQuestions = new Set<string>();
-
-    while (questions.length < count) {
-      const question = this.generateSingleAdditionQuestion(difficulty, topic);
-
-      // Ensure uniqueness
-      if (!usedQuestions.has(question.question)) {
-        usedQuestions.add(question.question);
-        questions.push(question);
-      }
-    }
-
-    return questions;
-  }
-
-  /**
    * Validates that question count is valid
    *
    * @param count - Number of questions to validate
@@ -376,70 +306,6 @@ export class MathQuestionGenerator {
   private validateQuestionCount(count: number): void {
     if (count <= 0) {
       throw new Error('Question count must be greater than 0');
-    }
-  }
-
-  /**
-   * Generates a single addition question for the specified difficulty
-   *
-   * @param difficulty - The difficulty level for the question
-   * @returns A single MathQuestion instance
-   *
-   * @private
-   */
-  private generateSingleAdditionQuestion(
-    difficulty: DifficultyLevel,
-    topic: string = 'ADDITION'
-  ): MathQuestion {
-    // Generate numbers appropriate for Grade 3 (0-50 range)
-    const num1 = this.generateNumberForDifficulty(difficulty);
-    const num2 = this.generateNumberForDifficulty(difficulty);
-
-    const answer = num1 + num2;
-    const questionText = `$${num1} + ${num2} = ?$`;
-
-    const solution = this.generateSolutionSteps(num1, num2, answer, 'ADDITION');
-
-    return new MathQuestion(questionText, answer, topic, difficulty, solution);
-  }
-
-  /**
-   * Generates appropriate numbers based on difficulty level
-   * Implements New Zealand Curriculum Level 2-3 numerical ranges
-   *
-   * @param difficulty - The educational difficulty level
-   * @returns A random number appropriate for the grade level complexity
-   *
-   * @private
-   */
-  private generateNumberForDifficulty(difficulty: DifficultyLevel): number {
-    const ranges = this.getDifficultyRanges(difficulty);
-    return (
-      Math.floor(Math.random() * (ranges.max - ranges.min + 1)) + ranges.min
-    );
-  }
-
-  /**
-   * Gets numerical ranges for different difficulty levels
-   * Based on NZ Curriculum standards for age-appropriate mathematics
-   *
-   * @param difficulty - The difficulty level to get ranges for
-   * @returns Object containing min and max values for the difficulty
-   *
-   * @private
-   */
-  private getDifficultyRanges(difficulty: DifficultyLevel): {
-    min: number;
-    max: number;
-  } {
-    switch (difficulty) {
-      case DifficultyLevel.GRADE_3:
-        // Grade 3 (ages 7-8): Single digit to simple double-digit
-        // Range allows for both 3+5=8 and 15+7=22 style problems
-        return { min: 0, max: 50 };
-      default:
-        // Fallback for future difficulty levels
-        return { min: 0, max: 10 };
     }
   }
 

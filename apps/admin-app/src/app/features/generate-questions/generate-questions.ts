@@ -79,6 +79,7 @@ export class GenerateQuestionsComponent implements OnInit {
         },
         error: (err) => {
           this.error =
+            err?.error?.error ||
             err?.error?.message ||
             'Question generation failed. Is Ollama running?';
           this.isGenerating = false;

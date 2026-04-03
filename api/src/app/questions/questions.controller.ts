@@ -11,6 +11,8 @@ import {
   UseGuards,
   Request,
   NotFoundException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
@@ -158,13 +160,24 @@ export class QuestionsController {
 
     // Generate questions via AI pipeline (skip auto-persist; controller
     // persists with richer data including explanation, category, format)
-    const generated = await this.mathGenerator.generateQuestions(
-      difficulty,
-      count,
-      dto.topic,
-      false,
-      dto.difficulty ?? 'medium'
-    );
+    let generated;
+    try {
+      generated = await this.mathGenerator.generateQuestions(
+        difficulty,
+        count,
+        dto.topic,
+        false,
+        dto.difficulty ?? 'medium'
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Question generation failed';
+      this.logger.error(`Batch generation failed: ${message}`);
+      throw new HttpException(
+        { error: message },
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
+    }
 
     // Map generated MathQuestion entities to Question schema format
     const questionDtos = generated.map((q) => ({
