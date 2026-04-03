@@ -22,6 +22,7 @@
 .filter-actions{display:flex;gap:.5rem;align-items:center;margin-left:auto}
 .selected-count{font-size:.85rem;font-weight:600;color:#4f46e5}
 
+.alert-success{background:#d1fae5;color:#065f46;padding:.75rem 1rem;border-radius:.5rem;margin-bottom:1rem;font-size:.9rem}
 .alert-error{background:#fee2e2;color:#991b1b;padding:.75rem 1rem;border-radius:.5rem;margin-bottom:1rem;font-size:.9rem}
 
 .loading-state,.empty-state{text-align:center;padding:3rem 1rem;color:#64748b}
@@ -70,6 +71,8 @@
 .btn-refine-sm:hover:not(:disabled){background:#c7d2fe}
 .btn-edit-sm{background:#fef3c7;color:#92400e;padding:.35rem .6rem;font-size:.8rem;border:none;border-radius:.375rem;cursor:pointer}
 .btn-edit-sm:hover:not(:disabled){background:#fde68a}
+.btn-delete-sm{background:#fecaca;color:#7f1d1d;padding:.35rem .6rem;font-size:.8rem;border:none;border-radius:.375rem;cursor:pointer}
+.btn-delete-sm:hover:not(:disabled){background:#f87171;color:#fff}
 
 .btn-primary{background:#4f46e5;color:#fff;padding:.6rem 1.5rem;font-size:.9rem;border-radius:.5rem;text-decoration:none}
 .btn-primary:hover{background:#4338ca}

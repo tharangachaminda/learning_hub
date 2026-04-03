@@ -261,6 +261,26 @@ export class QuestionDetailComponent implements OnInit {
     this.showLessonForm = false;
   }
 
+  deleteQuestion(): void {
+    if (
+      !confirm(
+        'Are you sure you want to permanently delete this question? This cannot be undone.'
+      )
+    )
+      return;
+    this.isReviewing = true;
+    this.error = null;
+    this.authService.deleteQuestion(this.questionId).subscribe({
+      next: () => {
+        this.router.navigate(['/review']);
+      },
+      error: () => {
+        this.error = 'Failed to delete question.';
+        this.isReviewing = false;
+      },
+    });
+  }
+
   backToQueue(): void {
     this.router.navigate(['/review']);
   }

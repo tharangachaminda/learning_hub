@@ -335,6 +335,14 @@ export class QuestionsController {
     );
   }
 
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async deleteQuestion(@Param('id') id: string) {
+    await this.questionsService.deleteQuestion(id);
+    return { deleted: true };
+  }
+
   // ── Lessons Learned (mutations) ─────────────────────────────
 
   @Post('lessons-learned')

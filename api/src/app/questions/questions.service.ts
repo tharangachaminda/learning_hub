@@ -433,6 +433,17 @@ export class QuestionsService {
   }
 
   /**
+   * Permanently deletes a question by ID.
+   */
+  async deleteQuestion(id: string): Promise<void> {
+    const result = await this.questionModel.findByIdAndDelete(id).exec();
+    if (!result) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+    this.logger.log(`Question ${id} deleted`);
+  }
+
+  /**
    * Deletes a lesson learned entry.
    */
   async deleteLessonLearned(id: string): Promise<void> {

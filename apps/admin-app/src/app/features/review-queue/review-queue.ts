@@ -23,6 +23,7 @@ export class ReviewQueueComponent implements OnInit {
   grades: GradeInfo[] = [];
   isLoading = true;
   error: string | null = null;
+  success: string | null = null;
   userName = '';
   userRole = '';
 
@@ -78,6 +79,7 @@ export class ReviewQueueComponent implements OnInit {
   loadQuestions(): void {
     this.isLoading = true;
     this.error = null;
+    this.success = null;
     this.selectedIds.clear();
     this.selectAll = false;
 
@@ -240,6 +242,68 @@ export class ReviewQueueComponent implements OnInit {
           this.error = 'Bulk reject failed.';
         },
       });
+  }
+
+  deleteQuestion(id: string): void {
+    if (
+      !confirm(
+        'Are you sure you want to permanently delete this question? This cannot be undone.'
+      )
+    )
+      return;
+    this.actionInProgress = id;
+    this.authService.deleteQuestion(id).subscribe({
+      next: () => {
+        this.actionInProgress = null;
+        this.success = 'Question deleted.';
+        this.loadQuestions();
+        this.loadStats();
+      },
+      error: () => {
+        this.actionInProgress = null;
+        this.error = 'Failed to delete question.';
+      },
+    });
+  }
+
+  bulkDelete(): void {
+    if (this.selectedIds.size === 0) return;
+    if (
+      !confirm(
+        `Permanently delete ${this.selectedIds.size} selected question(s)? This cannot be undone.`
+      )
+    )
+      return;
+    this.actionInProgress = 'bulk';
+    const ids = Array.from(this.selectedIds);
+    let completed = 0;
+    let failed = 0;
+    ids.forEach((id) => {
+      this.authService.deleteQuestion(id).subscribe({
+        next: () => {
+          completed++;
+          if (completed + failed === ids.length) {
+            this.actionInProgress = null;
+            this.loadQuestions();
+            this.loadStats();
+            if (failed > 0) {
+              this.error = `Deleted ${completed} question(s), ${failed} failed.`;
+            } else {
+              this.success = `${completed} question(s) deleted.`;
+            }
+          }
+        },
+        error: () => {
+          failed++;
+          if (completed + failed === ids.length) {
+            this.actionInProgress = null;
+            this.loadQuestions();
+            this.loadStats();
+            this.error = `Deleted ${completed} question(s), ${failed} failed.`;
+          }
+        },
+      });
+    });
   }
 
   getStatusClass(status: string): string {

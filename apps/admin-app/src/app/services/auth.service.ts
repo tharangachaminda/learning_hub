@@ -328,6 +328,12 @@ export class AuthService {
     );
   }
 
+  deleteQuestion(id: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(
+      `${this.questionsApiUrl}/${id}`
+    );
+  }
+
   refineQuestion(
     id: string,
     instruction: string
