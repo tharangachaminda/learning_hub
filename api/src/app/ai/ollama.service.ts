@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -21,6 +21,10 @@ import {
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 import { validateLatexContent } from './latex-validation.utils';
+import {
+  SemanticSearchService,
+  SearchResult,
+} from '../opensearch/semantic-search.service';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -45,9 +49,17 @@ export class OllamaService {
   /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */
   private readonly generationTimeout = 30000;
 
+  /** Similarity threshold above which a question is considered a duplicate */
+  private readonly ragDuplicateThreshold = 0.95;
+
+  /** Number of RAG examples to retrieve per generation call */
+  private readonly ragExampleLimit = 5;
+
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    @Optional()
+    private readonly semanticSearchService?: SemanticSearchService
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -173,16 +185,32 @@ export class OllamaService {
       // Use the curriculum-aware system prompt for AI generation
       let prompt = curriculumPrompt.systemPrompt;
 
+      // Retrieve RAG context from OpenSearch vector store
+      const ragContext = await this.retrieveRAGContext(
+        request.grade,
+        request.topic,
+        request.difficulty
+      );
+
+      // Append RAG examples to prompt for style/complexity reference
+      prompt += this.buildRAGPromptSection(ragContext.examples);
+
+      // Combine RAG near-duplicates with existing questions to avoid
+      const allExistingQuestions = [
+        ...(requestData.existingQuestions || []),
+        ...ragContext.duplicateQuestions,
+      ];
+
       // Append existing questions to avoid duplicates
-      if (requestData.existingQuestions?.length) {
-        prompt += `\n\nIMPORTANT: Do NOT generate any of the following questions (they already exist). Generate a COMPLETELY DIFFERENT question with different numbers:\n${requestData.existingQuestions
+      if (allExistingQuestions.length > 0) {
+        prompt += `\n\nIMPORTANT: Do NOT generate any of the following questions (they already exist). Generate a COMPLETELY DIFFERENT question with different numbers:\n${allExistingQuestions
           .map((q, i) => `${i + 1}. ${q}`)
           .join('\n')}`;
       }
 
       // Increase temperature when generating additional questions to encourage variety
-      const temperature = requestData.existingQuestions?.length
-        ? Math.min(0.7 + requestData.existingQuestions.length * 0.1, 1.2)
+      const temperature = allExistingQuestions.length
+        ? Math.min(0.7 + allExistingQuestions.length * 0.1, 1.2)
         : 0.7;
 
       // Call Ollama API for question generation
@@ -244,6 +272,74 @@ export class OllamaService {
       console.error(`LLM question generation failed: ${message}`);
       throw new Error(`LLM question generation failed: ${message}`);
     }
+  }
+
+  /**
+   * Retrieves RAG context from OpenSearch vector store for question generation.
+   * Finds semantically similar existing questions to use as examples and
+   * detects near-duplicate questions that should be avoided.
+   *
+   * @param grade - Student grade level
+   * @param topic - Mathematical topic (ADDITION, etc.)
+   * @param difficulty - Question difficulty level
+   * @returns Object with example questions and duplicate detection flag
+   */
+  private async retrieveRAGContext(
+    grade: number,
+    topic: string,
+    difficulty: string
+  ): Promise<{ examples: SearchResult[]; duplicateQuestions: string[] }> {
+    if (!this.semanticSearchService) {
+      return { examples: [], duplicateQuestions: [] };
+    }
+
+    try {
+      const searchQuery = `${topic} grade ${grade} ${difficulty} math question`;
+      const results = await this.semanticSearchService.findSimilar(
+        searchQuery,
+        {
+          grade,
+          topic: topic.toLowerCase(),
+          limit: this.ragExampleLimit,
+        }
+      );
+
+      // Identify near-duplicate questions (similarity > threshold)
+      const duplicateQuestions = results
+        .filter((r) => r.similarityScore > this.ragDuplicateThreshold)
+        .map((r) => r.questionText);
+
+      console.log(
+        `[OllamaService] RAG context: ${results.length} examples found, ${duplicateQuestions.length} near-duplicates`
+      );
+
+      return { examples: results, duplicateQuestions };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[OllamaService] RAG retrieval failed (non-blocking): ${message}`
+      );
+      return { examples: [], duplicateQuestions: [] };
+    }
+  }
+
+  /**
+   * Builds the RAG context section to append to the LLM prompt.
+   * Provides example questions from the vector store for the LLM to reference.
+   *
+   * @param examples - Similar questions retrieved from OpenSearch
+   * @returns Formatted prompt section string, or empty if no examples
+   */
+  private buildRAGPromptSection(examples: SearchResult[]): string {
+    if (examples.length === 0) return '';
+
+    const exampleLines = examples
+      .map((ex, i) => `${i + 1}. "${ex.questionText}" (answer: ${ex.answer})`)
+      .join('\n');
+
+    return `\n\nREFERENCE EXAMPLES (from question bank):
+The following are existing questions at this level. Use them as STYLE and COMPLEXITY reference to match the expected quality, but generate a COMPLETELY DIFFERENT question with different numbers and context:
+${exampleLines}`;
   }
 
   /**
