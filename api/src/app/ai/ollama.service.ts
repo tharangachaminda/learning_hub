@@ -150,6 +150,7 @@ export class OllamaService {
     difficulty: string;
     country?: string;
     context?: string;
+    existingQuestions?: string[];
   }): Promise<GeneratedQuestion> {
     const startTime = Date.now();
 
@@ -170,7 +171,19 @@ export class OllamaService {
         });
 
       // Use the curriculum-aware system prompt for AI generation
-      const prompt = curriculumPrompt.systemPrompt;
+      let prompt = curriculumPrompt.systemPrompt;
+
+      // Append existing questions to avoid duplicates
+      if (requestData.existingQuestions?.length) {
+        prompt += `\n\nIMPORTANT: Do NOT generate any of the following questions (they already exist). Generate a COMPLETELY DIFFERENT question with different numbers:\n${requestData.existingQuestions
+          .map((q, i) => `${i + 1}. ${q}`)
+          .join('\n')}`;
+      }
+
+      // Increase temperature when generating additional questions to encourage variety
+      const temperature = requestData.existingQuestions?.length
+        ? Math.min(0.7 + requestData.existingQuestions.length * 0.1, 1.2)
+        : 0.7;
 
       // Call Ollama API for question generation
       const response = await this.httpService.axiosRef.post(
@@ -180,7 +193,7 @@ export class OllamaService {
           prompt,
           stream: false,
           options: {
-            temperature: 0.7,
+            temperature,
             top_p: 0.9,
           },
         },
@@ -189,6 +202,12 @@ export class OllamaService {
 
       // Parse AI response using Zod validation
       const aiResponse = response.data.response;
+      console.log(
+        `[OllamaService] Raw LLM response (first 500 chars): ${aiResponse?.substring(
+          0,
+          500
+        )}`
+      );
       const parsedQuestion = this.parseAIResponseWithValidation(
         aiResponse,
         request
@@ -222,7 +241,7 @@ export class OllamaService {
       return GeneratedQuestionSchema.parse(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`LLM question generation failed: ${message}`);
+      console.error(`LLM question generation failed: ${message}`);
       throw new Error(`LLM question generation failed: ${message}`);
     }
   }
@@ -305,13 +324,18 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
 
     // Fallback to regex parsing with validation
-    const questionMatch = aiResponse.match(/QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/);
+    const questionMatch = aiResponse.match(
+      /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/s
+    );
     const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
-    const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+?)$/);
+    const explanationMatch = aiResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);
 
     if (!questionMatch || !answerMatch) {
       throw new Error(
-        'Failed to parse AI response: no valid question/answer found'
+        `Failed to parse AI response: no valid question/answer found. Raw response: ${aiResponse?.substring(
+          0,
+          200
+        )}`
       );
     }
 

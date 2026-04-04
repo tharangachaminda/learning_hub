@@ -127,24 +127,51 @@ export class MathQuestionGenerator {
     const questions: MathQuestion[] = [];
     const gradeNumber = this.difficultyToGrade(difficulty);
 
-    for (let i = 0; i < count; i++) {
-      const aiQuestion = await this.ollamaService.generateMathQuestion({
-        grade: gradeNumber,
-        topic,
-        difficulty: questionDifficulty,
-        country: 'NZ',
-      });
+    const maxRetries = 2;
 
-      // Convert AI question format to MathQuestion entity
-      questions.push(
-        new MathQuestion(
-          aiQuestion.question,
-          aiQuestion.answer,
-          topic,
-          difficulty,
-          [aiQuestion.explanation] // stepByStepSolution from AI
-        )
-      );
+    for (let i = 0; i < count; i++) {
+      let lastError: Error | null = null;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          // Pass already-generated questions so the LLM avoids duplicates
+          const existingQuestions = questions.map((q) => q.question);
+
+          const aiQuestion = await this.ollamaService.generateMathQuestion({
+            grade: gradeNumber,
+            topic,
+            difficulty: questionDifficulty,
+            country: 'NZ',
+            existingQuestions,
+          });
+
+          // Convert AI question format to MathQuestion entity
+          questions.push(
+            new MathQuestion(
+              aiQuestion.question,
+              aiQuestion.answer,
+              topic,
+              difficulty,
+              [aiQuestion.explanation] // stepByStepSolution from AI
+            )
+          );
+          lastError = null;
+          break; // success — move to next question
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          console.warn(
+            `Question ${i + 1} attempt ${attempt + 1} failed: ${
+              lastError.message
+            }`
+          );
+        }
+      }
+
+      if (lastError) {
+        console.warn(
+          `Skipping question ${i + 1} after ${maxRetries + 1} attempts`
+        );
+      }
     }
 
     return questions;
