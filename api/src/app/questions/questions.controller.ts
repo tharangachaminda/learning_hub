@@ -460,13 +460,36 @@ Respond in VALID JSON format only:
     stepByStepSolution: string[];
     options: string[];
   } {
+    this.logger.debug(
+      `Raw LLM refinement response (first 500 chars): ${response.substring(
+        0,
+        500
+      )}`
+    );
+
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Strip markdown code fences if present (```json ... ``` or ``` ... ```)
+      const cleaned = response
+        .replace(/```(?:json)?\s*/gi, '')
+        .replace(/```/g, '');
+
+      // Extract the outermost JSON object containing "questionText"
+      const jsonMatch = cleaned.match(/\{[\s\S]*?"questionText"[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in LLM response');
+        throw new Error(
+          `No JSON with "questionText" found in LLM response: ${response.substring(
+            0,
+            200
+          )}`
+        );
       }
-      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Sanitize control characters that break JSON.parse — replace with spaces
+      // (structural whitespace and in-string newlines are both safe as spaces)
+      // eslint-disable-next-line no-control-regex
+      const sanitized = jsonMatch[0].replace(/[\u0000-\u001F\u007F]/g, ' ');
+
+      const parsed = JSON.parse(sanitized);
       return {
         questionText: parsed.questionText || '',
         answer: parsed.answer ?? '',
