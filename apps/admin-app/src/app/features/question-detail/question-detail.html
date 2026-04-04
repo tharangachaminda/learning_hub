@@ -197,6 +197,13 @@
           >
             {{ isReviewing ? 'Processing…' : '↺ Reset to Pending' }}
           </button>
+          <button
+            class="btn btn-danger"
+            (click)="deleteQuestion()"
+            [disabled]="isReviewing"
+          >
+            {{ isReviewing ? 'Processing…' : '🗑 Delete' }}
+          </button>
         </div>
       </div>
     </div>

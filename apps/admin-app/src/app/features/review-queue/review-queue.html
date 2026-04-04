@@ -79,10 +79,18 @@
       >
         Reject Selected
       </button>
+      <button
+        class="btn btn-delete-sm"
+        (click)="bulkDelete()"
+        [disabled]="actionInProgress === 'bulk'"
+      >
+        Delete Selected
+      </button>
     </div>
   </div>
 
-  <!-- Error -->
+  <!-- Messages -->
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
   <div class="alert alert-error" *ngIf="error">{{ error }}</div>
 
   <!-- Loading -->
@@ -198,6 +206,14 @@
                 title="View / Refine"
               >
                 ✎
+              </button>
+              <button
+                class="btn btn-delete-sm"
+                [disabled]="actionInProgress === q._id"
+                (click)="deleteQuestion(q._id); $event.stopPropagation()"
+                title="Delete"
+              >
+                🗑
               </button>
             </div>
           </td>

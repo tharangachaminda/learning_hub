@@ -46,7 +46,7 @@ export type QuestionGenerationRequest = z.infer<
  */
 export const LLMQuestionResponseSchema = z.object({
   question: z.string().min(5),
-  answer: z.number(),
+  answer: z.coerce.number(),
   explanation: z.string().min(10),
   context_elements: z
     .object({
@@ -454,23 +454,45 @@ export function parseLLMResponse(
           const parsed = JSON.parse(jsonStr);
           return LLMQuestionResponseSchema.parse(parsed);
         } catch {
-          // Still failed — fall through to regex parsing below
+          // Still failed — try field-level regex extraction from JSON-like text
         }
+      }
+    }
+
+    // Extract individual fields from JSON-like or malformed JSON responses
+    // Handles unescaped quotes, missing closing braces, and rambling explanations
+    const jsonQuestion = rawResponse.match(
+      /"question"\s*:\s*"((?:[^"\\]|\\.)*)"/s
+    );
+    const jsonAnswer = rawResponse.match(/"answer"\s*:\s*"?(\d+)"?/);
+    if (jsonQuestion && jsonAnswer) {
+      const jsonExplanation = rawResponse.match(
+        /"explanation"\s*:\s*"((?:[^"\\]|\\.)*)"/s
+      );
+      const response = {
+        question: jsonQuestion[1].trim(),
+        answer: parseInt(jsonAnswer[1], 10),
+        explanation: jsonExplanation?.[1]?.trim() || 'Solve step by step.',
+      };
+      try {
+        return LLMQuestionResponseSchema.parse(response);
+      } catch {
+        // field-level extraction failed validation — fall through
       }
     }
 
     // Fallback to regex parsing for text responses
     const questionMatch = rawResponse.match(
-      /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/
+      /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/s
     );
     const answerMatch = rawResponse.match(/ANSWER:\s*(\d+)/);
-    const explanationMatch = rawResponse.match(/EXPLANATION:\s*(.+?)$/);
+    const explanationMatch = rawResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);
 
-    if (questionMatch && answerMatch && explanationMatch) {
+    if (questionMatch && answerMatch) {
       const response = {
         question: questionMatch[1].trim(),
         answer: parseInt(answerMatch[1], 10),
-        explanation: explanationMatch[1].trim(),
+        explanation: explanationMatch?.[1]?.trim() || 'Solve step by step.',
       };
 
       return LLMQuestionResponseSchema.parse(response);
