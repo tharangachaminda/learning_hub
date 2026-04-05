@@ -497,12 +497,18 @@ TASK: Refine the question according to the reviewer's instruction. Maintain curr
 
 Respond in VALID JSON format only:
 {
-  "questionText": "refined question text (use $...$ for LaTeX)",
+  "questionText": "refined question text — wrap ALL numbers and math expressions in LaTeX $...$ delimiters, e.g. A rugby team has $360$ jerseys shared among $12$ teams",
   "answer": <refined answer (number or string)>,
-  "explanation": "refined explanation",
-  "stepByStepSolution": ["step 1", "step 2", ...],
-  "options": ["option A", "option B", ...] or []
-}`;
+  "explanation": "refined explanation — wrap ALL numbers and math in $...$ delimiters",
+  "stepByStepSolution": ["step with $math$ wrapped in LaTeX", ...],
+  "options": ["option with $numbers$ in LaTeX", ...] or []
+}
+
+IMPORTANT LaTeX rules:
+- Every number must be wrapped: $5$, $360$, $12$
+- Every math expression must be wrapped: $5 + 3 = 8$, $\\frac{3}{4}$, $5 \\times 3$
+- Use \\times for multiplication, \\div for division, \\frac{a}{b} for fractions
+- Narrative text stays plain, only numbers and math use $...$`;
 
     return prompt;
   }
@@ -541,7 +547,19 @@ Respond in VALID JSON format only:
       // Sanitize control characters that break JSON.parse — replace with spaces
       // (structural whitespace and in-string newlines are both safe as spaces)
       // eslint-disable-next-line no-control-regex
-      const sanitized = jsonMatch[0].replace(/[\u0000-\u001F\u007F]/g, ' ');
+      let sanitized = jsonMatch[0].replace(/[\u0000-\u001F\u007F]/g, ' ');
+
+      // Fix LaTeX commands that collide with JSON escapes:
+      // \frac → \f + rac (form feed), \times → \t + imes (tab),
+      // \newline → \n + ewline (newline), \binom → \b + inom (backspace),
+      // \right → \r + ight (carriage return)
+      // When \b, \f, \n, \r, \t are followed by a letter, it's a LaTeX command — escape it
+      sanitized = sanitized.replace(/\\([bfnrt])(?=[a-zA-Z])/g, '\\\\$1');
+
+      // Fix remaining invalid JSON escape sequences (e.g. \$ \( \) \= \# etc.)
+      // Valid JSON escapes are: \" \\ \/ \b \f \n \r \t \uXXXX
+      // Replace any backslash NOT followed by a valid escape char with double-backslash
+      sanitized = sanitized.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
 
       const parsed = JSON.parse(sanitized);
       return {
