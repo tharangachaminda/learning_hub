@@ -117,12 +117,12 @@
     class="btn-generate"
     (click)="onGenerateClick()"
     [disabled]="!canGenerate()"
-    aria-label="Generate questions"
+    aria-label="Get practice questions"
     data-testid="generate-btn"
     type="button"
   >
     @if (isGenerating) {
     <span class="btn-spinner" role="status"></span>
-    🧠 } @else { 🚀 Generate Questions }
+    🧠 } @else { 🚀 Get Questions }
   </button>
 </div>

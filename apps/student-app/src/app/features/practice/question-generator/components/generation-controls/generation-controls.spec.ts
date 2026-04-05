@@ -255,11 +255,11 @@ describe('GenerationControlsComponent', () => {
       expect(btn.disabled).toBe(true);
     });
 
-    it('should show "🚀 Generate Questions" text', () => {
+    it('should show "🚀 Get Questions" text', () => {
       const btn = fixture.nativeElement.querySelector(
         '[data-testid="generate-btn"]'
       );
-      expect(btn.textContent.trim()).toContain('Generate Questions');
+      expect(btn.textContent.trim()).toContain('Get Questions');
     });
 
     it('should show brain icon with spinner when isGenerating', () => {

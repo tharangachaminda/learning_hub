@@ -66,9 +66,59 @@
       </a>
     </div>
 
+    @if (analytics) {
+    <div class="coverage-section">
+      <h3>Question Coverage</h3>
+      <div class="coverage-summary">
+        <span class="coverage-stat">
+          <strong>{{ adequateCoverage }}</strong> of
+          <strong>{{ totalCombos }}</strong>
+          grade/topic combinations have adequate coverage (≥10 approved)
+        </span>
+      </div>
+      @if (topGaps.length > 0) {
+      <div class="gap-alerts">
+        <h4>Top Coverage Gaps</h4>
+        <ul class="gap-list">
+          @for (gap of topGaps; track gap.grade + ':' + gap.topic) {
+          <li class="gap-item">
+            <span class="gap-label"
+              >Grade {{ gap.grade }} / {{ formatTopic(gap.topic) }}</span
+            >
+            <span class="gap-count" [class.zero]="gap.approved === 0"
+              >{{ gap.approved }} approved</span
+            >
+            <a
+              routerLink="/generate"
+              [queryParams]="{ grade: gap.grade, topic: gap.topic }"
+              class="gap-action"
+              >Generate</a
+            >
+          </li>
+          }
+        </ul>
+      </div>
+      }
+      <a routerLink="/analytics" class="view-analytics-link"
+        >View Full Analytics →</a
+      >
+    </div>
+    }
+
     <div class="actions-section">
       <h3>Quick Actions</h3>
       <div class="action-cards">
+        <div class="action-card analytics-card">
+          <h4>Question Analytics</h4>
+          <p>
+            View detailed question coverage heatmap, identify gaps, and balance
+            question generation across grades and topics.
+          </p>
+          <a routerLink="/analytics" class="action-btn analytics-btn"
+            >View Analytics</a
+          >
+        </div>
+
         <div class="action-card generate-card">
           <h4>Generate Questions</h4>
           <p>

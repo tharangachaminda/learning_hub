@@ -178,6 +178,72 @@ export interface LessonLearned {
   createdAt: string;
 }
 
+export interface GradeTopicCount {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+}
+
+export interface DifficultyCount {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface FormatCount {
+  grade: number;
+  topic: string;
+  format: string;
+  count: number;
+}
+
+export interface CoverageGap {
+  grade: number;
+  topic: string;
+  approved: number;
+}
+
+export interface RecentCreation {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface TopicHealth {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+  approvalRate: number;
+  difficultyDepth: { easy: number; medium: number; hard: number };
+  formatBalance: { openEnded: number; multipleChoice: number };
+  weeklyCreations: { easy: number; medium: number; hard: number };
+  lastCreatedAt: string | null;
+  issues: string[];
+}
+
+export interface QuestionAnalytics {
+  gradeTopicMatrix: GradeTopicCount[];
+  byDifficulty: DifficultyCount[];
+  byFormat: FormatCount[];
+  summary: {
+    totalApproved: number;
+    totalPending: number;
+    totalRejected: number;
+    totalQuestions: number;
+  };
+  coverageGaps: CoverageGap[];
+  recentCreations: RecentCreation[];
+  topicHealth: TopicHealth[];
+}
+
 const AUTH_TOKEN_KEY = 'admin_auth_token';
 const AUTH_USER_KEY = 'admin_auth_user';
 
@@ -233,6 +299,23 @@ export class AuthService {
 
   getQuestionStats(): Observable<QuestionStats> {
     return this.http.get<QuestionStats>(`${this.questionsApiUrl}/stats`);
+  }
+
+  getAnalytics(
+    threshold?: number,
+    grade?: number
+  ): Observable<QuestionAnalytics> {
+    let params = new HttpParams();
+    if (threshold !== undefined) {
+      params = params.set('threshold', threshold.toString());
+    }
+    if (grade !== undefined) {
+      params = params.set('grade', grade.toString());
+    }
+    return this.http.get<QuestionAnalytics>(
+      `${this.questionsApiUrl}/analytics`,
+      { params }
+    );
   }
 
   inviteUser(request: InviteRequest): Observable<InviteResponse> {

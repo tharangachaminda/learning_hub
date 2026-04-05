@@ -11,6 +11,92 @@ import {
   LessonLearned,
   LessonLearnedDocument,
 } from './schemas/lesson-learned.schema';
+import { GRADE_TOPICS } from '../ai/curriculum.types';
+
+export interface GradeTopicCount {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+}
+
+export interface DifficultyCount {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface FormatCount {
+  grade: number;
+  topic: string;
+  format: string;
+  count: number;
+}
+
+export interface CoverageGap {
+  grade: number;
+  topic: string;
+  approved: number;
+}
+
+export interface RecentCreation {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface TopicHealth {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+  approvalRate: number;
+  difficultyDepth: { easy: number; medium: number; hard: number };
+  formatBalance: { openEnded: number; multipleChoice: number };
+  weeklyCreations: { easy: number; medium: number; hard: number };
+  lastCreatedAt: Date | null;
+  issues: string[];
+}
+
+export interface QuestionAnalytics {
+  gradeTopicMatrix: GradeTopicCount[];
+  byDifficulty: DifficultyCount[];
+  byFormat: FormatCount[];
+  summary: {
+    totalApproved: number;
+    totalPending: number;
+    totalRejected: number;
+    totalQuestions: number;
+  };
+  coverageGaps: CoverageGap[];
+  recentCreations: RecentCreation[];
+  topicHealth: TopicHealth[];
+}
+
+export interface PracticeQuestionsResult {
+  questions: Array<{
+    _id: string;
+    questionText: string;
+    answer: number | string;
+    explanation: string;
+    grade: number;
+    topic: string;
+    category: string;
+    format: string;
+    options: string[];
+    stepByStepSolution: string[];
+    difficulty: string;
+  }>;
+  total: number;
+  requested: number;
+  hasMore: boolean;
+}
 
 /**
  * Filter criteria for querying persisted questions.
@@ -243,6 +329,337 @@ export class QuestionsService {
     ]);
 
     return { pending, approved, rejected, total };
+  }
+
+  async getAnalytics(
+    threshold = 10,
+    grade?: number
+  ): Promise<QuestionAnalytics> {
+    const gradeMatch: Record<string, unknown> = {};
+    if (grade) gradeMatch.grade = grade;
+
+    // Aggregate counts by grade, topic, status
+    const statusAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; status: string };
+      count: number;
+    }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
+      {
+        $group: {
+          _id: { grade: '$grade', topic: '$topic', status: '$status' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Aggregate counts by grade, topic, difficulty (approved only)
+    const difficultyAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; difficulty: string };
+      count: number;
+    }>([
+      { $match: { ...gradeMatch, status: QuestionStatus.APPROVED } },
+      {
+        $group: {
+          _id: {
+            grade: '$grade',
+            topic: '$topic',
+            difficulty: '$metadata.difficulty',
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Aggregate counts by grade, topic, format
+    const formatAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; format: string };
+      count: number;
+    }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
+      {
+        $group: {
+          _id: { grade: '$grade', topic: '$topic', format: '$format' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Weekly creations: questions created in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; difficulty: string };
+      count: number;
+    }>([
+      {
+        $match: {
+          ...gradeMatch,
+          createdAt: { $gte: sevenDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            grade: '$grade',
+            topic: '$topic',
+            difficulty: '$metadata.difficulty',
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Most recent question per grade+topic
+    const lastCreatedAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string };
+      lastCreated: Date;
+    }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
+      {
+        $group: {
+          _id: { grade: '$grade', topic: '$topic' },
+          lastCreated: { $max: '$createdAt' },
+        },
+      },
+    ]);
+
+    // Build the grade×topic matrix from expected combos
+    const matrixMap = new Map<string, GradeTopicCount>();
+    const targetGrades = grade
+      ? { [grade]: GRADE_TOPICS[grade] }
+      : GRADE_TOPICS;
+    for (const [gradeStr, subjects] of Object.entries(targetGrades)) {
+      const g = Number(gradeStr);
+      const topics = subjects?.['mathematics'] || [];
+      for (const topic of topics) {
+        matrixMap.set(`${g}:${topic}`, {
+          grade: g,
+          topic,
+          approved: 0,
+          pending: 0,
+          rejected: 0,
+          total: 0,
+        });
+      }
+    }
+
+    // Fill in actual counts from aggregation
+    for (const row of statusAgg) {
+      const key = `${row._id.grade}:${row._id.topic}`;
+      const entry = matrixMap.get(key);
+      if (entry) {
+        const status = row._id.status;
+        if (status === QuestionStatus.APPROVED) entry.approved = row.count;
+        else if (status === QuestionStatus.PENDING) entry.pending = row.count;
+        else if (status === QuestionStatus.REJECTED) entry.rejected = row.count;
+        entry.total += row.count;
+      }
+    }
+
+    const gradeTopicMatrix = Array.from(matrixMap.values());
+
+    // Build summary
+    const summary = {
+      totalApproved: 0,
+      totalPending: 0,
+      totalRejected: 0,
+      totalQuestions: 0,
+    };
+    for (const entry of gradeTopicMatrix) {
+      summary.totalApproved += entry.approved;
+      summary.totalPending += entry.pending;
+      summary.totalRejected += entry.rejected;
+      summary.totalQuestions += entry.total;
+    }
+
+    // Build coverage gaps
+    const coverageGaps = gradeTopicMatrix
+      .filter((entry) => entry.approved < threshold)
+      .sort((a, b) => a.approved - b.approved);
+
+    // Build difficulty and format arrays
+    const byDifficulty: DifficultyCount[] = difficultyAgg.map((row) => ({
+      grade: row._id.grade,
+      topic: row._id.topic,
+      difficulty: row._id.difficulty || 'unknown',
+      count: row.count,
+    }));
+
+    const byFormat: FormatCount[] = formatAgg.map((row) => ({
+      grade: row._id.grade,
+      topic: row._id.topic,
+      format: row._id.format || 'open-ended',
+      count: row.count,
+    }));
+
+    const recentCreations: RecentCreation[] = recentAgg.map((row) => ({
+      grade: row._id.grade,
+      topic: row._id.topic,
+      difficulty: row._id.difficulty || 'unknown',
+      count: row.count,
+    }));
+
+    // Build per-topic health assessment
+    const topicHealth: TopicHealth[] = [];
+    for (const entry of gradeTopicMatrix) {
+      const key = `${entry.grade}:${entry.topic}`;
+
+      // Difficulty depth (approved only)
+      const depth = { easy: 0, medium: 0, hard: 0 };
+      for (const d of difficultyAgg) {
+        if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
+          const lvl = (d._id.difficulty || '').toLowerCase();
+          if (lvl === 'easy') depth.easy = d.count;
+          else if (lvl === 'medium') depth.medium = d.count;
+          else if (lvl === 'hard') depth.hard = d.count;
+        }
+      }
+
+      // Format balance
+      const formats = { openEnded: 0, multipleChoice: 0 };
+      for (const f of formatAgg) {
+        if (f._id.grade === entry.grade && f._id.topic === entry.topic) {
+          if (f._id.format === 'multiple-choice')
+            formats.multipleChoice += f.count;
+          else formats.openEnded += f.count;
+        }
+      }
+
+      // Weekly creations
+      const weekly = { easy: 0, medium: 0, hard: 0 };
+      for (const r of recentAgg) {
+        if (r._id.grade === entry.grade && r._id.topic === entry.topic) {
+          const lvl = (r._id.difficulty || '').toLowerCase();
+          if (lvl === 'easy') weekly.easy = r.count;
+          else if (lvl === 'medium') weekly.medium = r.count;
+          else if (lvl === 'hard') weekly.hard = r.count;
+        }
+      }
+
+      // Last created
+      const lastEntry = lastCreatedAgg.find(
+        (l) => l._id.grade === entry.grade && l._id.topic === entry.topic
+      );
+
+      // Compute issues
+      const issues: string[] = [];
+      const approvalRate =
+        entry.total > 0 ? (entry.approved / entry.total) * 100 : 0;
+
+      // Criterion 1: Difficulty depth >= 50 per difficulty
+      if (depth.easy < 50) issues.push(`Easy: ${depth.easy}/50 approved`);
+      if (depth.medium < 50) issues.push(`Medium: ${depth.medium}/50 approved`);
+      if (depth.hard < 50) issues.push(`Hard: ${depth.hard}/50 approved`);
+
+      // Criterion 2: Approval rate > 80%
+      if (entry.total > 0 && approvalRate < 80) {
+        issues.push(`Approval rate ${approvalRate.toFixed(0)}% (target >80%)`);
+      }
+
+      // Criterion 3: Weekly generation >= 10 per difficulty
+      if (weekly.easy < 10) issues.push(`Weekly easy: ${weekly.easy}/10`);
+      if (weekly.medium < 10) issues.push(`Weekly medium: ${weekly.medium}/10`);
+      if (weekly.hard < 10) issues.push(`Weekly hard: ${weekly.hard}/10`);
+
+      // Criterion 4: Format balance >= 30% each
+      const totalFmt = formats.openEnded + formats.multipleChoice;
+      if (totalFmt > 0) {
+        const oePercent = (formats.openEnded / totalFmt) * 100;
+        const mcPercent = (formats.multipleChoice / totalFmt) * 100;
+        if (oePercent < 30)
+          issues.push(`Open-ended only ${oePercent.toFixed(0)}% (target ≥30%)`);
+        if (mcPercent < 30)
+          issues.push(
+            `Multiple-choice only ${mcPercent.toFixed(0)}% (target ≥30%)`
+          );
+      } else {
+        issues.push('No questions yet');
+      }
+
+      // Criterion 5: Staleness — no new questions in 14 days
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      if (
+        !lastEntry?.lastCreated ||
+        new Date(lastEntry.lastCreated) < fourteenDaysAgo
+      ) {
+        issues.push('No new questions in 14+ days');
+      }
+
+      topicHealth.push({
+        grade: entry.grade,
+        topic: entry.topic,
+        approved: entry.approved,
+        pending: entry.pending,
+        rejected: entry.rejected,
+        total: entry.total,
+        approvalRate: Math.round(approvalRate),
+        difficultyDepth: depth,
+        formatBalance: formats,
+        weeklyCreations: weekly,
+        lastCreatedAt: lastEntry?.lastCreated || null,
+        issues,
+      });
+    }
+
+    return {
+      gradeTopicMatrix,
+      byDifficulty,
+      byFormat,
+      summary,
+      coverageGaps,
+      recentCreations,
+      topicHealth,
+    };
+  }
+
+  async getPracticeQuestions(
+    grade: number,
+    topic: string,
+    count: number,
+    difficulty?: string
+  ): Promise<PracticeQuestionsResult> {
+    const matchStage: Record<string, unknown> = {
+      status: QuestionStatus.APPROVED,
+      grade,
+      topic,
+    };
+    if (difficulty) {
+      matchStage['metadata.difficulty'] = difficulty;
+    }
+
+    const total = await this.questionModel.countDocuments(matchStage).exec();
+    const sampleSize = Math.min(count, total);
+
+    let questions: QuestionDocument[] = [];
+    if (sampleSize > 0) {
+      questions = await this.questionModel.aggregate([
+        { $match: matchStage },
+        { $sample: { size: sampleSize } },
+      ]);
+    }
+
+    // Map to student-safe response (exclude internal review fields)
+    const mapped = questions.map((q: any) => ({
+      _id: (q._id || '').toString(),
+      questionText: q.questionText,
+      answer: q.answer,
+      explanation: q.explanation || '',
+      grade: q.grade,
+      topic: q.topic,
+      category: q.category || '',
+      format: q.format || 'open-ended',
+      options: q.options || [],
+      stepByStepSolution: q.stepByStepSolution || [],
+      difficulty: q.metadata?.difficulty || 'medium',
+    }));
+
+    return {
+      questions: mapped,
+      total,
+      requested: count,
+      hasMore: total > count,
+    };
   }
 
   /**
