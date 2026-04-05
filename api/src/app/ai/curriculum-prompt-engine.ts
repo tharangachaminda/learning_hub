@@ -378,13 +378,18 @@ PROHIBITED QUESTION PATTERNS:
 - Do NOT generate questions that just name the operation without providing numbers to work with.
 
 MANDATORY LATEX FORMATTING:
-Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
-- Use $...$ for all inline math
-- Use $$...$$ for standalone equations
-- This includes ALL numbers, operators, fractions, and results — no exceptions
-- LaTeX commands: \\frac{a}{b}, \\times, \\div, ^, \\sqrt{}, \\text{} for units
-- CORRECT: "What is $5 + 3$?" | "There are $12$ apples" | "$\\frac{3}{4} + \\frac{1}{2}$"
-- WRONG: "What is 5 + 3?" | "There are 12 apples" | "3/4 + 1/2"
+Use $...$ ONLY around mathematical expressions and operators — NOT around regular words or sentences.
+- Wrap math expressions: $5 + 3$, $12 \\times 4$, $\\frac{3}{4}$
+- Wrap standalone numbers in questions: $12$ apples, $25$ birds
+- Do NOT wrap regular text, words, or sentences in $...$
+- Do NOT use $$...$$ (double dollar) — always use single $...$
+- Do NOT use \\text{} inside math — write plain text outside of $ delimiters
+- CORRECT: "What is $5 + 3$?" | "There are $12$ apples"
+- CORRECT: "$25 - 12 = ?$"
+- WRONG: "$25 dollars - 12 dollars = ?$" (do not put words inside math)
+- WRONG: "$$25 - 12 = ?$$" (do not use double dollar)
+- WRONG: "$25 \\text{dollar} - 12 = ?$" (do not use \\text inside math)
+- For the explanation field: write plain text with NO LaTeX. Just explain in simple sentences.
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
