@@ -4,6 +4,27 @@
       <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
       <h1>Question Analytics</h1>
     </div>
+    <div class="header-right">
+      <div class="grade-filter">
+        <span class="filter-label">Grade:</span>
+        <button
+          class="filter-btn"
+          [class.active]="selectedGrade === null"
+          (click)="onGradeChange(null)"
+        >
+          All
+        </button>
+        @for (g of grades; track g) {
+        <button
+          class="filter-btn"
+          [class.active]="selectedGrade === g"
+          (click)="onGradeChange(g)"
+        >
+          {{ g }}
+        </button>
+        }
+      </div>
+    </div>
   </header>
 
   <main class="analytics-content">
@@ -31,7 +52,7 @@
         <div class="summary-value pending">
           {{ analytics.summary.totalPending }}
         </div>
-        <div class="summary-label">Pending</div>
+        <div class="summary-label">Pending Review</div>
       </div>
       <div class="summary-card">
         <div class="summary-value rejected">
@@ -40,17 +61,102 @@
         <div class="summary-label">Rejected</div>
       </div>
       <div class="summary-card">
-        <div class="summary-value coverage">{{ getCoveragePercent() }}%</div>
-        <div class="summary-label">Coverage (&ge;10 approved)</div>
+        <div class="summary-value coverage">{{ getAvgApprovalRate() }}%</div>
+        <div class="summary-label">Avg Approval Rate</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value healthy">
+          {{ getHealthyTopicCount() }}/{{ topicHealthRows.length }}
+        </div>
+        <div class="summary-label">Healthy Topics</div>
       </div>
     </div>
+
+    <!-- Health Criteria Legend -->
+    <section class="section criteria-section">
+      <h2>Health Criteria</h2>
+      <div class="criteria-grid">
+        <div class="criteria-item">
+          <span class="criteria-icon">📊</span>
+          <div>
+            <strong>Difficulty Depth</strong>
+            <p>
+              &ge;{{ thresholds.minPerDifficulty }} approved per difficulty
+              level per topic
+            </p>
+          </div>
+        </div>
+        <div class="criteria-item">
+          <span class="criteria-icon">✅</span>
+          <div>
+            <strong>Approval Rate</strong>
+            <p>
+              &gt;{{ thresholds.minApprovalRate }}% of generated questions
+              approved
+            </p>
+          </div>
+        </div>
+        <div class="criteria-item">
+          <span class="criteria-icon">📅</span>
+          <div>
+            <strong>Weekly Generation</strong>
+            <p>
+              {{ thresholds.weeklyTarget }} new per difficulty per topic per
+              week
+            </p>
+          </div>
+        </div>
+        <div class="criteria-item">
+          <span class="criteria-icon">⚖️</span>
+          <div>
+            <strong>Format Balance</strong>
+            <p>
+              &ge;{{ thresholds.minFormatPercent }}% each of open-ended &amp;
+              multiple-choice
+            </p>
+          </div>
+        </div>
+        <div class="criteria-item">
+          <span class="criteria-icon">🕐</span>
+          <div>
+            <strong>Freshness</strong>
+            <p>
+              New questions within the last {{ thresholds.stalenessDays }} days
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grade Health Overview (when All Grades selected) -->
+    @if (selectedGrade === null) {
+    <section class="section">
+      <h2>Grade Health Overview</h2>
+      <div class="grade-health-grid">
+        @for (g of grades; track g) {
+        <button class="grade-health-card" (click)="onGradeChange(g)">
+          <div class="grade-health-label">Grade {{ g }}</div>
+          <div
+            class="grade-health-pct"
+            [class.pct-good]="getGradeHealthPercent(g) >= 80"
+            [class.pct-warning]="getGradeHealthPercent(g) >= 40 && getGradeHealthPercent(g) < 80"
+            [class.pct-critical]="getGradeHealthPercent(g) < 40"
+          >
+            {{ getGradeHealthPercent(g) }}%
+          </div>
+          <div class="grade-health-sub">topics healthy</div>
+        </button>
+        }
+      </div>
+    </section>
+    }
 
     <!-- Heatmap -->
     <section class="section">
       <h2>Approved Questions Heatmap</h2>
       <p class="section-desc">
-        Each cell shows the number of <strong>approved</strong> questions for a
-        grade/topic combination. Hover for full breakdown.
+        Each cell shows <strong>approved</strong> questions. Thresholds: 0 (red)
+        &lt; 50 (amber) &lt; 150 (green) &lt; 150+ (dark green).
       </p>
       <div class="heatmap-wrapper">
         <table class="heatmap-table">
@@ -91,17 +197,155 @@
           ><span class="legend-swatch cell-red"></span> 0</span
         >
         <span class="legend-item"
-          ><span class="legend-swatch cell-amber"></span> 1–9</span
+          ><span class="legend-swatch cell-amber"></span> 1–49</span
         >
         <span class="legend-item"
-          ><span class="legend-swatch cell-light-green"></span> 10–29</span
+          ><span class="legend-swatch cell-light-green"></span> 50–149</span
         >
         <span class="legend-item"
-          ><span class="legend-swatch cell-green"></span> 30+</span
+          ><span class="legend-swatch cell-green"></span> 150+</span
         >
         <span class="legend-item"
           ><span class="legend-swatch cell-na"></span> N/A</span
         >
+      </div>
+    </section>
+
+    <!-- Topic Health Detail -->
+    <section class="section">
+      <h2>
+        Topic Health Detail @if (selectedGrade !== null) {
+        <span class="grade-badge">Grade {{ selectedGrade }}</span>
+        }
+      </h2>
+      <p class="section-desc">
+        Per-topic breakdown against all health criteria. Click a row to see
+        details.
+      </p>
+
+      <div class="health-table-wrapper">
+        <table class="health-table">
+          <thead>
+            <tr>
+              @if (selectedGrade === null) {
+              <th>Grade</th>
+              }
+              <th>Topic</th>
+              <th class="center">Approved</th>
+              <th class="center">Approval %</th>
+              <th class="center">Easy</th>
+              <th class="center">Medium</th>
+              <th class="center">Hard</th>
+              <th class="center">Weekly</th>
+              <th class="center">Format</th>
+              <th>Issues</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (h of topicHealthRows; track h.grade + ':' + h.topic) {
+            <tr [class]="getHealthClass(h)">
+              @if (selectedGrade === null) {
+              <td class="grade-col">{{ h.grade }}</td>
+              }
+              <td class="topic-col">{{ formatTopic(h.topic) }}</td>
+              <td class="center">{{ h.approved }}</td>
+              <td class="center">
+                <span
+                  class="rate-badge"
+                  [class.rate-good]="h.approvalRate >= 80"
+                  [class.rate-warning]="h.approvalRate >= 50 && h.approvalRate < 80"
+                  [class.rate-bad]="h.approvalRate < 50"
+                >
+                  {{ h.approvalRate }}%
+                </span>
+              </td>
+              <td class="center">
+                <div class="depth-bar-wrap">
+                  <div
+                    class="depth-bar"
+                    [class]="getDepthClass(h.difficultyDepth.easy)"
+                    [style.width.%]="getDepthPercent(h.difficultyDepth.easy)"
+                  ></div>
+                  <span class="depth-num"
+                    >{{ h.difficultyDepth.easy }}/{{ thresholds.minPerDifficulty
+                    }}</span
+                  >
+                </div>
+              </td>
+              <td class="center">
+                <div class="depth-bar-wrap">
+                  <div
+                    class="depth-bar"
+                    [class]="getDepthClass(h.difficultyDepth.medium)"
+                    [style.width.%]="getDepthPercent(h.difficultyDepth.medium)"
+                  ></div>
+                  <span class="depth-num"
+                    >{{ h.difficultyDepth.medium }}/{{
+                    thresholds.minPerDifficulty }}</span
+                  >
+                </div>
+              </td>
+              <td class="center">
+                <div class="depth-bar-wrap">
+                  <div
+                    class="depth-bar"
+                    [class]="getDepthClass(h.difficultyDepth.hard)"
+                    [style.width.%]="getDepthPercent(h.difficultyDepth.hard)"
+                  ></div>
+                  <span class="depth-num"
+                    >{{ h.difficultyDepth.hard }}/{{ thresholds.minPerDifficulty
+                    }}</span
+                  >
+                </div>
+              </td>
+              <td class="center">
+                <span
+                  class="weekly-badge"
+                  [class.weekly-ok]="h.weeklyCreations.easy >= thresholds.weeklyTarget && h.weeklyCreations.medium >= thresholds.weeklyTarget && h.weeklyCreations.hard >= thresholds.weeklyTarget"
+                  [class.weekly-low]="!(h.weeklyCreations.easy >= thresholds.weeklyTarget && h.weeklyCreations.medium >= thresholds.weeklyTarget && h.weeklyCreations.hard >= thresholds.weeklyTarget)"
+                >
+                  {{ h.weeklyCreations.easy + h.weeklyCreations.medium +
+                  h.weeklyCreations.hard }}
+                </span>
+              </td>
+              <td class="center">
+                @if (h.formatBalance.openEnded + h.formatBalance.multipleChoice
+                > 0) {
+                <div class="fmt-bar">
+                  <div
+                    class="fmt-seg oe"
+                    [style.width]="getBarWidth(h.formatBalance.openEnded, h.formatBalance.openEnded + h.formatBalance.multipleChoice)"
+                    title="Open-ended: {{ h.formatBalance.openEnded }}"
+                  ></div>
+                  <div
+                    class="fmt-seg mc"
+                    [style.width]="getBarWidth(h.formatBalance.multipleChoice, h.formatBalance.openEnded + h.formatBalance.multipleChoice)"
+                    title="Multiple-choice: {{ h.formatBalance.multipleChoice }}"
+                  ></div>
+                </div>
+                } @else {
+                <span class="no-data">&mdash;</span>
+                }
+              </td>
+              <td>
+                @if (h.issues.length === 0) {
+                <span class="status-pass">All criteria met</span>
+                } @else {
+                <span class="issue-count"
+                  >{{ h.issues.length }} issue{{ h.issues.length > 1 ? 's' : ''
+                  }}</span
+                >
+                <ul class="issue-list">
+                  @for (issue of h.issues; track issue) {
+                  <li>{{ issue }}</li>
+                  }
+                </ul>
+                }
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
       </div>
     </section>
 

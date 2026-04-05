@@ -207,6 +207,28 @@ export interface CoverageGap {
   approved: number;
 }
 
+export interface RecentCreation {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface TopicHealth {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+  approvalRate: number;
+  difficultyDepth: { easy: number; medium: number; hard: number };
+  formatBalance: { openEnded: number; multipleChoice: number };
+  weeklyCreations: { easy: number; medium: number; hard: number };
+  lastCreatedAt: string | null;
+  issues: string[];
+}
+
 export interface QuestionAnalytics {
   gradeTopicMatrix: GradeTopicCount[];
   byDifficulty: DifficultyCount[];
@@ -218,6 +240,8 @@ export interface QuestionAnalytics {
     totalQuestions: number;
   };
   coverageGaps: CoverageGap[];
+  recentCreations: RecentCreation[];
+  topicHealth: TopicHealth[];
 }
 
 const AUTH_TOKEN_KEY = 'admin_auth_token';
@@ -277,10 +301,16 @@ export class AuthService {
     return this.http.get<QuestionStats>(`${this.questionsApiUrl}/stats`);
   }
 
-  getAnalytics(threshold?: number): Observable<QuestionAnalytics> {
+  getAnalytics(
+    threshold?: number,
+    grade?: number
+  ): Observable<QuestionAnalytics> {
     let params = new HttpParams();
     if (threshold !== undefined) {
       params = params.set('threshold', threshold.toString());
+    }
+    if (grade !== undefined) {
+      params = params.set('grade', grade.toString());
     }
     return this.http.get<QuestionAnalytics>(
       `${this.questionsApiUrl}/analytics`,

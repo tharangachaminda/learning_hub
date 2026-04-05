@@ -42,6 +42,28 @@ export interface CoverageGap {
   approved: number;
 }
 
+export interface RecentCreation {
+  grade: number;
+  topic: string;
+  difficulty: string;
+  count: number;
+}
+
+export interface TopicHealth {
+  grade: number;
+  topic: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+  approvalRate: number;
+  difficultyDepth: { easy: number; medium: number; hard: number };
+  formatBalance: { openEnded: number; multipleChoice: number };
+  weeklyCreations: { easy: number; medium: number; hard: number };
+  lastCreatedAt: Date | null;
+  issues: string[];
+}
+
 export interface QuestionAnalytics {
   gradeTopicMatrix: GradeTopicCount[];
   byDifficulty: DifficultyCount[];
@@ -53,6 +75,8 @@ export interface QuestionAnalytics {
     totalQuestions: number;
   };
   coverageGaps: CoverageGap[];
+  recentCreations: RecentCreation[];
+  topicHealth: TopicHealth[];
 }
 
 export interface PracticeQuestionsResult {
@@ -307,12 +331,19 @@ export class QuestionsService {
     return { pending, approved, rejected, total };
   }
 
-  async getAnalytics(threshold = 10): Promise<QuestionAnalytics> {
+  async getAnalytics(
+    threshold = 10,
+    grade?: number
+  ): Promise<QuestionAnalytics> {
+    const gradeMatch: Record<string, unknown> = {};
+    if (grade) gradeMatch.grade = grade;
+
     // Aggregate counts by grade, topic, status
     const statusAgg = await this.questionModel.aggregate<{
       _id: { grade: number; topic: string; status: string };
       count: number;
     }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
       {
         $group: {
           _id: { grade: '$grade', topic: '$topic', status: '$status' },
@@ -321,11 +352,12 @@ export class QuestionsService {
       },
     ]);
 
-    // Aggregate counts by grade, topic, difficulty
+    // Aggregate counts by grade, topic, difficulty (approved only)
     const difficultyAgg = await this.questionModel.aggregate<{
       _id: { grade: number; topic: string; difficulty: string };
       count: number;
     }>([
+      { $match: { ...gradeMatch, status: QuestionStatus.APPROVED } },
       {
         $group: {
           _id: {
@@ -343,6 +375,7 @@ export class QuestionsService {
       _id: { grade: number; topic: string; format: string };
       count: number;
     }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
       {
         $group: {
           _id: { grade: '$grade', topic: '$topic', format: '$format' },
@@ -351,14 +384,56 @@ export class QuestionsService {
       },
     ]);
 
-    // Build the grade×topic matrix from ALL expected combos
+    // Weekly creations: questions created in the last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; difficulty: string };
+      count: number;
+    }>([
+      {
+        $match: {
+          ...gradeMatch,
+          createdAt: { $gte: sevenDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            grade: '$grade',
+            topic: '$topic',
+            difficulty: '$metadata.difficulty',
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Most recent question per grade+topic
+    const lastCreatedAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string };
+      lastCreated: Date;
+    }>([
+      ...(Object.keys(gradeMatch).length ? [{ $match: gradeMatch }] : []),
+      {
+        $group: {
+          _id: { grade: '$grade', topic: '$topic' },
+          lastCreated: { $max: '$createdAt' },
+        },
+      },
+    ]);
+
+    // Build the grade×topic matrix from expected combos
     const matrixMap = new Map<string, GradeTopicCount>();
-    for (const [gradeStr, subjects] of Object.entries(GRADE_TOPICS)) {
-      const grade = Number(gradeStr);
-      const topics = subjects['mathematics'] || [];
+    const targetGrades = grade
+      ? { [grade]: GRADE_TOPICS[grade] }
+      : GRADE_TOPICS;
+    for (const [gradeStr, subjects] of Object.entries(targetGrades)) {
+      const g = Number(gradeStr);
+      const topics = subjects?.['mathematics'] || [];
       for (const topic of topics) {
-        matrixMap.set(`${grade}:${topic}`, {
-          grade,
+        matrixMap.set(`${g}:${topic}`, {
+          grade: g,
           topic,
           approved: 0,
           pending: 0,
@@ -417,7 +492,125 @@ export class QuestionsService {
       count: row.count,
     }));
 
-    return { gradeTopicMatrix, byDifficulty, byFormat, summary, coverageGaps };
+    const recentCreations: RecentCreation[] = recentAgg.map((row) => ({
+      grade: row._id.grade,
+      topic: row._id.topic,
+      difficulty: row._id.difficulty || 'unknown',
+      count: row.count,
+    }));
+
+    // Build per-topic health assessment
+    const topicHealth: TopicHealth[] = [];
+    for (const entry of gradeTopicMatrix) {
+      const key = `${entry.grade}:${entry.topic}`;
+
+      // Difficulty depth (approved only)
+      const depth = { easy: 0, medium: 0, hard: 0 };
+      for (const d of difficultyAgg) {
+        if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
+          const lvl = (d._id.difficulty || '').toLowerCase();
+          if (lvl === 'easy') depth.easy = d.count;
+          else if (lvl === 'medium') depth.medium = d.count;
+          else if (lvl === 'hard') depth.hard = d.count;
+        }
+      }
+
+      // Format balance
+      const formats = { openEnded: 0, multipleChoice: 0 };
+      for (const f of formatAgg) {
+        if (f._id.grade === entry.grade && f._id.topic === entry.topic) {
+          if (f._id.format === 'multiple-choice')
+            formats.multipleChoice += f.count;
+          else formats.openEnded += f.count;
+        }
+      }
+
+      // Weekly creations
+      const weekly = { easy: 0, medium: 0, hard: 0 };
+      for (const r of recentAgg) {
+        if (r._id.grade === entry.grade && r._id.topic === entry.topic) {
+          const lvl = (r._id.difficulty || '').toLowerCase();
+          if (lvl === 'easy') weekly.easy = r.count;
+          else if (lvl === 'medium') weekly.medium = r.count;
+          else if (lvl === 'hard') weekly.hard = r.count;
+        }
+      }
+
+      // Last created
+      const lastEntry = lastCreatedAgg.find(
+        (l) => l._id.grade === entry.grade && l._id.topic === entry.topic
+      );
+
+      // Compute issues
+      const issues: string[] = [];
+      const approvalRate =
+        entry.total > 0 ? (entry.approved / entry.total) * 100 : 0;
+
+      // Criterion 1: Difficulty depth >= 50 per difficulty
+      if (depth.easy < 50) issues.push(`Easy: ${depth.easy}/50 approved`);
+      if (depth.medium < 50) issues.push(`Medium: ${depth.medium}/50 approved`);
+      if (depth.hard < 50) issues.push(`Hard: ${depth.hard}/50 approved`);
+
+      // Criterion 2: Approval rate > 80%
+      if (entry.total > 0 && approvalRate < 80) {
+        issues.push(`Approval rate ${approvalRate.toFixed(0)}% (target >80%)`);
+      }
+
+      // Criterion 3: Weekly generation >= 10 per difficulty
+      if (weekly.easy < 10) issues.push(`Weekly easy: ${weekly.easy}/10`);
+      if (weekly.medium < 10) issues.push(`Weekly medium: ${weekly.medium}/10`);
+      if (weekly.hard < 10) issues.push(`Weekly hard: ${weekly.hard}/10`);
+
+      // Criterion 4: Format balance >= 30% each
+      const totalFmt = formats.openEnded + formats.multipleChoice;
+      if (totalFmt > 0) {
+        const oePercent = (formats.openEnded / totalFmt) * 100;
+        const mcPercent = (formats.multipleChoice / totalFmt) * 100;
+        if (oePercent < 30)
+          issues.push(`Open-ended only ${oePercent.toFixed(0)}% (target ≥30%)`);
+        if (mcPercent < 30)
+          issues.push(
+            `Multiple-choice only ${mcPercent.toFixed(0)}% (target ≥30%)`
+          );
+      } else {
+        issues.push('No questions yet');
+      }
+
+      // Criterion 5: Staleness — no new questions in 14 days
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      if (
+        !lastEntry?.lastCreated ||
+        new Date(lastEntry.lastCreated) < fourteenDaysAgo
+      ) {
+        issues.push('No new questions in 14+ days');
+      }
+
+      topicHealth.push({
+        grade: entry.grade,
+        topic: entry.topic,
+        approved: entry.approved,
+        pending: entry.pending,
+        rejected: entry.rejected,
+        total: entry.total,
+        approvalRate: Math.round(approvalRate),
+        difficultyDepth: depth,
+        formatBalance: formats,
+        weeklyCreations: weekly,
+        lastCreatedAt: lastEntry?.lastCreated || null,
+        issues,
+      });
+    }
+
+    return {
+      gradeTopicMatrix,
+      byDifficulty,
+      byFormat,
+      summary,
+      coverageGaps,
+      recentCreations,
+      topicHealth,
+    };
   }
 
   async getPracticeQuestions(

@@ -128,10 +128,15 @@ export class QuestionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'teacher')
   async getAnalytics(
-    @Query('threshold') threshold?: string
+    @Query('threshold') threshold?: string,
+    @Query('grade') grade?: string
   ): Promise<QuestionAnalytics> {
     const gapThreshold = threshold ? parseInt(threshold, 10) || 10 : 10;
-    return this.questionsService.getAnalytics(gapThreshold);
+    const gradeNum = grade ? parseInt(grade, 10) : undefined;
+    return this.questionsService.getAnalytics(
+      gapThreshold,
+      gradeNum && gradeNum >= 3 && gradeNum <= 8 ? gradeNum : undefined
+    );
   }
 
   /**
