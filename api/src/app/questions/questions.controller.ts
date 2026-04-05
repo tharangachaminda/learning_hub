@@ -14,7 +14,12 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { QuestionsService, PaginatedQuestions } from './questions.service';
+import {
+  QuestionsService,
+  PaginatedQuestions,
+  QuestionAnalytics,
+  PracticeQuestionsResult,
+} from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { OllamaService } from '../ai/ollama.service';
 import { DifficultyLevel } from '../math-questions/entities/math-question.entity';
@@ -113,6 +118,50 @@ export class QuestionsController {
       })),
     }));
     return { grades };
+  }
+
+  /**
+   * Returns detailed analytics: grade×topic matrix, difficulty/format
+   * distributions, coverage gaps, and summary totals.
+   */
+  @Get('analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async getAnalytics(
+    @Query('threshold') threshold?: string
+  ): Promise<QuestionAnalytics> {
+    const gapThreshold = threshold ? parseInt(threshold, 10) || 10 : 10;
+    return this.questionsService.getAnalytics(gapThreshold);
+  }
+
+  /**
+   * Returns random approved questions for student practice.
+   * Public endpoint — no auth required.
+   */
+  @Get('practice')
+  async getPracticeQuestions(
+    @Query('grade') grade: string,
+    @Query('topic') topic: string,
+    @Query('count') count?: string,
+    @Query('difficulty') difficulty?: string
+  ): Promise<PracticeQuestionsResult> {
+    const gradeNum = parseInt(grade, 10);
+    if (!gradeNum || gradeNum < 3 || gradeNum > 8) {
+      throw new HttpException(
+        'Grade must be between 3 and 8',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    if (!topic) {
+      throw new HttpException('Topic is required', HttpStatus.BAD_REQUEST);
+    }
+    const questionCount = Math.min(parseInt(count, 10) || 10, 50);
+    return this.questionsService.getPracticeQuestions(
+      gradeNum,
+      topic.toUpperCase(),
+      questionCount,
+      difficulty
+    );
   }
 
   /**

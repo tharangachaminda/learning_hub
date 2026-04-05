@@ -339,6 +339,15 @@ export class QuestionGeneratorComponent implements OnInit {
   }
 
   /**
+   * Handles "Try a Different Topic" from the empty state.
+   * Returns to Phase 1 (controls) with state cleared.
+   */
+  onTryDifferent(): void {
+    this.emptyState.set(false);
+    this.phase.set('controls');
+  }
+
+  /**
    * Handles "Back to Dashboard" from the results screen.
    * Navigates to the student dashboard route.
    */

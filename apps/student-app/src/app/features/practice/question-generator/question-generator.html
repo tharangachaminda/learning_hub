@@ -25,8 +25,17 @@
 @if (emptyState()) {
 <div class="empty-state-card" data-testid="empty-state" role="alert">
   <p class="empty-state-text">
-    🤔 No questions found for this topic. Try a different topic!
+    📚 No practice questions are available for this topic yet. Our team is
+    working on adding more questions — check back soon!
   </p>
+  <button
+    class="btn-retry"
+    data-testid="try-different-btn"
+    (click)="onTryDifferent()"
+    type="button"
+  >
+    Try a Different Topic
+  </button>
 </div>
 }
 

@@ -7,6 +7,7 @@ import { GenerateQuestionsComponent } from './features/generate-questions/genera
 import { ReviewQueueComponent } from './features/review-queue/review-queue';
 import { QuestionDetailComponent } from './features/question-detail/question-detail';
 import { LessonsLearnedComponent } from './features/lessons-learned/lessons-learned';
+import { AnalyticsComponent } from './features/analytics/analytics';
 import { authGuard } from './guards/auth.guard';
 
 export const appRoutes: Route[] = [
@@ -14,6 +15,12 @@ export const appRoutes: Route[] = [
     path: 'dashboard',
     component: DashboardComponent,
     title: 'Admin Dashboard',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'analytics',
+    component: AnalyticsComponent,
+    title: 'Question Analytics',
     canActivate: [authGuard],
   },
   {

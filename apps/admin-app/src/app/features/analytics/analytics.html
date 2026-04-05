@@ -1,0 +1,231 @@
+<div class="analytics-container">
+  <header class="analytics-header">
+    <div class="header-left">
+      <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
+      <h1>Question Analytics</h1>
+    </div>
+  </header>
+
+  <main class="analytics-content">
+    @if (isLoading) {
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading analytics...</p>
+    </div>
+    } @if (error) {
+    <div class="error-card">
+      <p>{{ error }}</p>
+      <button (click)="loadAnalytics()">Retry</button>
+    </div>
+    } @if (analytics && !isLoading) {
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-value approved">
+          {{ analytics.summary.totalApproved }}
+        </div>
+        <div class="summary-label">Approved</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value pending">
+          {{ analytics.summary.totalPending }}
+        </div>
+        <div class="summary-label">Pending</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value rejected">
+          {{ analytics.summary.totalRejected }}
+        </div>
+        <div class="summary-label">Rejected</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value coverage">{{ getCoveragePercent() }}%</div>
+        <div class="summary-label">Coverage (&ge;10 approved)</div>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <section class="section">
+      <h2>Approved Questions Heatmap</h2>
+      <p class="section-desc">
+        Each cell shows the number of <strong>approved</strong> questions for a
+        grade/topic combination. Hover for full breakdown.
+      </p>
+      <div class="heatmap-wrapper">
+        <table class="heatmap-table">
+          <thead>
+            <tr>
+              <th class="grade-header">Grade</th>
+              @for (topic of allTopics; track topic) {
+              <th class="topic-header">
+                <span class="topic-label">{{ formatTopic(topic) }}</span>
+              </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of heatmapRows; track row.grade) {
+            <tr>
+              <td class="grade-cell">{{ row.grade }}</td>
+              @for (cell of row.cells; track cell.topic) {
+              <td
+                class="heatmap-cell"
+                [class]="cell.colorClass"
+                [title]="cell.approved === -1
+                  ? 'N/A for this grade'
+                  : 'Approved: ' + cell.approved + ' | Pending: ' + cell.pending + ' | Rejected: ' + cell.rejected + ' | Total: ' + cell.total"
+              >
+                @if (cell.approved === -1) {
+                <span class="na-text">&mdash;</span>
+                } @else { {{ cell.approved }} }
+              </td>
+              }
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="heatmap-legend">
+        <span class="legend-item"
+          ><span class="legend-swatch cell-red"></span> 0</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch cell-amber"></span> 1–9</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch cell-light-green"></span> 10–29</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch cell-green"></span> 30+</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch cell-na"></span> N/A</span
+        >
+      </div>
+    </section>
+
+    <!-- Difficulty Distribution -->
+    <section class="section">
+      <h2>Difficulty Distribution by Grade</h2>
+      <div class="distribution-table">
+        @for (row of difficultyRows; track row.grade) {
+        <div class="dist-row">
+          <span class="dist-label">Grade {{ row.grade }}</span>
+          <div class="dist-bar-container">
+            @if (row.total > 0) {
+            <div
+              class="dist-bar easy"
+              [style.width]="getBarWidth(row.easy, row.total)"
+              [title]="'Easy: ' + row.easy"
+            >
+              @if (row.easy > 0) { {{ row.easy }} }
+            </div>
+            <div
+              class="dist-bar medium"
+              [style.width]="getBarWidth(row.medium, row.total)"
+              [title]="'Medium: ' + row.medium"
+            >
+              @if (row.medium > 0) { {{ row.medium }} }
+            </div>
+            <div
+              class="dist-bar hard"
+              [style.width]="getBarWidth(row.hard, row.total)"
+              [title]="'Hard: ' + row.hard"
+            >
+              @if (row.hard > 0) { {{ row.hard }} }
+            </div>
+            } @else {
+            <span class="no-data">No questions</span>
+            }
+          </div>
+          <span class="dist-total">{{ row.total }}</span>
+        </div>
+        }
+      </div>
+      <div class="bar-legend">
+        <span class="legend-item"
+          ><span class="legend-swatch bar-easy"></span> Easy</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch bar-medium"></span> Medium</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch bar-hard"></span> Hard</span
+        >
+      </div>
+    </section>
+
+    <!-- Format Distribution -->
+    <section class="section">
+      <h2>Format Distribution by Grade</h2>
+      <div class="distribution-table">
+        @for (row of formatRows; track row.grade) {
+        <div class="dist-row">
+          <span class="dist-label">Grade {{ row.grade }}</span>
+          <div class="dist-bar-container">
+            @if (row.total > 0) {
+            <div
+              class="dist-bar open-ended"
+              [style.width]="getBarWidth(row.openEnded, row.total)"
+              [title]="'Open-ended: ' + row.openEnded"
+            >
+              @if (row.openEnded > 0) { {{ row.openEnded }} }
+            </div>
+            <div
+              class="dist-bar multiple-choice"
+              [style.width]="getBarWidth(row.multipleChoice, row.total)"
+              [title]="'Multiple-choice: ' + row.multipleChoice"
+            >
+              @if (row.multipleChoice > 0) { {{ row.multipleChoice }} }
+            </div>
+            } @else {
+            <span class="no-data">No questions</span>
+            }
+          </div>
+          <span class="dist-total">{{ row.total }}</span>
+        </div>
+        }
+      </div>
+      <div class="bar-legend">
+        <span class="legend-item"
+          ><span class="legend-swatch bar-open-ended"></span> Open-ended</span
+        >
+        <span class="legend-item"
+          ><span class="legend-swatch bar-multiple-choice"></span>
+          Multiple-choice</span
+        >
+      </div>
+    </section>
+
+    <!-- Coverage Gaps -->
+    @if (coverageGaps.length > 0) {
+    <section class="section gaps-section">
+      <h2>Coverage Gaps</h2>
+      <p class="section-desc">
+        Grade/topic combinations with fewer than 10 approved questions, sorted
+        by severity.
+      </p>
+      <div class="gaps-grid">
+        @for (gap of coverageGaps; track gap.grade + ':' + gap.topic) {
+        <div class="gap-card" [class.critical]="gap.approved === 0">
+          <div class="gap-info">
+            <span class="gap-grade">Grade {{ gap.grade }}</span>
+            <span class="gap-topic">{{ formatTopic(gap.topic) }}</span>
+            <span class="gap-approved" [class.zero]="gap.approved === 0">
+              {{ gap.approved }} approved
+            </span>
+          </div>
+          <a
+            routerLink="/generate"
+            [queryParams]="{ grade: gap.grade, topic: gap.topic }"
+            class="gap-generate-btn"
+            >Generate</a
+          >
+        </div>
+        }
+      </div>
+    </section>
+    } }
+  </main>
+</div>
