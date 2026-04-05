@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -21,6 +21,10 @@ import {
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 import { validateLatexContent } from './latex-validation.utils';
+import {
+  SemanticSearchService,
+  SearchResult,
+} from '../opensearch/semantic-search.service';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -45,9 +49,17 @@ export class OllamaService {
   /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */
   private readonly generationTimeout = 30000;
 
+  /** Similarity threshold above which a question is considered a duplicate */
+  private readonly ragDuplicateThreshold = 0.95;
+
+  /** Number of RAG examples to retrieve per generation call */
+  private readonly ragExampleLimit = 5;
+
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    @Optional()
+    private readonly semanticSearchService?: SemanticSearchService
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -173,16 +185,32 @@ export class OllamaService {
       // Use the curriculum-aware system prompt for AI generation
       let prompt = curriculumPrompt.systemPrompt;
 
+      // Retrieve RAG context from OpenSearch vector store
+      const ragContext = await this.retrieveRAGContext(
+        request.grade,
+        request.topic,
+        request.difficulty
+      );
+
+      // Append RAG examples to prompt for style/complexity reference
+      prompt += this.buildRAGPromptSection(ragContext.examples);
+
+      // Combine RAG near-duplicates with existing questions to avoid
+      const allExistingQuestions = [
+        ...(requestData.existingQuestions || []),
+        ...ragContext.duplicateQuestions,
+      ];
+
       // Append existing questions to avoid duplicates
-      if (requestData.existingQuestions?.length) {
-        prompt += `\n\nIMPORTANT: Do NOT generate any of the following questions (they already exist). Generate a COMPLETELY DIFFERENT question with different numbers:\n${requestData.existingQuestions
+      if (allExistingQuestions.length > 0) {
+        prompt += `\n\nIMPORTANT: Do NOT generate any of the following questions (they already exist). Generate a COMPLETELY DIFFERENT question with different numbers:\n${allExistingQuestions
           .map((q, i) => `${i + 1}. ${q}`)
           .join('\n')}`;
       }
 
       // Increase temperature when generating additional questions to encourage variety
-      const temperature = requestData.existingQuestions?.length
-        ? Math.min(0.7 + requestData.existingQuestions.length * 0.1, 1.2)
+      const temperature = allExistingQuestions.length
+        ? Math.min(0.7 + allExistingQuestions.length * 0.1, 1.2)
         : 0.7;
 
       // Call Ollama API for question generation
@@ -212,6 +240,9 @@ export class OllamaService {
         aiResponse,
         request
       );
+
+      // Validate that the generated question uses the correct operation
+      this.validateTopicAlignment(parsedQuestion.question, request.topic);
 
       const generationTime = Date.now() - startTime;
 
@@ -244,6 +275,74 @@ export class OllamaService {
       console.error(`LLM question generation failed: ${message}`);
       throw new Error(`LLM question generation failed: ${message}`);
     }
+  }
+
+  /**
+   * Retrieves RAG context from OpenSearch vector store for question generation.
+   * Finds semantically similar existing questions to use as examples and
+   * detects near-duplicate questions that should be avoided.
+   *
+   * @param grade - Student grade level
+   * @param topic - Mathematical topic (ADDITION, etc.)
+   * @param difficulty - Question difficulty level
+   * @returns Object with example questions and duplicate detection flag
+   */
+  private async retrieveRAGContext(
+    grade: number,
+    topic: string,
+    difficulty: string
+  ): Promise<{ examples: SearchResult[]; duplicateQuestions: string[] }> {
+    if (!this.semanticSearchService) {
+      return { examples: [], duplicateQuestions: [] };
+    }
+
+    try {
+      const searchQuery = `${topic} grade ${grade} ${difficulty} math question`;
+      const results = await this.semanticSearchService.findSimilar(
+        searchQuery,
+        {
+          grade,
+          topic: topic.toLowerCase(),
+          limit: this.ragExampleLimit,
+        }
+      );
+
+      // Identify near-duplicate questions (similarity > threshold)
+      const duplicateQuestions = results
+        .filter((r) => r.similarityScore > this.ragDuplicateThreshold)
+        .map((r) => r.questionText);
+
+      console.log(
+        `[OllamaService] RAG context: ${results.length} examples found, ${duplicateQuestions.length} near-duplicates`
+      );
+
+      return { examples: results, duplicateQuestions };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[OllamaService] RAG retrieval failed (non-blocking): ${message}`
+      );
+      return { examples: [], duplicateQuestions: [] };
+    }
+  }
+
+  /**
+   * Builds the RAG context section to append to the LLM prompt.
+   * Provides example questions from the vector store for the LLM to reference.
+   *
+   * @param examples - Similar questions retrieved from OpenSearch
+   * @returns Formatted prompt section string, or empty if no examples
+   */
+  private buildRAGPromptSection(examples: SearchResult[]): string {
+    if (examples.length === 0) return '';
+
+    const exampleLines = examples
+      .map((ex, i) => `${i + 1}. "${ex.questionText}" (answer: ${ex.answer})`)
+      .join('\n');
+
+    return `\n\nREFERENCE EXAMPLES (from question bank):
+The following are existing questions at this level. Use them as STYLE and COMPLEXITY reference to match the expected quality, but generate a COMPLETELY DIFFERENT question with different numbers and context:
+${exampleLines}`;
   }
 
   /**
@@ -305,6 +404,55 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   }
 
   /**
+   * Validates that a generated question aligns with the requested topic.
+   * Detects off-topic operator usage (e.g., multiplication in a subtraction request).
+   * Throws an error if the question uses a forbidden operator as the primary operation.
+   */
+  private validateTopicAlignment(question: string, topic: string): void {
+    const topicUpper = topic.toUpperCase();
+
+    // Map topics to their expected and forbidden operator patterns
+    const operatorPatterns: Record<
+      string,
+      { forbidden: RegExp[]; label: string }
+    > = {
+      ADDITION: {
+        forbidden: [/\\times/i, /\\div/i, /×/i, /÷/i],
+        label: 'addition (+)',
+      },
+      SUBTRACTION: {
+        forbidden: [/\\times/i, /\\div/i, /×/i, /÷/i, /\*(?!\*)/, /\//],
+        label: 'subtraction (-)',
+      },
+      MULTIPLICATION: {
+        forbidden: [/\\div/i, /÷/i],
+        label: 'multiplication (×)',
+      },
+      DIVISION: {
+        forbidden: [/\\times/i, /×/i],
+        label: 'division (÷)',
+      },
+    };
+
+    const rules = operatorPatterns[topicUpper];
+    if (!rules) return; // No validation for non-basic topics
+
+    for (const pattern of rules.forbidden) {
+      if (pattern.test(question)) {
+        console.warn(
+          `[OllamaService] Topic mismatch: requested ${topicUpper} but question contains forbidden operator. Question: ${question.substring(
+            0,
+            100
+          )}`
+        );
+        throw new Error(
+          `Generated question does not match requested topic (${rules.label}). Retrying.`
+        );
+      }
+    }
+  }
+
+  /**
    * Parses AI response using Zod validation for structured output.
    */
   private parseAIResponseWithValidation(
@@ -319,7 +467,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
           this.formatQuestionForMath(structured.question, request.topic)
         ),
         answer: structured.answer,
-        explanation: this.normalizeLatexDelimiters(structured.explanation),
+        explanation: this.stripLatex(structured.explanation),
       };
     }
 
@@ -349,7 +497,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     return {
       question: this.normalizeLatexDelimiters(question),
       answer,
-      explanation: this.normalizeLatexDelimiters(explanation),
+      explanation: this.stripLatex(explanation),
     };
   }
 
@@ -377,23 +525,30 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
    * Normalizes LaTeX delimiters in text generated by LLMs.
    *
    * Fixes common LLM output issues:
+   * - Converts $$...$$ to $...$ (double to single dollar)
    * - Missing closing `$` (e.g., `$8 \div 4 = ?` → `$8 \div 4 = ?$`)
    * - Bare LaTeX commands without any `$` delimiters
+   * - Removes \text{} commands (they break rendering with mixed content)
    */
   private normalizeLatexDelimiters(text: string): string {
     if (!text) return text;
 
     const latexCommandRe =
-      /\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over|text)\b/;
+      /\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over)\b/;
 
-    // Strip $$ block pairs into placeholders so they don't interfere
-    const blocks: string[] = [];
-    let processed = text.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
-      blocks.push(match);
-      return `\0BLOCK${blocks.length - 1}\0`;
-    });
+    // Convert $$...$$ to $...$
+    let processed = text.replace(
+      /\$\$([\s\S]*?)\$\$/g,
+      (_, inner) => `$${inner}$`
+    );
 
-    // Count remaining single $ signs
+    // Remove \text{...} commands — replace with just the inner text
+    processed = processed.replace(/\\text\{([^}]*)\}/g, '$1');
+
+    // Remove \, (thin space) — replace with regular space
+    processed = processed.replace(/\\,/g, ' ');
+
+    // Count $ signs and fix odd count
     const dollarPositions: number[] = [];
     for (let i = 0; i < processed.length; i++) {
       if (processed[i] === '$') {
@@ -409,20 +564,35 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     // If no $ at all but text contains LaTeX commands, wrap the math portion
     if (!processed.includes('$') && latexCommandRe.test(processed)) {
       processed = processed.replace(
-        /((?:\d+\s*)?\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over|text)\b[^$]*)/,
+        /((?:\d+\s*)?\\(?:div|times|frac|sqrt|cdot|pm|mp|leq|geq|neq|approx|sum|prod|int|left|right|over)\b[^$]*)/,
         (match) => `$${match.trim()}$`
       );
-    }
-
-    // Restore block placeholders
-    for (let i = 0; i < blocks.length; i++) {
-      processed = processed.replace(`\0BLOCK${i}\0`, blocks[i]);
     }
 
     return processed;
   }
 
   /**
+   * Strips all LaTeX delimiters and commands from text, returning plain text.
+   * Used for explanation fields where LaTeX rendering causes garbled output.
+   */
+  private stripLatex(text: string): string {
+    if (!text) return text;
+
+    return text
+      .replace(/\$\$([\s\S]*?)\$\$/g, '$1') // Strip $$...$$
+      .replace(/\$(.*?)\$/g, '$1') // Strip $...$
+      .replace(/\\text\{([^}]*)\}/g, '$1') // \text{foo} → foo
+      .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2') // \frac{a}{b} → a/b
+      .replace(/\\times/g, '×')
+      .replace(/\\div/g, '÷')
+      .replace(/\\cdot/g, '·')
+      .replace(/\\sqrt\{([^}]*)\}/g, '√$1')
+      .replace(/\\,/g, ' ')
+      .replace(/\\boxed\{([^}]*)\}/g, '$1')
+      .replace(/\\/g, ''); // Remove any remaining backslashes
+  }
+
   /**
    * Validates the mathematical accuracy and educational appropriateness of AI-generated questions.
    *

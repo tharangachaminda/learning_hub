@@ -38,6 +38,7 @@ import {
   GRADE_TOPICS,
   QUESTION_TYPE_DISPLAY_NAMES,
 } from '../ai/curriculum.types';
+import { QuestionIndexingService } from '../opensearch/question-indexing.service';
 
 /**
  * REST API controller for persisted question management.
@@ -66,7 +67,8 @@ export class QuestionsController {
   constructor(
     private readonly questionsService: QuestionsService,
     private readonly mathGenerator: MathQuestionGenerator,
-    private readonly ollamaService: OllamaService
+    private readonly ollamaService: OllamaService,
+    private readonly questionIndexingService: QuestionIndexingService
   ) {}
 
   /**
@@ -199,6 +201,21 @@ export class QuestionsController {
 
     // Batch persist — duplicates are silently skipped
     const stored = await this.questionsService.createMany(questionDtos);
+
+    // Index newly generated questions into OpenSearch for future RAG retrieval
+    if (generated.length > 0) {
+      try {
+        await this.questionIndexingService.indexQuestions(generated);
+        this.logger.log(
+          `Indexed ${generated.length} questions into OpenSearch`
+        );
+      } catch (indexError) {
+        // Non-blocking: questions are stored in MongoDB even if indexing fails
+        this.logger.warn(
+          `OpenSearch indexing failed (questions still saved): ${indexError}`
+        );
+      }
+    }
 
     this.logger.log(
       `Batch complete: ${stored.length}/${
@@ -443,13 +460,36 @@ Respond in VALID JSON format only:
     stepByStepSolution: string[];
     options: string[];
   } {
+    this.logger.debug(
+      `Raw LLM refinement response (first 500 chars): ${response.substring(
+        0,
+        500
+      )}`
+    );
+
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Strip markdown code fences if present (```json ... ``` or ``` ... ```)
+      const cleaned = response
+        .replace(/```(?:json)?\s*/gi, '')
+        .replace(/```/g, '');
+
+      // Extract the outermost JSON object containing "questionText"
+      const jsonMatch = cleaned.match(/\{[\s\S]*?"questionText"[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in LLM response');
+        throw new Error(
+          `No JSON with "questionText" found in LLM response: ${response.substring(
+            0,
+            200
+          )}`
+        );
       }
-      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Sanitize control characters that break JSON.parse — replace with spaces
+      // (structural whitespace and in-string newlines are both safe as spaces)
+      // eslint-disable-next-line no-control-regex
+      const sanitized = jsonMatch[0].replace(/[\u0000-\u001F\u007F]/g, ' ');
+
+      const parsed = JSON.parse(sanitized);
       return {
         questionText: parsed.questionText || '',
         answer: parsed.answer ?? '',

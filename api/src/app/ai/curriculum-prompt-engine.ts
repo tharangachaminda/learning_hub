@@ -367,6 +367,9 @@ QUESTION REQUIREMENTS:
     }
 8. Match the ${request.difficulty.toUpperCase()} difficulty level described above
 
+STRICT TOPIC ENFORCEMENT:
+${this.buildTopicEnforcement(request.topic)}
+
 ${this.buildQuestionFormatRules(request)}
 PROHIBITED QUESTION PATTERNS:
 - NEVER generate vague or self-referential questions like "What is the result of this MULTIPLICATION problem?" or "Solve this ADDITION problem" without an actual math expression.
@@ -375,13 +378,18 @@ PROHIBITED QUESTION PATTERNS:
 - Do NOT generate questions that just name the operation without providing numbers to work with.
 
 MANDATORY LATEX FORMATTING:
-Every number and every mathematical expression MUST be wrapped in LaTeX delimiters.
-- Use $...$ for all inline math
-- Use $$...$$ for standalone equations
-- This includes ALL numbers, operators, fractions, and results — no exceptions
-- LaTeX commands: \\frac{a}{b}, \\times, \\div, ^, \\sqrt{}, \\text{} for units
-- CORRECT: "What is $5 + 3$?" | "There are $12$ apples" | "$\\frac{3}{4} + \\frac{1}{2}$"
-- WRONG: "What is 5 + 3?" | "There are 12 apples" | "3/4 + 1/2"
+Use $...$ ONLY around mathematical expressions and operators — NOT around regular words or sentences.
+- Wrap math expressions: $5 + 3$, $12 \\times 4$, $\\frac{3}{4}$
+- Wrap standalone numbers in questions: $12$ apples, $25$ birds
+- Do NOT wrap regular text, words, or sentences in $...$
+- Do NOT use $$...$$ (double dollar) — always use single $...$
+- Do NOT use \\text{} inside math — write plain text outside of $ delimiters
+- CORRECT: "What is $5 + 3$?" | "There are $12$ apples"
+- CORRECT: "$25 - 12 = ?$"
+- WRONG: "$25 dollars - 12 dollars = ?$" (do not put words inside math)
+- WRONG: "$$25 - 12 = ?$$" (do not use double dollar)
+- WRONG: "$25 \\text{dollar} - 12 = ?$" (do not use \\text inside math)
+- For the explanation field: write plain text with NO LaTeX. Just explain in simple sentences.
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
@@ -449,5 +457,49 @@ Keep the format direct: a math expression followed by "= ?".
       default:
         return '';
     }
+  }
+
+  /**
+   * Builds explicit topic enforcement rules to prevent off-topic generation.
+   * Maps each topic to its allowed operator(s) and forbidden alternatives.
+   *
+   * @param topic - The requested mathematical topic
+   * @returns Formatted enforcement block for the system prompt
+   */
+  private buildTopicEnforcement(topic: string): string {
+    const operatorMap: Record<string, { allowed: string; forbidden: string }> =
+      {
+        ADDITION: {
+          allowed: 'addition (+)',
+          forbidden:
+            'Do NOT use subtraction (-), multiplication (×), or division (÷)',
+        },
+        SUBTRACTION: {
+          allowed: 'subtraction (-)',
+          forbidden:
+            'Do NOT use addition (+), multiplication (×), or division (÷)',
+        },
+        MULTIPLICATION: {
+          allowed: 'multiplication (×)',
+          forbidden:
+            'Do NOT use addition (+), subtraction (-), or division (÷)',
+        },
+        DIVISION: {
+          allowed: 'division (÷)',
+          forbidden:
+            'Do NOT use addition (+), subtraction (-), or multiplication (×)',
+        },
+      };
+
+    const topicUpper = topic.toUpperCase();
+    const enforcement = operatorMap[topicUpper];
+
+    if (enforcement) {
+      return `CRITICAL: The question MUST use ONLY ${enforcement.allowed} as the primary mathematical operation.
+${enforcement.forbidden} as the main operation, even if they are "related" or "inverse" operations.
+The core computation the student performs MUST be ${enforcement.allowed}.`;
+    }
+
+    return `The question MUST focus on the topic: ${topic}. Do not generate questions about other topics.`;
   }
 }
