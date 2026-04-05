@@ -367,6 +367,9 @@ QUESTION REQUIREMENTS:
     }
 8. Match the ${request.difficulty.toUpperCase()} difficulty level described above
 
+STRICT TOPIC ENFORCEMENT:
+${this.buildTopicEnforcement(request.topic)}
+
 ${this.buildQuestionFormatRules(request)}
 PROHIBITED QUESTION PATTERNS:
 - NEVER generate vague or self-referential questions like "What is the result of this MULTIPLICATION problem?" or "Solve this ADDITION problem" without an actual math expression.
@@ -449,5 +452,49 @@ Keep the format direct: a math expression followed by "= ?".
       default:
         return '';
     }
+  }
+
+  /**
+   * Builds explicit topic enforcement rules to prevent off-topic generation.
+   * Maps each topic to its allowed operator(s) and forbidden alternatives.
+   *
+   * @param topic - The requested mathematical topic
+   * @returns Formatted enforcement block for the system prompt
+   */
+  private buildTopicEnforcement(topic: string): string {
+    const operatorMap: Record<string, { allowed: string; forbidden: string }> =
+      {
+        ADDITION: {
+          allowed: 'addition (+)',
+          forbidden:
+            'Do NOT use subtraction (-), multiplication (×), or division (÷)',
+        },
+        SUBTRACTION: {
+          allowed: 'subtraction (-)',
+          forbidden:
+            'Do NOT use addition (+), multiplication (×), or division (÷)',
+        },
+        MULTIPLICATION: {
+          allowed: 'multiplication (×)',
+          forbidden:
+            'Do NOT use addition (+), subtraction (-), or division (÷)',
+        },
+        DIVISION: {
+          allowed: 'division (÷)',
+          forbidden:
+            'Do NOT use addition (+), subtraction (-), or multiplication (×)',
+        },
+      };
+
+    const topicUpper = topic.toUpperCase();
+    const enforcement = operatorMap[topicUpper];
+
+    if (enforcement) {
+      return `CRITICAL: The question MUST use ONLY ${enforcement.allowed} as the primary mathematical operation.
+${enforcement.forbidden} as the main operation, even if they are "related" or "inverse" operations.
+The core computation the student performs MUST be ${enforcement.allowed}.`;
+    }
+
+    return `The question MUST focus on the topic: ${topic}. Do not generate questions about other topics.`;
   }
 }

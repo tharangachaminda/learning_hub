@@ -241,6 +241,9 @@ export class OllamaService {
         request
       );
 
+      // Validate that the generated question uses the correct operation
+      this.validateTopicAlignment(parsedQuestion.question, request.topic);
+
       const generationTime = Date.now() - startTime;
 
       // Validate LaTeX in generated content (REQ-QG-046)
@@ -398,6 +401,55 @@ Example for Grade 3 addition in New Zealand:
 QUESTION: ${randomName} collected 8 shells at Piha Beach and found 5 more near the rocks. How many shells does ${randomName} have altogether? 8 + 5 = ?
 ANSWER: 13
 EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${randomName} has 13 shells from the beach.`;
+  }
+
+  /**
+   * Validates that a generated question aligns with the requested topic.
+   * Detects off-topic operator usage (e.g., multiplication in a subtraction request).
+   * Throws an error if the question uses a forbidden operator as the primary operation.
+   */
+  private validateTopicAlignment(question: string, topic: string): void {
+    const topicUpper = topic.toUpperCase();
+
+    // Map topics to their expected and forbidden operator patterns
+    const operatorPatterns: Record<
+      string,
+      { forbidden: RegExp[]; label: string }
+    > = {
+      ADDITION: {
+        forbidden: [/\\times/i, /\\div/i, /×/i, /÷/i],
+        label: 'addition (+)',
+      },
+      SUBTRACTION: {
+        forbidden: [/\\times/i, /\\div/i, /×/i, /÷/i, /\*(?!\*)/, /\//],
+        label: 'subtraction (-)',
+      },
+      MULTIPLICATION: {
+        forbidden: [/\\div/i, /÷/i],
+        label: 'multiplication (×)',
+      },
+      DIVISION: {
+        forbidden: [/\\times/i, /×/i],
+        label: 'division (÷)',
+      },
+    };
+
+    const rules = operatorPatterns[topicUpper];
+    if (!rules) return; // No validation for non-basic topics
+
+    for (const pattern of rules.forbidden) {
+      if (pattern.test(question)) {
+        console.warn(
+          `[OllamaService] Topic mismatch: requested ${topicUpper} but question contains forbidden operator. Question: ${question.substring(
+            0,
+            100
+          )}`
+        );
+        throw new Error(
+          `Generated question does not match requested topic (${rules.label}). Retrying.`
+        );
+      }
+    }
   }
 
   /**
