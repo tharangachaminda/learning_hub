@@ -1,0 +1,61 @@
+<div class="latex-editor">
+  <!-- Toolbar -->
+  <div class="editor-toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">Text</span>
+      <button
+        *ngFor="let tool of textTools"
+        class="toolbar-btn"
+        [class.bold]="tool.label === 'B'"
+        [class.italic]="tool.label === 'I'"
+        [class.underline]="tool.label === 'U'"
+        [title]="tool.title"
+        (click)="applyTool(tool)"
+        type="button"
+      >{{ tool.label }}</button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group">
+      <span class="toolbar-label">Math</span>
+      <button
+        *ngFor="let tool of mathTools"
+        class="toolbar-btn"
+        [title]="tool.title"
+        (click)="applyTool(tool)"
+        type="button"
+      >{{ tool.label }}</button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group">
+      <span class="toolbar-label">Symbols</span>
+      <button
+        *ngFor="let tool of symbolTools"
+        class="toolbar-btn symbol-btn"
+        [title]="tool.title"
+        (click)="applyTool(tool)"
+        type="button"
+      >{{ tool.label }}</button>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <button
+      class="toolbar-btn preview-toggle"
+      [class.active]="showPreview"
+      (click)="togglePreview()"
+      title="Toggle preview"
+      type="button"
+    >👁 Preview</button>
+  </div>
+
+  <!-- Editor + Preview split -->
+  <div class="editor-split" [class.preview-hidden]="!showPreview">
+    <div class="editor-pane">
+      <div #editorContainer class="cm-host"></div>
+    </div>
+    <div class="preview-pane" *ngIf="showPreview">
+      <div class="preview-label">Preview</div>
+      <div class="preview-content">
+        <app-katex-render [content]="previewText" />
+      </div>
+    </div>
+  </div>
+</div>

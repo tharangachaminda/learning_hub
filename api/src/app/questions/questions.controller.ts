@@ -32,6 +32,7 @@ import { FindQuestionsDto } from './dto/find-questions.dto';
 import { BatchGenerateQuestionsDto } from './dto/batch-generate-questions.dto';
 import { ReviewQuestionDto } from './dto/review-question.dto';
 import { RefineQuestionDto } from './dto/refine-question.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import {
   CreateLessonLearnedDto,
   ToggleLessonLearnedDto,
@@ -425,6 +426,24 @@ export class QuestionsController {
   async deleteQuestion(@Param('id') id: string) {
     await this.questionsService.deleteQuestion(id);
     return { deleted: true };
+  }
+
+  // ── Direct Content Editing ─────────────────────────────────────
+
+  /**
+   * Directly updates a question's editable content fields.
+   * Resets status to pending for re-review.
+   */
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async updateQuestion(
+    @Param('id') id: string,
+    @Body() dto: UpdateQuestionDto,
+    @Request() req: any
+  ) {
+    const editedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.questionsService.updateQuestionContent(id, dto, editedBy);
   }
 
   // ── Lessons Learned (mutations) ─────────────────────────────

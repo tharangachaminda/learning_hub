@@ -850,6 +850,59 @@ export class QuestionsService {
   }
 
   /**
+   * Directly updates a question's editable content fields.
+   * Resets status to pending so the question goes through review again.
+   * Records the edit in refinement history for auditability.
+   */
+  async updateQuestionContent(
+    id: string,
+    updates: {
+      questionText?: string;
+      explanation?: string;
+      stepByStepSolution?: string[];
+    },
+    editedBy: string
+  ): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    // Record edit in refinement history for auditability
+    const entry = {
+      instruction: 'Manual edit',
+      previousQuestionText: question.questionText,
+      previousAnswer: question.answer,
+      refinedQuestionText: updates.questionText ?? question.questionText,
+      refinedAnswer: question.answer,
+      refinedBy: editedBy,
+      refinedAt: new Date(),
+    };
+    question.refinementHistory = question.refinementHistory || [];
+    question.refinementHistory.push(entry);
+
+    // Apply updates
+    if (updates.questionText !== undefined) {
+      question.questionText = updates.questionText;
+    }
+    if (updates.explanation !== undefined) {
+      question.explanation = updates.explanation;
+    }
+    if (updates.stepByStepSolution !== undefined) {
+      question.stepByStepSolution = updates.stepByStepSolution;
+    }
+
+    // Reset to pending for re-review
+    question.status = QuestionStatus.PENDING;
+    question.reviewedBy = undefined;
+    question.reviewedAt = undefined;
+
+    await question.save();
+    this.logger.log(`Question ${id} manually edited by ${editedBy}`);
+    return question;
+  }
+
+  /**
    * Permanently deletes a question by ID.
    */
   async deleteQuestion(id: string): Promise<void> {
