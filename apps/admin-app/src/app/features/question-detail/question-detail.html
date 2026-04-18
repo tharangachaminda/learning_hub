@@ -40,7 +40,9 @@
           <span class="badge cat-badge" *ngIf="question.category"
             >{{ question.category }}</span
           >
-          <span class="badge diff-badge" *ngIf="question.metadata?.difficulty"
+          <span
+            class="badge diff-badge"
+            *ngIf="question.metadata?.difficulty"
             [ngClass]="'diff-' + question.metadata.difficulty"
             >{{ question.metadata.difficulty }}</span
           >
