@@ -76,6 +76,9 @@ export class KatexRenderComponent {
       }
     );
 
+    // Convert newlines to <br> for HTML rendering
+    result = result.replace(/\n/g, '<br>');
+
     return result;
   }
 

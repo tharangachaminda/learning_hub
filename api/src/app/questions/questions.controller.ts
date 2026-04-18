@@ -32,6 +32,7 @@ import { FindQuestionsDto } from './dto/find-questions.dto';
 import { BatchGenerateQuestionsDto } from './dto/batch-generate-questions.dto';
 import { ReviewQuestionDto } from './dto/review-question.dto';
 import { RefineQuestionDto } from './dto/refine-question.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import {
   CreateLessonLearnedDto,
   ToggleLessonLearnedDto,
@@ -160,7 +161,7 @@ export class QuestionsController {
     if (!topic) {
       throw new HttpException('Topic is required', HttpStatus.BAD_REQUEST);
     }
-    const questionCount = Math.min(parseInt(count, 10) || 10, 50);
+    const questionCount = Math.min(parseInt(count ?? '10', 10) || 10, 50);
     return this.questionsService.getPracticeQuestions(
       gradeNum,
       topic.toUpperCase(),
@@ -291,7 +292,7 @@ export class QuestionsController {
   async reviewQuestion(
     @Param('id') id: string,
     @Body() dto: ReviewQuestionDto,
-    @Request() req: any
+    @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
     return this.questionsService.reviewQuestion(
@@ -315,7 +316,7 @@ export class QuestionsController {
       status: QuestionStatus;
       reviewNotes?: string;
     },
-    @Request() req: any
+    @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
     const results = await Promise.allSettled(
@@ -378,10 +379,12 @@ export class QuestionsController {
         instruction: dto.instruction,
       };
     } catch (error) {
-      this.logger.error(
-        `Refinement failed for question ${id}: ${error.message}`
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Refinement failed for question ${id}: ${message}`);
+      throw new HttpException(
+        `Refinement failed: ${message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
-      throw error;
     }
   }
 
@@ -402,7 +405,7 @@ export class QuestionsController {
       options?: string[];
       instruction: string;
     },
-    @Request() req: any
+    @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const refinedBy = req.user?.email || req.user?.userId || 'unknown';
     return this.questionsService.applyRefinement(
@@ -427,6 +430,24 @@ export class QuestionsController {
     return { deleted: true };
   }
 
+  // ── Direct Content Editing ─────────────────────────────────────
+
+  /**
+   * Directly updates a question's editable content fields.
+   * Resets status to pending for re-review.
+   */
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async updateQuestion(
+    @Param('id') id: string,
+    @Body() dto: UpdateQuestionDto,
+    @Request() req: { user?: { email?: string; userId?: string } }
+  ) {
+    const editedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.questionsService.updateQuestionContent(id, dto, editedBy);
+  }
+
   // ── Lessons Learned (mutations) ─────────────────────────────
 
   @Post('lessons-learned')
@@ -434,7 +455,7 @@ export class QuestionsController {
   @Roles('admin', 'teacher')
   async createLessonLearned(
     @Body() dto: CreateLessonLearnedDto,
-    @Request() req: any
+    @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const recordedBy = req.user?.email || req.user?.userId || 'unknown';
     return this.questionsService.createLessonLearned(dto, recordedBy);
@@ -473,6 +494,7 @@ CURRENT QUESTION:
 - Explanation: ${question.explanation || 'None'}
 - Grade: ${question.grade}
 - Topic: ${question.topic}
+- Difficulty: ${question.metadata?.difficulty || 'medium'}
 - Format: ${question.format}`;
 
     if (question.options?.length) {
@@ -493,7 +515,11 @@ ${instruction}`;
 
     prompt += `
 
-TASK: Refine the question according to the reviewer's instruction. Maintain curriculum alignment for Grade ${question.grade} NZ Mathematics.
+TASK: Refine the question according to the reviewer's instruction. Maintain curriculum alignment for Grade ${
+      question.grade
+    } NZ Mathematics. Keep the difficulty level at "${
+      question.metadata?.difficulty || 'medium'
+    }" unless the instruction says otherwise.
 
 Respond in VALID JSON format only:
 {
@@ -571,7 +597,9 @@ IMPORTANT LaTeX rules:
       };
     } catch (error) {
       this.logger.error(
-        `Failed to parse refinement response: ${error.message}`
+        `Failed to parse refinement response: ${
+          error instanceof Error ? error.message : error
+        }`
       );
       throw new Error(
         'Failed to parse LLM refinement response. Please try again.'

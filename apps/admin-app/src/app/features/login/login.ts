@@ -20,6 +20,7 @@ export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
   isLoading = false;
   loginError: string | null = null;
+  showPassword = false;
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);

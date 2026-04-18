@@ -444,6 +444,17 @@ export class AuthService {
     );
   }
 
+  updateQuestion(
+    id: string,
+    data: {
+      questionText?: string;
+      explanation?: string;
+      stepByStepSolution?: string[];
+    }
+  ): Observable<QuestionItem> {
+    return this.http.patch<QuestionItem>(`${this.questionsApiUrl}/${id}`, data);
+  }
+
   // ── Lessons Learned ────────────────────────────────────────
 
   getLessonsLearned(filters?: {

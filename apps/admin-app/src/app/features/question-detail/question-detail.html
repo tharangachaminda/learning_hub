@@ -26,27 +26,60 @@
 
   <div class="detail-content" *ngIf="!isLoading && question">
     <!-- Main question card -->
-    <div class="question-card">
+    <div class="question-card" [class.editing]="isEditing">
       <div class="card-header">
         <div class="question-badges">
           <span class="badge grade-badge">Grade {{ question.grade }}</span>
           <span class="badge topic-badge">{{ question.topic }}</span>
-          <span class="badge" [ngClass]="getStatusClass(question.status)"
-            >{{ question.status }}</span
+          <span
+            class="badge status-indicator"
+            [ngClass]="getStatusClass(question.status)"
+            >⬤ {{ question.status }}</span
           >
           <span class="badge format-badge">{{ question.format }}</span>
           <span class="badge cat-badge" *ngIf="question.category"
             >{{ question.category }}</span
           >
+          <span
+            class="badge diff-badge"
+            *ngIf="question.metadata?.difficulty"
+            [ngClass]="'diff-' + question.metadata.difficulty"
+            >{{ question.metadata.difficulty }}</span
+          >
         </div>
+        <button
+          *ngIf="!isEditing"
+          class="btn btn-edit"
+          (click)="startEditing()"
+          title="Edit question content"
+        >
+          ✎ Edit
+        </button>
+      </div>
+
+      <!-- Edit mode notice -->
+      <div class="edit-notice" *ngIf="isEditing">
+        <span class="edit-notice-icon">✎</span>
+        Editing mode — saving will reset the status to
+        <strong>pending</strong> for re-review.
       </div>
 
       <div class="card-body">
+        <!-- Question Text -->
         <div class="field-group">
           <span class="field-label">Question</span>
-          <p class="question-text">
-            <app-katex-render [content]="question.questionText" />
-          </p>
+          <ng-container *ngIf="!isEditing">
+            <p class="question-text">
+              <app-katex-render [content]="question.questionText" />
+            </p>
+          </ng-container>
+          <app-latex-editor
+            *ngIf="isEditing"
+            [content]="editQuestionText"
+            [rows]="4"
+            placeholder="Enter question text with LaTeX..."
+            (contentChange)="editQuestionText = $event"
+          />
         </div>
 
         <div class="field-row">
@@ -69,14 +102,25 @@
           </div>
         </div>
 
+        <!-- Explanation -->
         <div class="field-group">
           <span class="field-label">Explanation</span>
-          <p><app-katex-render [content]="question.explanation" /></p>
+          <ng-container *ngIf="!isEditing">
+            <p><app-katex-render [content]="question.explanation" /></p>
+          </ng-container>
+          <app-latex-editor
+            *ngIf="isEditing"
+            [content]="editExplanation"
+            [rows]="4"
+            placeholder="Enter explanation with LaTeX..."
+            (contentChange)="editExplanation = $event"
+          />
         </div>
 
+        <!-- Step-by-Step Solution -->
         <div
           class="field-group"
-          *ngIf="question.stepByStepSolution && question.stepByStepSolution.length > 0"
+          *ngIf="!isEditing && question.stepByStepSolution && question.stepByStepSolution.length > 0"
         >
           <span class="field-label">Step-by-Step Solution</span>
           <ol class="steps-list">
@@ -84,6 +128,75 @@
               <app-katex-render [content]="step" />
             </li>
           </ol>
+        </div>
+
+        <div class="field-group" *ngIf="isEditing">
+          <span class="field-label">Step-by-Step Solution</span>
+          <div class="steps-editor">
+            <div
+              class="step-item"
+              *ngFor="let step of editSteps; let i = index; trackBy: trackByIndex"
+            >
+              <div class="step-header">
+                <span class="step-num">Step {{ i + 1 }}</span>
+                <div class="step-actions">
+                  <button
+                    class="btn-icon"
+                    title="Move up"
+                    (click)="moveStep(i, 'up')"
+                    [disabled]="i === 0"
+                    type="button"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    class="btn-icon"
+                    title="Move down"
+                    (click)="moveStep(i, 'down')"
+                    [disabled]="i === editSteps.length - 1"
+                    type="button"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    class="btn-icon btn-icon-danger"
+                    title="Remove step"
+                    (click)="removeStep(i)"
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <app-latex-editor
+                [content]="step"
+                [rows]="2"
+                placeholder="Enter step content..."
+                (contentChange)="updateStep(i, $event)"
+              />
+            </div>
+            <button class="btn btn-add-step" (click)="addStep()" type="button">
+              + Add Step
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit mode save/cancel -->
+        <div class="edit-actions" *ngIf="isEditing">
+          <button
+            class="btn btn-approve"
+            (click)="saveEdits()"
+            [disabled]="isSaving"
+          >
+            {{ isSaving ? 'Saving…' : 'Save Changes' }}
+          </button>
+          <button
+            class="btn btn-secondary"
+            (click)="cancelEditing()"
+            [disabled]="isSaving"
+          >
+            Cancel
+          </button>
         </div>
 
         <div class="field-group meta-block">

@@ -8,11 +8,18 @@ import {
   RefinementPreview,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
+import { LatexEditorComponent } from '../../shared/latex-editor/latex-editor';
 
 @Component({
   selector: 'app-question-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, KatexRenderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    KatexRenderComponent,
+    LatexEditorComponent,
+  ],
   templateUrl: './question-detail.html',
   styleUrl: './question-detail.scss',
 })
@@ -32,6 +39,13 @@ export class QuestionDetailComponent implements OnInit {
   // Review
   reviewNotes = '';
   isReviewing = false;
+
+  // Edit mode
+  isEditing = false;
+  isSaving = false;
+  editQuestionText = '';
+  editExplanation = '';
+  editSteps: string[] = [];
 
   // Lesson learned
   showLessonForm = false;
@@ -281,12 +295,80 @@ export class QuestionDetailComponent implements OnInit {
     });
   }
 
+  // ── Edit Mode ──────────────────────────────────
+
+  startEditing(): void {
+    if (!this.question) return;
+    this.editQuestionText = this.question.questionText;
+    this.editExplanation = this.question.explanation || '';
+    this.editSteps = this.question.stepByStepSolution
+      ? [...this.question.stepByStepSolution]
+      : [];
+    this.isEditing = true;
+  }
+
+  cancelEditing(): void {
+    this.isEditing = false;
+    this.editQuestionText = '';
+    this.editExplanation = '';
+    this.editSteps = [];
+  }
+
+  saveEdits(): void {
+    if (!this.question) return;
+    this.isSaving = true;
+    this.error = null;
+    this.authService
+      .updateQuestion(this.questionId, {
+        questionText: this.editQuestionText,
+        explanation: this.editExplanation,
+        stepByStepSolution: this.editSteps,
+      })
+      .subscribe({
+        next: () => {
+          this.success =
+            'Question updated. Status reset to pending for re-review.';
+          this.isSaving = false;
+          this.isEditing = false;
+          this.loadQuestion();
+        },
+        error: () => {
+          this.error = 'Failed to save changes.';
+          this.isSaving = false;
+        },
+      });
+  }
+
+  addStep(): void {
+    this.editSteps.push('');
+  }
+
+  removeStep(index: number): void {
+    this.editSteps.splice(index, 1);
+  }
+
+  moveStep(index: number, direction: 'up' | 'down'): void {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= this.editSteps.length) return;
+    const temp = this.editSteps[index];
+    this.editSteps[index] = this.editSteps[newIndex];
+    this.editSteps[newIndex] = temp;
+  }
+
+  updateStep(index: number, value: string): void {
+    this.editSteps[index] = value;
+  }
+
   backToQueue(): void {
     this.router.navigate(['/review']);
   }
 
   getStatusClass(status: string): string {
     return `status-${status}`;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 
   logout(): void {
