@@ -152,7 +152,7 @@
             <strong><app-katex-render [content]="'' + q.answer" /></strong>
           </td>
           <td class="col-grade">{{ q.grade }}</td>
-          <td class="col-topic">{{ q.topic }}</td>
+          <td class="col-topic">{{ topicLabel(q.topic) }}</td>
           <td class="col-difficulty">
             <span
               class="difficulty-badge"

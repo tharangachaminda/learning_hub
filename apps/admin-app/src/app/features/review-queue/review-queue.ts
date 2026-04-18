@@ -306,6 +306,14 @@ export class ReviewQueueComponent implements OnInit {
     });
   }
 
+  topicLabel(topic: string): string {
+    for (const g of this.grades) {
+      const found = g.topics.find((t) => t.key === topic);
+      if (found) return found.label;
+    }
+    return topic.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   getStatusClass(status: string): string {
     return `status-${status}`;
   }
