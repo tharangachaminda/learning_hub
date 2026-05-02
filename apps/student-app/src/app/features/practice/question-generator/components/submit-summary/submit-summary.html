@@ -11,7 +11,10 @@
   (keydown)="onKeydown($event)"
 >
   <div class="modal-card">
-    <h2 id="confirm-title" class="modal-title">Ready to submit? 📝</h2>
+    <h2 id="confirm-title" class="modal-title">
+      <fa-icon [icon]="submitIcon"></fa-icon>
+      Ready to submit?
+    </h2>
     <p id="confirm-desc" class="modal-message" data-testid="confirm-message">
       You've answered
       <strong>{{ totalAnswered() }} out of {{ totalQuestions() }}</strong>
@@ -35,7 +38,8 @@
         type="button"
         aria-label="Submit all answers for scoring"
       >
-        Submit ✅
+        <fa-icon [icon]="submitIcon"></fa-icon>
+        Submit
       </button>
     </div>
   </div>
@@ -52,7 +56,10 @@
   aria-labelledby="results-heading"
   aria-live="polite"
 >
-  <h2 id="results-heading" class="results-title">Your Results 🏆</h2>
+  <h2 id="results-heading" class="results-title">
+    <fa-icon [icon]="trophyIcon"></fa-icon>
+    Your Results
+  </h2>
 
   <div
     class="results-percentage"
@@ -73,7 +80,9 @@
       role="group"
       aria-label="Correct: {{ scoringResult()!.correct }}"
     >
-      <span class="result-icon" aria-hidden="true">✅</span>
+      <span class="result-icon" aria-hidden="true"
+        ><fa-icon [icon]="correctIcon"></fa-icon
+      ></span>
       <span class="result-label">Correct</span>
       <span class="result-value">{{ scoringResult()!.correct }}</span>
     </div>
@@ -83,7 +92,9 @@
       role="group"
       aria-label="Incorrect: {{ scoringResult()!.incorrect }}"
     >
-      <span class="result-icon" aria-hidden="true">❌</span>
+      <span class="result-icon" aria-hidden="true"
+        ><fa-icon [icon]="incorrectIcon"></fa-icon
+      ></span>
       <span class="result-label">Incorrect</span>
       <span class="result-value">{{ scoringResult()!.incorrect }}</span>
     </div>
@@ -93,7 +104,9 @@
       role="group"
       aria-label="Skipped: {{ scoringResult()!.skipped }}"
     >
-      <span class="result-icon" aria-hidden="true">⏭️</span>
+      <span class="result-icon" aria-hidden="true"
+        ><fa-icon [icon]="skippedIcon"></fa-icon
+      ></span>
       <span class="result-label">Skipped</span>
       <span class="result-value">{{ scoringResult()!.skipped }}</span>
     </div>
@@ -103,7 +116,9 @@
       role="group"
       aria-label="Time spent: {{ scoringResult()!.timeSpent }}"
     >
-      <span class="result-icon" aria-hidden="true">⏱️</span>
+      <span class="result-icon" aria-hidden="true"
+        ><fa-icon [icon]="timeIcon"></fa-icon
+      ></span>
       <span class="result-label">Time</span>
       <span class="result-value">{{ scoringResult()!.timeSpent }}</span>
     </div>
@@ -117,7 +132,8 @@
       type="button"
       aria-label="Try again with new questions"
     >
-      🔄 Try Again
+      <fa-icon [icon]="tryAgainIcon"></fa-icon>
+      Try Again
     </button>
     <button
       class="btn-back-dashboard"
@@ -126,7 +142,8 @@
       type="button"
       aria-label="Go back to dashboard"
     >
-      🏠 Back to Dashboard
+      <fa-icon [icon]="submitIcon"></fa-icon>
+      Back to Dashboard
     </button>
   </div>
 </div>

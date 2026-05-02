@@ -2,7 +2,8 @@
   <!-- Header: counter + difficulty badge -->
   <div class="question-card__header">
     <span class="question-card__counter" data-testid="question-counter">
-      📝 Question {{ questionNumber() }} of {{ totalQuestions() }}
+      <fa-icon [icon]="counterIcon"></fa-icon>
+      Question {{ questionNumber() }} of {{ totalQuestions() }}
     </span>
     <span
       class="question-card__badge badge-{{ question().metadata.difficulty }}"
@@ -75,7 +76,8 @@
         (click)="onToggleHint()"
         [attr.aria-expanded]="showHint()"
       >
-        💡 {{ showHint() ? 'Hide Hint' : 'Show Hint' }}
+        <fa-icon [icon]="hintIcon"></fa-icon>
+        {{ showHint() ? 'Hide Hint' : 'Show Hint' }}
       </button>
 
       @if (showHint()) {

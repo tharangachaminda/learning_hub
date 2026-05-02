@@ -19,7 +19,16 @@
  */
 
 import { Component, OnInit, Input } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faChartLine,
+  faFaceFrown,
+  faRotateRight,
+  faTrophy,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import { DashboardService } from '../../services/dashboard.service';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -42,11 +51,20 @@ import { SubjectCardsComponent } from './components/subject-cards/subject-cards.
     RecentActivityComponent,
     AchievementShowcaseComponent,
     SubjectCardsComponent,
+    RouterLink,
+    FaIconComponent,
   ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss'],
 })
 export class StudentDashboardComponent implements OnInit {
+  protected readonly loadingIcon = faWandMagicSparkles;
+  protected readonly errorIcon = faFaceFrown;
+  protected readonly retryIcon = faRotateRight;
+  protected readonly performanceIcon = faChartLine;
+  protected readonly achievementIcon = faTrophy;
+  protected readonly arrowIcon = faArrowRight;
+
   /** Student ID for API calls. Should be provided by auth context. */
   @Input() studentId = 'integration-test-student';
 

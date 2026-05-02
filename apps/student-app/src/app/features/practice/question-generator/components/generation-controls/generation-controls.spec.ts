@@ -255,7 +255,7 @@ describe('GenerationControlsComponent', () => {
       expect(btn.disabled).toBe(true);
     });
 
-    it('should show "🚀 Get Questions" text', () => {
+    it('should show "Get Questions" text', () => {
       const btn = fixture.nativeElement.querySelector(
         '[data-testid="generate-btn"]'
       );
@@ -268,7 +268,7 @@ describe('GenerationControlsComponent', () => {
       const btn = fixture.nativeElement.querySelector(
         '[data-testid="generate-btn"]'
       );
-      expect(btn.textContent.trim()).toContain('🧠');
+      expect(btn.querySelector('fa-icon')).toBeTruthy();
       const spinner = btn.querySelector('.btn-spinner');
       expect(spinner).toBeTruthy();
     });

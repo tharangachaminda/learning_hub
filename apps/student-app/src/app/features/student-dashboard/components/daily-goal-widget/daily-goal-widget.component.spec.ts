@@ -84,18 +84,18 @@ describe('DailyGoalWidgetComponent', () => {
 
   describe('streak counter (AC4)', () => {
     /**
-     * Test: Streak counter displays with flame emoji
-     * Why Essential: AC4 requires flame emoji with consecutive days count
+     * Test: Streak counter displays with an icon and count
+     * Why Essential: AC4 requires a visible streak affordance and consecutive days count
      * Impact: Motivating visual feedback for practice consistency
      */
-    it('should display current streak with flame emoji', () => {
+    it('should display current streak with icon and count', () => {
       component.streak = { current: 5, longest: 12 };
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
       const streakEl = compiled.querySelector('[data-testid="streak-counter"]');
       expect(streakEl).toBeTruthy();
-      expect(streakEl?.textContent).toContain('🔥');
+      expect(streakEl?.querySelector('fa-icon')).toBeTruthy();
       expect(streakEl?.textContent).toContain('5');
     });
 

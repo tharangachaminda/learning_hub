@@ -11,21 +11,25 @@
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading your dashboard...</span>
     </div>
-    <p class="loading-text">Loading your dashboard... ✨</p>
+    <p class="loading-text">
+      <fa-icon [icon]="loadingIcon"></fa-icon>
+      Loading your dashboard...
+    </p>
   </div>
   }
 
   <!-- Error State (AC20) -->
   @if (error) {
   <div data-testid="dashboard-error" class="error-container" role="alert">
-    <p class="error-icon">😟</p>
+    <p class="error-icon"><fa-icon [icon]="errorIcon"></fa-icon></p>
     <p class="error-message">{{ error }}</p>
     <button
       class="btn btn-primary retry-btn"
       (click)="loadDashboard()"
       aria-label="Try loading dashboard again"
     >
-      Try Again 🔄
+      <fa-icon [icon]="retryIcon"></fa-icon>
+      Try Again
     </button>
   </div>
   }
@@ -40,19 +44,30 @@
   >
     <div class="welcome-content">
       <h1 class="greeting">
-        {{ getGreeting() }}, {{ dashboardData.student.firstName }}! 👋
+        {{ getGreeting() }}, {{ dashboardData.student.firstName }}
       </h1>
       <p class="motivational-text">
-        Ready to learn something amazing today? 🚀
+        Your dashboard, achievements, and performance are connected in one
+        place.
       </p>
+      <div class="dashboard-actions">
+        <a
+          class="dashboard-link dashboard-link--primary"
+          routerLink="/practice/generate"
+        >
+          Start practice
+          <fa-icon [icon]="arrowIcon"></fa-icon>
+        </a>
+        <a class="dashboard-link" routerLink="/performance">
+          <fa-icon [icon]="performanceIcon"></fa-icon>
+          View performance
+        </a>
+        <a class="dashboard-link" routerLink="/achievements">
+          <fa-icon [icon]="achievementIcon"></fa-icon>
+          View achievements
+        </a>
+      </div>
     </div>
-    <button
-      class="btn btn-outline-light logout-btn"
-      (click)="logout()"
-      aria-label="Log out"
-    >
-      Logout 🚪
-    </button>
     @if (dashboardData.student.avatarUrl) {
     <img
       [src]="dashboardData.student.avatarUrl"

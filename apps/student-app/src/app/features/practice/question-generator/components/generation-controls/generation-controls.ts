@@ -11,6 +11,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faBrain,
+  faRocket,
+  faSliders,
+} from '@fortawesome/free-solid-svg-icons';
 import { GenerationParams } from '../../models/generation-params.model';
 import {
   GRADE_TOPICS,
@@ -39,11 +45,15 @@ import {
 @Component({
   selector: 'app-generation-controls',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FaIconComponent],
   templateUrl: './generation-controls.html',
   styleUrl: './generation-controls.css',
 })
 export class GenerationControlsComponent implements OnInit, OnChanges {
+  protected readonly titleIcon = faSliders;
+  protected readonly loadingIcon = faBrain;
+  protected readonly actionIcon = faRocket;
+
   /** Pre-filled grade from student profile. */
   @Input() grade = 3;
 

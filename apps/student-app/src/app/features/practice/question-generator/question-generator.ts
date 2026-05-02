@@ -1,6 +1,16 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRotateRight,
+  faBrain,
+  faCircleQuestion,
+  faHouse,
+  faTriangleExclamation,
+  faUpload,
+} from '@fortawesome/free-solid-svg-icons';
 import { QuestionGeneratorService } from './services/question-generator.service';
 import { StudentProfileService } from './services/student-profile.service';
 import { GenerationControlsComponent } from './components/generation-controls/generation-controls';
@@ -16,6 +26,12 @@ import {
 import { generateDistractors } from './utils/distractor-generator';
 import { scoreAnswers } from './utils/scoring';
 import { SubmitSummaryComponent } from './components/submit-summary/submit-summary';
+import { AuthService } from '../../../services/auth.service';
+import { AchievementService } from '../../../services/achievement.service';
+import {
+  RecordQuestionAttemptRequest,
+  StudentProgressService,
+} from '../../../services/student-progress.service';
 
 /**
  * Smart container component for the AI Question Generator feature.
@@ -38,13 +54,24 @@ import { SubmitSummaryComponent } from './components/submit-summary/submit-summa
     QuestionCardComponent,
     QuestionPaginationComponent,
     SubmitSummaryComponent,
+    FaIconComponent,
   ],
   templateUrl: './question-generator.html',
   styleUrl: './question-generator.css',
 })
 export class QuestionGeneratorComponent implements OnInit {
+  protected readonly healthWarningIcon = faTriangleExclamation;
+  protected readonly emptyStateIcon = faCircleQuestion;
+  protected readonly submitIcon = faUpload;
+  protected readonly retryIcon = faArrowRotateRight;
+  protected readonly dashboardIcon = faHouse;
+  protected readonly loadingIcon = faBrain;
+
   private readonly generatorService = inject(QuestionGeneratorService);
   private readonly profileService = inject(StudentProfileService);
+  private readonly authService = inject(AuthService);
+  private readonly achievementService = inject(AchievementService);
+  private readonly studentProgressService = inject(StudentProgressService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -318,6 +345,33 @@ export class QuestionGeneratorComponent implements OnInit {
     };
     this.lastSubmission.set(submission);
 
+    const studentId = this.authService.getUserId();
+    const sessionId = `practice-${Date.now()}`;
+    const persistenceRequests = studentId
+      ? this.buildProgressRequests(studentId, sessionId)
+      : [];
+
+    if (studentId && persistenceRequests.length > 0) {
+      forkJoin({
+        progress:
+          this.studentProgressService.recordQuestionAttempts(
+            persistenceRequests
+          ),
+        achievements:
+          this.achievementService.checkForNewAchievements(studentId),
+      }).subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.phase.set('results');
+        },
+        error: () => {
+          this.isSubmitting.set(false);
+          this.phase.set('results');
+        },
+      });
+      return;
+    }
+
     this.isSubmitting.set(false);
     this.phase.set('results');
   }
@@ -352,7 +406,60 @@ export class QuestionGeneratorComponent implements OnInit {
    * Navigates to the student dashboard route.
    */
   onBackToDashboard(): void {
-    this.router.navigate(['/achievements']);
+    this.router.navigate(['/dashboard']);
+  }
+
+  private buildProgressRequests(
+    studentId: string,
+    sessionId: string
+  ): RecordQuestionAttemptRequest[] {
+    return this.questions().flatMap((question, index) => {
+      const answer = this.answers().get(index);
+      if (!answer?.selectedOption) {
+        return [];
+      }
+
+      const selectedValue = this.resolveSelectedValue(
+        index,
+        answer.selectedOption
+      );
+
+      return [
+        {
+          studentId,
+          questionId: `${question.metadata.topic}-${index}-${Date.now()}`,
+          topic: question.metadata.topic,
+          difficulty: question.metadata.difficulty as
+            | 'easy'
+            | 'medium'
+            | 'hard',
+          isCorrect: selectedValue === String(question.answer),
+          timeSpentSeconds: answer.timeSpent,
+          sessionId,
+        },
+      ];
+    });
+  }
+
+  private resolveSelectedValue(
+    questionIndex: number,
+    selectedOption: string
+  ): string {
+    const optionIndex: Record<string, number> = {
+      A: 0,
+      B: 1,
+      C: 2,
+      D: 3,
+    };
+
+    const options = this.questionOptions().get(questionIndex);
+    const resolvedIndex = optionIndex[selectedOption];
+
+    if (options && resolvedIndex !== undefined && options[resolvedIndex]) {
+      return options[resolvedIndex];
+    }
+
+    return selectedOption;
   }
 
   /**

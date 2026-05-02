@@ -21,11 +21,15 @@ import { QuestionGeneratorService } from './services/question-generator.service'
 import { StudentProfileService } from './services/student-profile.service';
 import { GenerationParams } from './models/generation-params.model';
 import { GeneratedQuestion } from './models/question.model';
+import { AuthService } from '../../../services/auth.service';
 
 describe('QuestionGeneratorComponent', () => {
   let component: QuestionGeneratorComponent;
   let fixture: ComponentFixture<QuestionGeneratorComponent>;
   let httpMock: HttpTestingController;
+  const mockAuthService = {
+    getUserId: jest.fn(() => null),
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -33,6 +37,7 @@ describe('QuestionGeneratorComponent', () => {
       providers: [
         QuestionGeneratorService,
         StudentProfileService,
+        { provide: AuthService, useValue: mockAuthService },
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),

@@ -1,14 +1,20 @@
 <!-- Recent Activity Template (AC6, AC25) -->
 <div class="recent-activity" aria-label="Recent practice sessions">
-  <h3 class="section-title">📝 Recent Activity</h3>
+  <h3 class="section-title">
+    <fa-icon [icon]="titleIcon"></fa-icon>
+    Recent Activity
+  </h3>
 
   @if (recentActivity.length === 0) {
   <div data-testid="no-activity" class="empty-state">
-    <p>No practice sessions yet. Start your first session! 🎯</p>
+    <p>
+      <fa-icon [icon]="emptyIcon"></fa-icon>
+      No practice sessions yet. Start your first session.
+    </p>
   </div>
   } @for (session of recentActivity; track session.id) {
   <div data-testid="activity-entry" class="activity-entry">
-    <div class="entry-icon">📐</div>
+    <div class="entry-icon"><fa-icon [icon]="sessionIcon"></fa-icon></div>
     <div class="entry-details">
       <h4 class="entry-topic">{{ session.topic }}</h4>
       <p class="entry-meta">

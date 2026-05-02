@@ -7,21 +7,42 @@
  */
 
 import { Component, OnInit, Input } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import {
+  faCalendarDay,
+  faChartLine,
+  faCircleCheck,
+  faLock,
+  faShield,
+  faStar,
+  faTrophy,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   Achievement,
   StudentAchievements,
 } from '../../../../models/achievement.model';
 import { AchievementService } from '../../../../services/achievement.service';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-badge-gallery',
   standalone: true,
-  imports: [], // No CommonModule needed with new control flow
+  imports: [RouterLink, FaIconComponent],
   templateUrl: './badge-gallery.component.html',
   styleUrls: ['./badge-gallery.component.scss'],
 })
 export class BadgeGalleryComponent implements OnInit {
   @Input() studentId = 'integration-test-student'; // Default for testing, should come from auth service
+
+  protected readonly titleIcon = faTrophy;
+  protected readonly unlockedIcon = faShield;
+  protected readonly lockedIcon = faLock;
+  protected readonly dateIcon = faCalendarDay;
+  protected readonly pointsIcon = faStar;
+  protected readonly performanceIcon = faChartLine;
 
   achievements: Achievement[] = [];
   totalPoints = 0;
@@ -31,15 +52,22 @@ export class BadgeGalleryComponent implements OnInit {
 
   // Category organization for display
   categories = [
-    { key: 'milestone' as const, label: 'Milestones', icon: '🎯' },
-    { key: 'streak' as const, label: 'Streaks', icon: '🔥' },
-    { key: 'topic_mastery' as const, label: 'Topic Masters', icon: '⭐' },
-    { key: 'accuracy' as const, label: 'Accuracy', icon: '🎓' },
+    { key: 'milestone' as const, label: 'Milestones', icon: faCircleCheck },
+    { key: 'streak' as const, label: 'Streaks', icon: faWandMagicSparkles },
+    { key: 'topic_mastery' as const, label: 'Topic Masters', icon: faStar },
+    { key: 'accuracy' as const, label: 'Accuracy', icon: faChartLine },
   ];
 
-  constructor(private achievementService: AchievementService) {}
+  constructor(
+    private achievementService: AchievementService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
+    const authId = this.authService.getUserId();
+    if (authId) {
+      this.studentId = authId;
+    }
     this.loadAchievements();
   }
 
@@ -123,5 +151,16 @@ export class BadgeGalleryComponent implements OnInit {
    */
   trackByAchievementId(index: number, achievement: Achievement): string {
     return achievement.id;
+  }
+
+  trackByCategory(
+    index: number,
+    category: {
+      key: Achievement['category'];
+      label: string;
+      icon: IconDefinition;
+    }
+  ): Achievement['category'] {
+    return category.key;
   }
 }

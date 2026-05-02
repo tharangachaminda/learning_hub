@@ -1,7 +1,9 @@
 <!-- Health Error Banner -->
 @if (!serviceHealthy()) {
 <div class="health-error-banner" data-testid="health-error-banner" role="alert">
-  <span class="health-error-icon">⚠️</span>
+  <span class="health-error-icon"
+    ><fa-icon [icon]="healthWarningIcon"></fa-icon
+  ></span>
   <span
     >Our question service is not available right now. Please try again
     later!</span
@@ -25,8 +27,9 @@
 @if (emptyState()) {
 <div class="empty-state-card" data-testid="empty-state" role="alert">
   <p class="empty-state-text">
-    📚 No practice questions are available for this topic yet. Our team is
-    working on adding more questions — check back soon!
+    <fa-icon [icon]="emptyStateIcon"></fa-icon>
+    No practice questions are available for this topic yet. Our team is working
+    on adding more questions — check back soon!
   </p>
   <button
     class="btn-retry"
@@ -75,7 +78,8 @@
     aria-live="polite"
     [attr.aria-label]="'Submit all answers. ' + totalAnswered() + ' of ' + questions().length + ' answered'"
   >
-    ✅ Submit All Answers ({{ totalAnswered() }} of {{ questions().length }}
+    <fa-icon [icon]="submitIcon"></fa-icon>
+    Submit All Answers ({{ totalAnswered() }} of {{ questions().length }}
     answered)
   </button>
   }
@@ -108,7 +112,10 @@
 <!-- Error State: API failure -->
 @if (errorState()) {
 <div class="error-state-card" data-testid="error-state" role="alert">
-  <p class="error-state-title">😅 Oops! Something went wrong</p>
+  <p class="error-state-title">
+    <fa-icon [icon]="healthWarningIcon"></fa-icon>
+    Oops! Something went wrong
+  </p>
   <p class="error-state-text">
     We couldn't generate your questions right now. Let's try again!
   </p>
@@ -119,10 +126,17 @@
       (click)="onRetry()"
       type="button"
     >
-      🔄 Try Again
+      <fa-icon [icon]="retryIcon"></fa-icon>
+      Try Again
     </button>
-    <button class="btn-dashboard" data-testid="dashboard-btn" type="button">
-      🏠 Back to Dashboard
+    <button
+      class="btn-dashboard"
+      data-testid="dashboard-btn"
+      type="button"
+      (click)="onBackToDashboard()"
+    >
+      <fa-icon [icon]="dashboardIcon"></fa-icon>
+      Back to Dashboard
     </button>
   </div>
 </div>
@@ -138,7 +152,7 @@
         role="status"
         aria-label="Generating questions"
       >
-        🧠
+        <fa-icon [icon]="loadingIcon"></fa-icon>
       </div>
     </div>
     <p class="loading-title">Thinking...</p>

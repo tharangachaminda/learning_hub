@@ -17,16 +17,26 @@
  */
 
 import { Component, Input } from '@angular/core';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faClockRotateLeft,
+  faRulerCombined,
+  faSquarePollVertical,
+} from '@fortawesome/free-solid-svg-icons';
 import { PracticeSession } from '../../../../models/dashboard.model';
 
 @Component({
   selector: 'app-recent-activity',
   standalone: true,
-  imports: [],
+  imports: [FaIconComponent],
   templateUrl: './recent-activity.component.html',
   styleUrls: ['./recent-activity.component.scss'],
 })
 export class RecentActivityComponent {
+  protected readonly titleIcon = faClockRotateLeft;
+  protected readonly sessionIcon = faRulerCombined;
+  protected readonly emptyIcon = faSquarePollVertical;
+
   /** List of recent practice sessions to display. */
   @Input() recentActivity: PracticeSession[] = [];
 }

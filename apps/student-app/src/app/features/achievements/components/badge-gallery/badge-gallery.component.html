@@ -5,7 +5,17 @@
 <div class="badge-gallery-container">
   <!-- Header Section -->
   <div class="gallery-header">
-    <h2 class="gallery-title">🏆 My Achievements</h2>
+    <div class="gallery-header__copy">
+      <p class="gallery-kicker">Achievement Collection</p>
+      <h2 class="gallery-title">
+        <fa-icon [icon]="titleIcon"></fa-icon>
+        My Achievements
+      </h2>
+      <p class="gallery-description">
+        Review unlocked milestones, see what is close, and jump straight back
+        into practice.
+      </p>
+    </div>
     <div class="gallery-stats">
       <div class="stat-item">
         <span class="stat-value">{{ totalPoints }}</span>
@@ -15,6 +25,17 @@
         <span class="stat-value">{{ completionPercentage }}%</span>
         <span class="stat-label">Complete</span>
       </div>
+    </div>
+    <div class="gallery-actions">
+      <a
+        class="gallery-action gallery-action--primary"
+        routerLink="/practice/generate"
+        >Practice again</a
+      >
+      <a class="gallery-action" routerLink="/performance">
+        <fa-icon [icon]="performanceIcon"></fa-icon>
+        View performance
+      </a>
     </div>
   </div>
 
@@ -38,10 +59,12 @@
   @if (!loading && !error) {
   <div class="achievement-gallery">
     <!-- Category Sections -->
-    @for (category of categories; track category.key) {
+    @for (category of categories; track trackByCategory($index, category)) {
     <div class="category-section">
       <div class="category-header">
-        <span class="category-icon">{{ category.icon }}</span>
+        <span class="category-icon"
+          ><fa-icon [icon]="category.icon"></fa-icon
+        ></span>
         <h3 class="category-title">{{ category.label }}</h3>
       </div>
 
@@ -52,9 +75,9 @@
           <!-- Badge Icon -->
           <div class="badge-icon-wrapper">
             <div class="badge-icon" [attr.data-icon]="achievement.badgeIcon">
-              <span class="icon-placeholder">
-                {{ achievement.unlocked ? '🏅' : '🔒' }}
-              </span>
+              <fa-icon
+                [icon]="achievement.unlocked ? unlockedIcon : lockedIcon"
+              ></fa-icon>
             </div>
 
             <!-- Progress Ring for Locked Badges -->
@@ -97,11 +120,13 @@
             @if (achievement.unlocked) {
             <div class="badge-unlock-info">
               <div class="unlock-date">
-                <span class="icon">📅</span>
+                <span class="icon"><fa-icon [icon]="dateIcon"></fa-icon></span>
                 <span>{{ formatDate(achievement.unlockedDate) }}</span>
               </div>
               <div class="badge-points">
-                <span class="icon">⭐</span>
+                <span class="icon"
+                  ><fa-icon [icon]="pointsIcon"></fa-icon
+                ></span>
                 <span>{{ achievement.pointValue }} points</span>
               </div>
             </div>

@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faTrophy, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { AchievementService } from '../../../../services/achievement.service';
 import { Achievement } from '../../../../models/achievement.model';
 
@@ -16,11 +18,14 @@ import { Achievement } from '../../../../models/achievement.model';
 @Component({
   selector: 'app-celebration-modal',
   standalone: true,
-  imports: [], // No CommonModule needed with new control flow
+  imports: [FaIconComponent],
   templateUrl: './celebration-modal.component.html',
   styleUrls: ['./celebration-modal.component.scss'],
 })
 export class CelebrationModalComponent implements OnInit, OnDestroy {
+  protected readonly closeIcon = faXmark;
+  protected readonly celebrationIcon = faTrophy;
+
   /**
    * Controls modal visibility
    */

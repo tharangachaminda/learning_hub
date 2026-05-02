@@ -108,11 +108,32 @@ export class ProgressController {
         sessionId: dto.sessionId,
       });
 
-    // Check for milestone achievements
+    const overallStats = await this.progressTrackingService.getOverallStats(
+      dto.studentId
+    );
+
     await this.achievementService.checkMilestones(
       dto.studentId,
-      dailyProgress.correctAnswers
+      overallStats.totalCorrectAllTime
     );
+    await this.achievementService.checkStreaks(
+      dto.studentId,
+      overallStats.currentStreak
+    );
+
+    const topicProgress = dailyProgress.topicBreakdown.find(
+      (topic) =>
+        topic.topicName === dto.topic && topic.difficulty === dto.difficulty
+    );
+
+    if (topicProgress) {
+      await this.achievementService.checkTopicMastery(dto.studentId, {
+        topic: topicProgress.topicName,
+        questionsAttempted: topicProgress.questionsAttempted,
+        correctAnswers: topicProgress.correctAnswers,
+        accuracyPercentage: topicProgress.accuracyPercentage,
+      });
+    }
 
     // Map to response DTO
     return {

@@ -14,7 +14,7 @@
       (click)="closeModal()"
       aria-label="Close celebration"
     >
-      ✕
+      <fa-icon [icon]="closeIcon"></fa-icon>
     </button>
 
     <!-- Celebration Content -->
@@ -22,7 +22,9 @@
       <!-- Achievement Badge Icon -->
       <div class="badge-icon-large">
         <div class="badge-pulse"></div>
-        <span class="badge-emoji">🎉</span>
+        <span class="badge-emoji"
+          ><fa-icon [icon]="celebrationIcon"></fa-icon
+        ></span>
       </div>
 
       <!-- Congratulations Message -->

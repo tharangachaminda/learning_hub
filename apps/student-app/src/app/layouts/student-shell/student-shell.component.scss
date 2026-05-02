@@ -1,0 +1,116 @@
+.student-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background:
+    radial-gradient(circle at top left, rgba(66, 133, 244, 0.16), transparent 28%),
+    linear-gradient(180deg, #f4f7fb 0%, #eef4ff 100%);
+}
+
+.student-shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(32, 33, 36, 0.08);
+}
+
+.student-shell__brand {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.student-shell__brand-mark {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-shell__brand-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.student-shell__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.student-shell__nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 700;
+  transition:
+    background-color var(--animation-fast) ease,
+    color var(--animation-fast) ease,
+    transform var(--animation-fast) ease;
+}
+
+.student-shell__nav-link:hover,
+.student-shell__nav-link:focus-visible,
+.student-shell__nav-link--active {
+  color: var(--primary-color);
+  background: rgba(66, 133, 244, 0.12);
+  transform: translateY(-1px);
+}
+
+.student-shell__logout {
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #202124;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-shell__content {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 2.5rem;
+}
+
+.student-shell__footer {
+  padding: 1rem 1.5rem 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .student-shell__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-shell__nav {
+    justify-content: center;
+  }
+
+  .student-shell__logout {
+    width: 100%;
+  }
+
+  .student-shell__content {
+    width: min(100%, calc(100% - 1rem));
+  }
+}

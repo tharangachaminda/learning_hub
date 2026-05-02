@@ -2,7 +2,10 @@
 <div class="daily-goal-widget" aria-label="Daily practice goal and streak">
   <!-- Daily Goal Progress (AC3) -->
   <div class="goal-section">
-    <h3 class="section-title">📚 Today's Goal</h3>
+    <h3 class="section-title">
+      <fa-icon [icon]="goalIcon"></fa-icon>
+      Today's Goal
+    </h3>
     <p class="goal-minutes">
       <span class="completed">{{ dailyGoal.completedMinutes }}</span>
       <span class="separator"> / </span>
@@ -29,10 +32,13 @@
   <!-- Streak Counter (AC4) -->
   <div class="streak-section">
     <div data-testid="streak-counter" class="streak-current">
-      <span class="streak-flame">🔥</span>
+      <span class="streak-flame"><fa-icon [icon]="streakIcon"></fa-icon></span>
       <span class="streak-number">{{ streak.current }}</span>
       <span class="streak-label">day streak</span>
     </div>
-    <p class="streak-best">Best: {{ streak.longest }} days ⭐</p>
+    <p class="streak-best">
+      Best: {{ streak.longest }} days
+      <fa-icon [icon]="bestIcon"></fa-icon>
+    </p>
   </div>
 </div>

@@ -20,16 +20,22 @@
  */
 
 import { Component, Input } from '@angular/core';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faBookOpen, faFire, faStar } from '@fortawesome/free-solid-svg-icons';
 import { DailyGoal, Streak } from '../../../../models/dashboard.model';
 
 @Component({
   selector: 'app-daily-goal-widget',
   standalone: true,
-  imports: [],
+  imports: [FaIconComponent],
   templateUrl: './daily-goal-widget.component.html',
   styleUrls: ['./daily-goal-widget.component.scss'],
 })
 export class DailyGoalWidgetComponent {
+  protected readonly goalIcon = faBookOpen;
+  protected readonly streakIcon = faFire;
+  protected readonly bestIcon = faStar;
+
   /** Daily goal data with target, completed minutes, and percentage. */
   @Input() dailyGoal: DailyGoal = {
     targetMinutes: 0,

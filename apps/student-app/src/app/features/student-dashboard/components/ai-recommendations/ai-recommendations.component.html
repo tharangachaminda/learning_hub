@@ -1,10 +1,13 @@
 <!-- AI Recommendations Template (AC5, AC7, AC22, AC25) -->
 <div class="ai-recommendations" aria-label="AI-powered topic recommendations">
-  <h3 class="section-title">🤖 Recommended for You</h3>
+  <h3 class="section-title">
+    <fa-icon [icon]="titleIcon"></fa-icon>
+    Recommended for You
+  </h3>
 
   @if (recommendations.length === 0) {
   <div data-testid="no-recommendations" class="empty-state">
-    <p>No recommendations right now. Keep practicing! 🌟</p>
+    <p>No recommendations right now. Keep practicing.</p>
   </div>
   } @for (rec of recommendations; track rec.id) {
   <div data-testid="recommendation-card" class="recommendation-card">
@@ -16,14 +19,18 @@
     </div>
     <p class="reason">{{ rec.reason }}</p>
     <div class="card-footer">
-      <span class="estimated-time">⏱️ {{ rec.estimatedMinutes }} min</span>
+      <span class="estimated-time">
+        <fa-icon [icon]="timeIcon"></fa-icon>
+        {{ rec.estimatedMinutes }} min
+      </span>
       <button
         data-testid="practice-btn"
         class="practice-btn"
         (click)="onPracticeClick(rec)"
         [attr.aria-label]="'Start practicing ' + rec.topic"
       >
-        Practice Now ▶️
+        Practice Now
+        <fa-icon [icon]="actionIcon"></fa-icon>
       </button>
     </div>
   </div>
