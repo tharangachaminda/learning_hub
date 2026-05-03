@@ -19,7 +19,15 @@
  */
 
 import { Component, OnInit, Input } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faChartLine,
+  faFaceFrown,
+  faRotateRight,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import { DashboardService } from '../../services/dashboard.service';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -27,7 +35,10 @@ import {
   TopicRecommendation,
   SubjectProgress,
 } from '../../models/dashboard.model';
-import { DailyGoalWidgetComponent } from './components/daily-goal-widget/daily-goal-widget.component';
+import {
+  PageHeroAction,
+  PageHeroComponent,
+} from '../../shared/components/page-hero/page-hero.component';
 import { AiRecommendationsComponent } from './components/ai-recommendations/ai-recommendations.component';
 import { RecentActivityComponent } from './components/recent-activity/recent-activity.component';
 import { AchievementShowcaseComponent } from './components/achievement-showcase/achievement-showcase.component';
@@ -37,16 +48,40 @@ import { SubjectCardsComponent } from './components/subject-cards/subject-cards.
   selector: 'app-student-dashboard',
   standalone: true,
   imports: [
-    DailyGoalWidgetComponent,
     AiRecommendationsComponent,
     RecentActivityComponent,
     AchievementShowcaseComponent,
     SubjectCardsComponent,
+    FaIconComponent,
+    PageHeroComponent,
+    RouterLink,
   ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss'],
 })
 export class StudentDashboardComponent implements OnInit {
+  protected readonly loadingIcon = faWandMagicSparkles;
+  protected readonly errorIcon = faFaceFrown;
+  protected readonly retryIcon = faRotateRight;
+  protected readonly performanceIcon = faChartLine;
+  protected readonly arrowIcon = faArrowRight;
+
+  protected readonly heroActions: PageHeroAction[] = [
+    {
+      label: 'Start practice',
+      route: '/practice/generate',
+      icon: faArrowRight,
+      iconPosition: 'end',
+      variant: 'primary',
+    },
+    {
+      label: 'View performance',
+      route: '/performance',
+      icon: faChartLine,
+      variant: 'secondary',
+    },
+  ];
+
   /** Student ID for API calls. Should be provided by auth context. */
   @Input() studentId = 'integration-test-student';
 
@@ -99,6 +134,54 @@ export class StudentDashboardComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  get averageMastery(): number {
+    if (!this.dashboardData?.subjects.length) {
+      return 0;
+    }
+
+    const totalMastery = this.dashboardData.subjects.reduce(
+      (sum, subject) => sum + subject.masteryPercentage,
+      0
+    );
+
+    return Math.round(totalMastery / this.dashboardData.subjects.length);
+  }
+
+  get practiceMinutesLabel(): string {
+    const completedMinutes =
+      this.dashboardData?.dailyGoal.completedMinutes ?? 0;
+    return `${completedMinutes} min practiced today`;
+  }
+
+  get summaryCards(): Array<{ label: string; value: string; detail: string }> {
+    if (!this.dashboardData) {
+      return [];
+    }
+
+    return [
+      {
+        label: `Today's Goal`,
+        value: `${this.dashboardData.dailyGoal.percentage}%`,
+        detail: `${this.dashboardData.dailyGoal.completedMinutes}/${this.dashboardData.dailyGoal.targetMinutes} min complete`,
+      },
+      {
+        label: 'Current Streak',
+        value: `${this.dashboardData.streak.current} days`,
+        detail: `Best streak: ${this.dashboardData.streak.longest} days`,
+      },
+      {
+        label: 'Recent Sessions',
+        value: String(this.dashboardData.recentActivity.length),
+        detail: this.practiceMinutesLabel,
+      },
+      {
+        label: 'Average Mastery',
+        value: `${this.averageMastery}%`,
+        detail: `${this.dashboardData.subjects.length} active subjects`,
+      },
+    ];
   }
 
   /**

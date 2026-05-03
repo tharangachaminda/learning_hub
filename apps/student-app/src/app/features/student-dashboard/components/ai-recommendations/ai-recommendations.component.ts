@@ -21,16 +21,26 @@
  */
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faClock,
+  faLightbulb,
+} from '@fortawesome/free-solid-svg-icons';
 import { TopicRecommendation } from '../../../../models/dashboard.model';
 
 @Component({
   selector: 'app-ai-recommendations',
   standalone: true,
-  imports: [],
+  imports: [FaIconComponent],
   templateUrl: './ai-recommendations.component.html',
   styleUrls: ['./ai-recommendations.component.scss'],
 })
 export class AiRecommendationsComponent {
+  protected readonly titleIcon = faLightbulb;
+  protected readonly timeIcon = faClock;
+  protected readonly actionIcon = faArrowRight;
+
   /** List of AI-generated topic recommendations. */
   @Input() recommendations: TopicRecommendation[] = [];
 

@@ -6,6 +6,8 @@ import {
   effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faLightbulb, faPenRuler } from '@fortawesome/free-solid-svg-icons';
 import { GeneratedQuestion } from '../../models/question.model';
 import { KatexRenderComponent } from '../katex-render/katex-render';
 
@@ -31,12 +33,15 @@ import { KatexRenderComponent } from '../katex-render/katex-render';
 @Component({
   selector: 'app-question-card',
   standalone: true,
-  imports: [KatexRenderComponent],
+  imports: [KatexRenderComponent, FaIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './question-card.html',
   styleUrl: './question-card.css',
 })
 export class QuestionCardComponent {
+  protected readonly counterIcon = faPenRuler;
+  protected readonly hintIcon = faLightbulb;
+
   /** The generated question to display. */
   readonly question = input.required<GeneratedQuestion>();
 

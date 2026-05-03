@@ -1,0 +1,127 @@
+<section class="performance-page">
+  <app-page-hero
+    appearance="brand"
+    eyebrow="Student Performance"
+    title="Track your learning momentum"
+    description="Review today’s effort, this week’s trend, and the subjects that need the most attention."
+    [actions]="heroActions"
+  ></app-page-hero>
+
+  @if (loading) {
+  <div class="performance-state">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading performance</span>
+    </div>
+    <p>Loading your performance snapshot...</p>
+  </div>
+  } @if (error) {
+  <div class="performance-state performance-state--error">
+    <p>{{ error }}</p>
+    <button
+      type="button"
+      class="performance-page__action performance-page__action--primary"
+      (click)="loadPerformance()"
+    >
+      Try again
+    </button>
+  </div>
+  } @if (!loading && !error && dailyProgress && weeklyProgress) {
+  <div class="performance-page__stats">
+    <article class="performance-card">
+      <p class="performance-card__label">Today</p>
+      <h2>{{ dailyProgress.totalQuestionsAttempted }}</h2>
+      <p>{{ dailyProgress.correctAnswers }} correct answers</p>
+    </article>
+
+    <article class="performance-card">
+      <p class="performance-card__label">Weekly Accuracy</p>
+      <h2>{{ weeklyProgress.weeklyAccuracyPercentage }}%</h2>
+      <p>{{ weeklyProgress.totalCorrectAnswers }} correct this week</p>
+    </article>
+
+    <article class="performance-card">
+      <p class="performance-card__label">Practice Time</p>
+      <h2>{{ weeklyProgress.totalTimeSpentMinutes }} min</h2>
+      <p>{{ dailyProgress.timeSpentMinutes }} minutes today</p>
+    </article>
+
+    <article class="performance-card">
+      <p class="performance-card__label">Current Streak</p>
+      <h2>{{ dailyProgress.streakDays }} days</h2>
+      <p>{{ dailyProgress.encouragementMessage }}</p>
+    </article>
+  </div>
+
+  <div class="performance-page__grid">
+    <section class="performance-panel">
+      <div class="performance-panel__header">
+        <div>
+          <p class="performance-panel__eyebrow">Weekly Breakdown</p>
+          <h3>Daily consistency</h3>
+        </div>
+        <span
+          >{{ weeklyProgress.weekStartDate | date : 'MMM d' }} -
+          {{ weeklyProgress.weekEndDate | date : 'MMM d' }}</span
+        >
+      </div>
+
+      <div class="performance-timeline">
+        @for (day of weeklyProgress.dailyBreakdown; track trackByDate($index,
+        day)) {
+        <article class="performance-timeline__item">
+          <div>
+            <p class="performance-timeline__date">
+              {{ day.date | date : 'EEE, MMM d' }}
+            </p>
+            <p class="performance-timeline__meta">
+              {{ day.totalQuestionsAttempted }} questions ·
+              {{ day.timeSpentMinutes }} min
+            </p>
+          </div>
+
+          <div class="performance-timeline__bar">
+            <div
+              class="performance-timeline__fill"
+              [style.width.%]="getDailyAccuracyWidth(day)"
+            ></div>
+          </div>
+
+          <strong>{{ day.accuracyPercentage }}%</strong>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="performance-panel">
+      <div class="performance-panel__header">
+        <div>
+          <p class="performance-panel__eyebrow">Subject Mastery</p>
+          <h3>Where to focus next</h3>
+        </div>
+        <a routerLink="/practice/generate">Practice a topic</a>
+      </div>
+
+      <div class="performance-subjects">
+        @for (subject of subjects; track trackBySubject($index, subject)) {
+        <article class="performance-subject">
+          <div class="performance-subject__summary">
+            <div>
+              <h4>{{ subject.displayName }}</h4>
+              <p>{{ subject.questionsAnswered }} questions answered</p>
+            </div>
+            <strong>{{ subject.masteryPercentage }}%</strong>
+          </div>
+
+          <div class="performance-subject__bar">
+            <div
+              class="performance-subject__fill"
+              [style.width.%]="subject.masteryPercentage"
+            ></div>
+          </div>
+        </article>
+        }
+      </div>
+    </section>
+  </div>
+  }
+</section>

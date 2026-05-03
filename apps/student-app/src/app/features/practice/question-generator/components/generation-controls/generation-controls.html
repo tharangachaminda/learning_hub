@@ -1,5 +1,8 @@
 <div class="generation-controls">
-  <h2 class="controls-title">🎯 Create Your Questions</h2>
+  <h2 class="controls-title">
+    <fa-icon [icon]="titleIcon"></fa-icon>
+    Create Your Questions
+  </h2>
 
   <!-- Grade Dropdown -->
   <div class="control-group">
@@ -123,6 +126,9 @@
   >
     @if (isGenerating) {
     <span class="btn-spinner" role="status"></span>
-    🧠 } @else { 🚀 Get Questions }
+    <fa-icon [icon]="loadingIcon"></fa-icon>
+    } @else {
+    <fa-icon [icon]="actionIcon"></fa-icon>
+    Get Questions }
   </button>
 </div>

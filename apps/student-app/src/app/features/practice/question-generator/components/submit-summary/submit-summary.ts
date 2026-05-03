@@ -19,16 +19,34 @@
  */
 import { Component, input, output, computed } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faCheck,
+  faClock,
+  faForward,
+  faPaperPlane,
+  faRotateRight,
+  faTrophy,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { ScoringResult } from '../../models/answer-submission.model';
 
 @Component({
   selector: 'app-submit-summary',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, FaIconComponent],
   templateUrl: './submit-summary.html',
   styleUrl: './submit-summary.css',
 })
 export class SubmitSummaryComponent {
+  protected readonly submitIcon = faPaperPlane;
+  protected readonly trophyIcon = faTrophy;
+  protected readonly correctIcon = faCheck;
+  protected readonly incorrectIcon = faXmark;
+  protected readonly skippedIcon = faForward;
+  protected readonly timeIcon = faClock;
+  protected readonly tryAgainIcon = faRotateRight;
+
   /** Display mode: 'confirm' for pre-submit dialog, 'results' for post-submit display. */
   mode = input<'confirm' | 'results'>('confirm');
 
@@ -61,11 +79,11 @@ export class SubmitSummaryComponent {
     const result = this.scoringResult();
     if (!result) return '';
     if (result.percentage >= 80) {
-      return "🎉 Amazing work! You're a maths superstar!";
+      return "Amazing work! You're a maths superstar!";
     } else if (result.percentage >= 50) {
-      return '👍 Great effort! Keep practising!';
+      return 'Great effort! Keep practising!';
     } else {
-      return "💪 Good try! Let's practise some more!";
+      return "Good try! Let's practise some more!";
     }
   });
 

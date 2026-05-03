@@ -18,6 +18,27 @@ describe('QuestionGeneratorService', () => {
   let service: QuestionGeneratorService;
   let httpMock: HttpTestingController;
 
+  function createPracticeApiResponse(questions: GeneratedQuestion[]) {
+    return {
+      questions: questions.map((question, index) => ({
+        _id: `question-${index + 1}`,
+        questionText: question.question,
+        answer: question.answer,
+        explanation: question.explanation,
+        grade: question.metadata.grade,
+        topic: question.metadata.topic,
+        category: question.metadata.topic.toLowerCase(),
+        format: 'multiple-choice',
+        options: [],
+        stepByStepSolution: [question.explanation],
+        difficulty: question.metadata.difficulty,
+      })),
+      total: questions.length,
+      requested: questions.length,
+      hasMore: false,
+    };
+  }
+
   const mockQuestion: GeneratedQuestion = {
     question: 'What is 5 + 3?',
     answer: 8,
@@ -87,18 +108,18 @@ describe('QuestionGeneratorService', () => {
   });
 
   describe('generateQuestions', () => {
-    it('should call GET /api/math-questions/generate with correct query params', () => {
+    it('should call GET /api/questions/practice with correct query params', () => {
       service.generateQuestions('grade_3', 10, 'addition').subscribe();
 
       const req = httpMock.expectOne(
         (r) =>
-          r.url === '/api/math-questions/generate' &&
-          r.params.get('difficulty') === 'grade_3' &&
+          r.url === '/api/questions/practice' &&
+          r.params.get('grade') === '3' &&
           r.params.get('count') === '10' &&
-          r.params.get('topic') === 'addition'
+          r.params.get('topic') === 'ADDITION'
       );
       expect(req.request.method).toBe('GET');
-      req.flush([mockQuestion]);
+      req.flush(createPracticeApiResponse([mockQuestion]));
     });
 
     it('should return an array of generated questions on success', () => {
@@ -112,12 +133,13 @@ describe('QuestionGeneratorService', () => {
         .subscribe((questions) => {
           expect(questions).toHaveLength(2);
           expect(questions[0].question).toBe('What is 5 + 3?');
+          expect(questions[0].metadata.generated_by).toBe('question-bank');
         });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
+        (r) => r.url === '/api/questions/practice'
       );
-      req.flush(mockQuestions);
+      req.flush(createPracticeApiResponse(mockQuestions));
     });
 
     it('should handle API error on generate', () => {
@@ -128,7 +150,7 @@ describe('QuestionGeneratorService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
+        (r) => r.url === '/api/questions/practice'
       );
       req.flush('Internal Server Error', {
         status: 500,
@@ -144,9 +166,9 @@ describe('QuestionGeneratorService', () => {
         });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
+        (r) => r.url === '/api/questions/practice'
       );
-      req.flush([]);
+      req.flush(createPracticeApiResponse([]));
     });
   });
 });

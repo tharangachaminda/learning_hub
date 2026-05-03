@@ -11,21 +11,25 @@
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading your dashboard...</span>
     </div>
-    <p class="loading-text">Loading your dashboard... ✨</p>
+    <p class="loading-text">
+      <fa-icon [icon]="loadingIcon"></fa-icon>
+      Loading your dashboard...
+    </p>
   </div>
   }
 
   <!-- Error State (AC20) -->
   @if (error) {
   <div data-testid="dashboard-error" class="error-container" role="alert">
-    <p class="error-icon">😟</p>
+    <p class="error-icon"><fa-icon [icon]="errorIcon"></fa-icon></p>
     <p class="error-message">{{ error }}</p>
     <button
       class="btn btn-primary retry-btn"
       (click)="loadDashboard()"
       aria-label="Try loading dashboard again"
     >
-      Try Again 🔄
+      <fa-icon [icon]="retryIcon"></fa-icon>
+      Try Again
     </button>
   </div>
   }
@@ -33,65 +37,57 @@
   <!-- Dashboard Content -->
   @if (dashboardData && !loading) {
   <!-- Welcome Banner (AC2, AC11) -->
-  <section
+  <app-page-hero
     data-testid="welcome-banner"
-    class="welcome-banner"
-    aria-label="Welcome message"
+    appearance="brand"
+    [title]="getGreeting() + ', ' + dashboardData.student.firstName"
+    description="Your dashboard, achievements, and performance are connected in one place."
+    [actions]="heroActions"
   >
-    <div class="welcome-content">
-      <h1 class="greeting">
-        {{ getGreeting() }}, {{ dashboardData.student.firstName }}! 👋
-      </h1>
-      <p class="motivational-text">
-        Ready to learn something amazing today? 🚀
-      </p>
-    </div>
-    <button
-      class="btn btn-outline-light logout-btn"
-      (click)="logout()"
-      aria-label="Log out"
-    >
-      Logout 🚪
-    </button>
-    @if (dashboardData.student.avatarUrl) {
-    <img
-      [src]="dashboardData.student.avatarUrl"
-      [alt]="dashboardData.student.firstName + '\'s avatar'"
-      class="student-avatar"
-    />
+  </app-page-hero>
+
+  <div class="dashboard-summary" aria-label="Dashboard summary">
+    @for (card of summaryCards; track card.label) {
+    <article class="dashboard-summary__card">
+      <p class="dashboard-summary__label">{{ card.label }}</p>
+      <h2>{{ card.value }}</h2>
+      <p class="dashboard-summary__detail">{{ card.detail }}</p>
+    </article>
     }
-  </section>
+  </div>
 
-  <!-- Dashboard Grid -->
-  <div class="dashboard-grid">
-    <!-- Daily Goal & Streak (AC3, AC4) -->
-    <app-daily-goal-widget
-      [dailyGoal]="dashboardData.dailyGoal"
-      [streak]="dashboardData.streak"
-    >
-    </app-daily-goal-widget>
+  <div class="dashboard-layout">
+    <div class="dashboard-layout__primary">
+      <app-subject-cards
+        [subjects]="dashboardData.subjects"
+        (practiceSubject)="onPracticeSubject($event)"
+      >
+      </app-subject-cards>
 
-    <!-- AI Recommendations (AC5, AC7) -->
-    <app-ai-recommendations
-      [recommendations]="dashboardData.recommendations"
-      (startPractice)="onStartPractice($event)"
-    >
-    </app-ai-recommendations>
+      <app-ai-recommendations
+        [recommendations]="dashboardData.recommendations"
+        (startPractice)="onStartPractice($event)"
+      >
+      </app-ai-recommendations>
+    </div>
 
-    <!-- Recent Activity (AC6) -->
-    <app-recent-activity [recentActivity]="dashboardData.recentActivity">
-    </app-recent-activity>
+    <div class="dashboard-layout__secondary">
+      <app-recent-activity [recentActivity]="dashboardData.recentActivity">
+      </app-recent-activity>
 
-    <!-- Subject Cards (AC8) -->
-    <app-subject-cards
-      [subjects]="dashboardData.subjects"
-      (practiceSubject)="onPracticeSubject($event)"
-    >
-    </app-subject-cards>
+      <div class="dashboard-achievements-preview">
+        <div class="dashboard-achievements-preview__header">
+          <div>
+            <p class="dashboard-section__eyebrow">Motivation</p>
+            <h2>Recent wins</h2>
+          </div>
+          <a routerLink="/achievements">See all</a>
+        </div>
 
-    <!-- Achievement Showcase (AC9) -->
-    <app-achievement-showcase [achievements]="dashboardData.achievements">
-    </app-achievement-showcase>
+        <app-achievement-showcase [achievements]="dashboardData.achievements">
+        </app-achievement-showcase>
+      </div>
+    </div>
   </div>
   }
 </div>

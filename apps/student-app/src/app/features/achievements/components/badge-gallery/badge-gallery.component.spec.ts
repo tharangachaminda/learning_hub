@@ -8,9 +8,11 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { BadgeGalleryComponent } from './badge-gallery.component';
 import { AchievementService } from '../../../../services/achievement.service';
+import { AuthService } from '../../../../services/auth.service';
 import {
   Achievement,
   StudentAchievements,
@@ -60,11 +62,17 @@ describe('BadgeGalleryComponent', () => {
     newlyUnlocked$: of([]),
   };
 
+  const mockAuthService = {
+    getUserId: jest.fn(() => 'student-123'),
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [BadgeGalleryComponent, HttpClientTestingModule],
       providers: [
         { provide: AchievementService, useValue: mockAchievementService },
+        { provide: AuthService, useValue: mockAuthService },
+        provideRouter([]),
       ],
     }).compileComponents();
 

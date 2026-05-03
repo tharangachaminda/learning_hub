@@ -3,40 +3,58 @@ import { BadgeGalleryComponent } from './features/achievements/components/badge-
 import { Login } from './features/login/login';
 import { Registration } from './features/registration';
 import { QuestionGeneratorComponent } from './features/practice/question-generator/question-generator';
+import { StudentPerformanceComponent } from './features/student-performance/student-performance.component';
 import { StudentDashboardComponent } from './features/student-dashboard/student-dashboard.component';
 import { authGuard } from './guards/auth.guard';
+import { AuthShellComponent } from './layouts/auth-shell/auth-shell.component';
+import { StudentShellComponent } from './layouts/student-shell/student-shell.component';
 
 export const appRoutes: Route[] = [
   {
-    path: 'dashboard',
-    component: StudentDashboardComponent,
-    title: 'My Dashboard',
-    canActivate: [authGuard],
+    path: '',
+    component: AuthShellComponent,
+    children: [
+      {
+        path: 'register',
+        component: Registration,
+        title: 'Student Registration',
+      },
+      {
+        path: 'login',
+        component: Login,
+        title: 'Student Login',
+      },
+    ],
   },
   {
-    path: 'achievements',
-    component: BadgeGalleryComponent,
-    title: 'My Achievements',
-    canActivate: [authGuard],
-  },
-  {
-    path: 'register',
-    component: Registration,
-    title: 'Student Registration',
-  },
-  {
-    path: 'login',
-    component: Login,
-    title: 'Student Login',
-  },
-  {
-    path: 'practice',
+    path: '',
+    component: StudentShellComponent,
     canActivate: [authGuard],
     children: [
       {
-        path: 'generate',
-        component: QuestionGeneratorComponent,
-        title: 'AI Question Generator',
+        path: 'dashboard',
+        component: StudentDashboardComponent,
+        title: 'My Dashboard',
+      },
+      {
+        path: 'achievements',
+        component: BadgeGalleryComponent,
+        title: 'My Achievements',
+      },
+      {
+        path: 'performance',
+        component: StudentPerformanceComponent,
+        title: 'My Performance',
+      },
+      {
+        path: 'practice',
+        children: [
+          {
+            path: 'generate',
+            component: QuestionGeneratorComponent,
+            title: 'AI Question Generator',
+          },
+        ],
       },
     ],
   },

@@ -13,6 +13,7 @@ import {
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
+  TestRequest,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
@@ -21,11 +22,40 @@ import { QuestionGeneratorService } from './services/question-generator.service'
 import { StudentProfileService } from './services/student-profile.service';
 import { GenerationParams } from './models/generation-params.model';
 import { GeneratedQuestion } from './models/question.model';
+import { AuthService } from '../../../services/auth.service';
 
 describe('QuestionGeneratorComponent', () => {
   let component: QuestionGeneratorComponent;
   let fixture: ComponentFixture<QuestionGeneratorComponent>;
   let httpMock: HttpTestingController;
+  const mockAuthService = {
+    getUserId: jest.fn(() => null),
+  };
+
+  function createPracticeApiResponse(questions: GeneratedQuestion[]) {
+    return {
+      questions: questions.map((question, index) => ({
+        _id: `question-${index + 1}`,
+        questionText: question.question,
+        answer: question.answer,
+        explanation: question.explanation,
+        grade: question.metadata.grade,
+        topic: question.metadata.topic,
+        category: question.metadata.topic.toLowerCase(),
+        format: 'multiple-choice',
+        options: [],
+        stepByStepSolution: [question.explanation],
+        difficulty: question.metadata.difficulty,
+      })),
+      total: questions.length,
+      requested: questions.length,
+      hasMore: false,
+    };
+  }
+
+  function expectPracticeRequest(): TestRequest {
+    return httpMock.expectOne((r) => r.url === '/api/questions/practice');
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -33,6 +63,7 @@ describe('QuestionGeneratorComponent', () => {
       providers: [
         QuestionGeneratorService,
         StudentProfileService,
+        { provide: AuthService, useValue: mockAuthService },
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
@@ -166,13 +197,13 @@ describe('QuestionGeneratorComponent', () => {
 
       const req = httpMock.expectOne(
         (r) =>
-          r.url === '/api/math-questions/generate' &&
-          r.params.get('difficulty') === 'grade_3' &&
+          r.url === '/api/questions/practice' &&
+          r.params.get('grade') === '3' &&
           r.params.get('count') === '10' &&
-          r.params.get('topic') === 'addition'
+          r.params.get('topic') === 'ADDITION'
       );
       expect(req.request.method).toBe('GET');
-      req.flush([mockQuestion]);
+      req.flush(createPracticeApiResponse([mockQuestion]));
       tick();
     }));
 
@@ -181,10 +212,8 @@ describe('QuestionGeneratorComponent', () => {
       component.onGenerate(mockParams);
       expect(component.isGenerating()).toBe(true);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([mockQuestion]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([mockQuestion]));
       tick();
     }));
 
@@ -192,10 +221,8 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([mockQuestion]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([mockQuestion]));
       tick();
 
       expect(component.phase()).toBe('questions');
@@ -207,10 +234,8 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([]));
       tick();
 
       expect(component.phase()).toBe('controls');
@@ -222,10 +247,8 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([]));
       tick();
       fixture.detectChanges();
 
@@ -233,16 +256,16 @@ describe('QuestionGeneratorComponent', () => {
         '[data-testid="empty-state"]'
       );
       expect(emptyState).toBeTruthy();
-      expect(emptyState.textContent).toContain('No questions found');
+      expect(emptyState.textContent).toContain(
+        'No practice questions are available for this topic yet.'
+      );
     }));
 
     it('should show error state on API failure', fakeAsync(() => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush('Server Error', {
         status: 500,
         statusText: 'Internal Server Error',
@@ -261,9 +284,7 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush('Server Error', {
         status: 500,
         statusText: 'Internal Server Error',
@@ -290,10 +311,8 @@ describe('QuestionGeneratorComponent', () => {
       expect(overlay.textContent).toContain('Thinking...');
       expect(overlay.textContent).toContain('Preparing your questions');
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([mockQuestion]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([mockQuestion]));
       tick();
     }));
 
@@ -303,10 +322,8 @@ describe('QuestionGeneratorComponent', () => {
 
       expect(component.generationParams()).toEqual(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush([mockQuestion]);
+      const req = expectPracticeRequest();
+      req.flush(createPracticeApiResponse([mockQuestion]));
       tick();
     }));
   });
@@ -324,24 +341,39 @@ describe('QuestionGeneratorComponent', () => {
     };
 
     /** Raw API response shape — what the backend actually returns */
-    const rawApiResponse = [
-      {
-        question: '9 + 7 = ?',
-        answer: 16,
-        operation: 'addition',
-        difficulty: 'grade_3',
-        stepByStepSolution: ['Add 9 and 7 together to get 16.'],
-        createdAt: '2026-02-14T07:47:50.205Z',
-      },
-      {
-        question: '3 + 8 = ?',
-        answer: 11,
-        operation: 'addition',
-        difficulty: 'grade_3',
-        stepByStepSolution: ['Add 3 and 8 together to get 11.'],
-        createdAt: '2026-02-14T07:48:00.210Z',
-      },
-    ];
+    const rawApiResponse = {
+      questions: [
+        {
+          _id: 'question-1',
+          questionText: '9 + 7 = ?',
+          answer: 16,
+          explanation: 'Add 9 and 7 together to get 16.',
+          grade: 3,
+          topic: 'ADDITION',
+          category: 'addition',
+          format: 'multiple-choice',
+          options: ['16', '15', '17', '18'],
+          stepByStepSolution: ['Add 9 and 7 together to get 16.'],
+          difficulty: 'easy',
+        },
+        {
+          _id: 'question-2',
+          questionText: '3 + 8 = ?',
+          answer: 11,
+          explanation: 'Add 3 and 8 together to get 11.',
+          grade: 3,
+          topic: 'ADDITION',
+          category: 'addition',
+          format: 'multiple-choice',
+          options: ['11', '10', '12', '9'],
+          stepByStepSolution: ['Add 3 and 8 together to get 11.'],
+          difficulty: 'easy',
+        },
+      ],
+      total: 2,
+      requested: 2,
+      hasMore: false,
+    };
 
     function initComponent(): void {
       fixture.detectChanges();
@@ -353,9 +385,7 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -369,13 +399,11 @@ describe('QuestionGeneratorComponent', () => {
       expect(q.metadata.country).toBe('NZ');
     }));
 
-    it('should map stepByStepSolution to explanation', fakeAsync(() => {
+    it('should map explanation from the practice API response', fakeAsync(() => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -384,36 +412,41 @@ describe('QuestionGeneratorComponent', () => {
       );
     }));
 
-    it('should handle missing stepByStepSolution with fallback explanation', fakeAsync(() => {
+    it('should preserve a missing explanation as undefined', fakeAsync(() => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const noStepsResponse = [
-        {
-          question: '2 + 2 = ?',
-          answer: 4,
-          operation: 'addition',
-          difficulty: 'grade_3',
-          createdAt: '2026-02-14T07:47:50.205Z',
-        },
-      ];
+      const responseWithoutExplanation = {
+        questions: [
+          {
+            _id: 'question-1',
+            questionText: '2 + 2 = ?',
+            answer: 4,
+            grade: 3,
+            topic: 'ADDITION',
+            category: 'addition',
+            format: 'multiple-choice',
+            options: ['4', '3', '5', '6'],
+            difficulty: 'easy',
+          },
+        ],
+        total: 1,
+        requested: 1,
+        hasMore: false,
+      };
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      req.flush(noStepsResponse);
+      const req = expectPracticeRequest();
+      req.flush(responseWithoutExplanation);
       tick();
 
-      expect(component.questions()[0].explanation).toBeTruthy();
+      expect(component.questions()[0].explanation).toBeUndefined();
     }));
 
     it('should transition to questions phase with mapped questions', fakeAsync(() => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -425,9 +458,7 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -444,9 +475,7 @@ describe('QuestionGeneratorComponent', () => {
       };
       component.onGenerate(openEndedParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -457,9 +486,7 @@ describe('QuestionGeneratorComponent', () => {
       initComponent();
       component.onGenerate(mockParams);
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
+      const req = expectPracticeRequest();
       req.flush(rawApiResponse);
       tick();
 
@@ -532,10 +559,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should initialise currentIndex to 0 after generation', fakeAsync(() => {
@@ -547,7 +572,19 @@ describe('QuestionGeneratorComponent', () => {
     it('should compute currentQuestion from questions and currentIndex', fakeAsync(() => {
       initWithQuestions();
       tick();
-      expect(component.currentQuestion()).toEqual(mockQuestions[0]);
+      expect(component.currentQuestion()).toEqual(
+        expect.objectContaining({
+          question: mockQuestions[0].question,
+          answer: mockQuestions[0].answer,
+          explanation: mockQuestions[0].explanation,
+          metadata: expect.objectContaining({
+            grade: mockQuestions[0].metadata.grade,
+            topic: mockQuestions[0].metadata.topic,
+            difficulty: mockQuestions[0].metadata.difficulty,
+            country: mockQuestions[0].metadata.country,
+          }),
+        })
+      );
     }));
 
     it('should compute progressPercent based on currentIndex', fakeAsync(() => {
@@ -562,7 +599,19 @@ describe('QuestionGeneratorComponent', () => {
       tick();
       component.goToNext();
       expect(component.currentIndex()).toBe(1);
-      expect(component.currentQuestion()).toEqual(mockQuestions[1]);
+      expect(component.currentQuestion()).toEqual(
+        expect.objectContaining({
+          question: mockQuestions[1].question,
+          answer: mockQuestions[1].answer,
+          explanation: mockQuestions[1].explanation,
+          metadata: expect.objectContaining({
+            grade: mockQuestions[1].metadata.grade,
+            topic: mockQuestions[1].metadata.topic,
+            difficulty: mockQuestions[1].metadata.difficulty,
+            country: mockQuestions[1].metadata.country,
+          }),
+        })
+      );
     }));
 
     it('should navigate to previous question with goToPrevious()', fakeAsync(() => {
@@ -666,10 +715,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should store selected option via onOptionSelected()', fakeAsync(() => {
@@ -783,10 +830,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should start tracking time when entering questions phase', fakeAsync(() => {
@@ -885,10 +930,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should initialise isSubmitting to false', fakeAsync(() => {
@@ -982,10 +1025,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should not show submit button when no answers given', fakeAsync(() => {
@@ -1098,10 +1139,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
     }
 
     it('should open confirmation modal on onSubmitClick()', fakeAsync(() => {
@@ -1221,10 +1260,8 @@ describe('QuestionGeneratorComponent', () => {
       healthReq.flush({ status: 'ok' });
 
       component.onGenerate(mockParams);
-      const genReq = httpMock.expectOne(
-        (r) => r.url === '/api/math-questions/generate'
-      );
-      genReq.flush(mockQuestions);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
       component.onOptionSelected('8');
       component.onConfirmSubmit();
     }

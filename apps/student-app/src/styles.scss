@@ -5,35 +5,57 @@
 
 // Educational theme for students (Grade 3, ages 7-9)
 :root {
-  // Primary colors - bright and friendly
-  --primary-color: #4285f4;      // Google Blue - familiar and trustworthy
-  --secondary-color: #34a853;    // Green - positive and encouraging
-  --accent-color: #fbbc04;       // Yellow - cheerful and attention-grabbing
-  --warning-color: #ea4335;      // Red - for important alerts
-  
+  // Student space palette
+  --primary-color: #1f6cb0;
+  --primary-hover: #124a7b;
+  --primary-strong: #062846;
+  --header-color: #1f6cb0;
+
+  --secondary-color: #5c9d6a;
+  --secondary-hover: #467b52;
+  --accent-color: #e2b850;
+  --info-color: #124a7b;
+  --warning-color: #e24c60;
+  --error-color: #e24c60;
+
   // Educational colors
-  --correct-color: #34a853;      // Green for correct answers
-  --incorrect-color: #ea4335;    // Red for incorrect answers
-  --neutral-color: #9aa0a6;     // Gray for neutral states
-  
-  // Background colors
-  --bg-primary: #f8f9fa;        // Light gray background
-  --bg-card: #ffffff;           // White for content cards
-  --bg-fun: linear-gradient(135deg, #667eea 0%, #764ba2 100%); // Fun gradient
-  
+  --correct-color: #5c9d6a;
+  --incorrect-color: #e24c60;
+  --neutral-color: #9ba3a8;
+
+  // Background and surface colors
+  --bg-primary: #edeff0;
+  --bg-card: #f8fafc;
+  --bg-card-strong: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(31, 108, 176, 0.08);
+  --bg-warning: #fae2ae;
+  --bg-fun: linear-gradient(135deg, #1f6cb0 0%, #124a7b 100%);
+
+  // Borders and states
+  --border-color: #c2c9cc;
+  --border-muted: #d9dddf;
+  --warning-border: #ebb0b8;
+  --error-border: #ebb0b8;
+  --error-bg: #fdf6f6;
+
   // Text colors
-  --text-primary: #202124;      // Dark text for readability
-  --text-secondary: #5f6368;    // Secondary text
-  --text-light: #ffffff;        // Light text for dark backgrounds
-  
+  --text-primary: #191b1c;
+  --text-secondary: #595f61;
+  --text-placeholder: #7b8285;
+  --text-light: #ffffff;
+
   // Interactive elements
-  --border-radius: 16px;        // Rounded corners for friendliness
-  --shadow-soft: 0 2px 8px rgba(0,0,0,0.1);
-  --shadow-medium: 0 4px 16px rgba(0,0,0,0.15);
-  
+  --border-radius: 16px;
+  --border-radius-sm: 8px;
+  --shadow-soft: 0 4px 14px rgba(25, 27, 28, 0.07);
+  --shadow-medium: 0 8px 22px rgba(25, 27, 28, 0.1);
+  --shadow-large: 0 14px 32px rgba(25, 27, 28, 0.12);
+
   // Animation timing
   --animation-fast: 0.2s;
   --animation-normal: 0.3s;
+  --animation-medium: 0.3s;
   --animation-slow: 0.5s;
 }
 
@@ -83,7 +105,7 @@ body {
   color: var(--text-light);
   
   &:hover {
-    background: darken(#4285f4, 10%);
+    background: var(--primary-hover);
   }
 }
 
@@ -93,7 +115,7 @@ body {
   color: var(--text-light);
   
   &:hover {
-    background: darken(#34a853, 10%);
+    background: var(--secondary-hover);
   }
 }
 
@@ -116,7 +138,7 @@ body {
 // Question card specific styles
 .question-card {
   @extend .card-student;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-card-strong) 100%);
   border-left: 4px solid var(--primary-color);
   
   .question-text {
@@ -131,7 +153,7 @@ body {
     @extend .btn-student;
     background: var(--bg-card);
     color: var(--text-primary);
-    border: 2px solid #e8eaed;
+    border: 2px solid var(--border-muted);
     width: 100%;
     margin: 8px 0;
     text-align: left;
@@ -139,23 +161,23 @@ body {
     
     &:hover {
       border-color: var(--primary-color);
-      background: #f1f3f4;
+      background: var(--bg-primary);
     }
     
     &.selected {
       border-color: var(--primary-color);
-      background: #e8f0fe;
+      background: rgba(231, 98, 95, 0.12);
     }
     
     &.correct {
       border-color: var(--correct-color);
-      background: #e6f4ea;
+      background: rgba(92, 157, 106, 0.14);
       color: var(--correct-color);
     }
     
     &.incorrect {
       border-color: var(--incorrect-color);
-      background: #fce8e6;
+      background: rgba(226, 76, 96, 0.12);
       color: var(--incorrect-color);
     }
   }
@@ -164,7 +186,7 @@ body {
 // Progress indicators
 .progress-bar-student {
   height: 12px;
-  background: #e8eaed;
+  background: var(--border-muted);
   border-radius: 6px;
   overflow: hidden;
   

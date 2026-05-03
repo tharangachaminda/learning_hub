@@ -1,0 +1,56 @@
+<section
+  class="page-hero"
+  [class.page-hero--brand]="appearance === 'brand'"
+  [class.page-hero--surface]="appearance === 'surface'"
+>
+  <div class="page-hero__copy">
+    @if (eyebrow) {
+    <p class="page-hero__eyebrow">{{ eyebrow }}</p>
+    }
+
+    <div class="page-hero__title-row">
+      @if (titleIcon) {
+      <fa-icon [icon]="titleIcon" class="page-hero__title-icon"></fa-icon>
+      }
+      <h1 class="page-hero__title">{{ title }}</h1>
+    </div>
+
+    @if (description) {
+    <p class="page-hero__description">{{ description }}</p>
+    }
+  </div>
+
+  @if (stats.length || actions.length) {
+  <div class="page-hero__meta">
+    @if (stats.length) {
+    <div class="page-hero__stats">
+      @for (stat of stats; track stat.label) {
+      <div class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ stat.value }}</span>
+        <span class="page-hero__stat-label">{{ stat.label }}</span>
+      </div>
+      }
+    </div>
+    } @if (actions.length) {
+    <div class="page-hero__actions">
+      @for (action of actions; track action.route + action.label) {
+      <a
+        class="page-hero__action"
+        [class.page-hero__action--primary]="action.variant === 'primary'"
+        [class.page-hero__action--success]="action.variant === 'success'"
+        [routerLink]="action.route"
+      >
+        @if (action.icon && action.iconPosition !== 'end') {
+        <fa-icon [icon]="action.icon"></fa-icon>
+        }
+        {{ action.label }}
+        @if (action.icon && action.iconPosition === 'end') {
+        <fa-icon [icon]="action.icon"></fa-icon>
+        }
+      </a>
+      }
+    </div>
+    }
+  </div>
+  }
+</section>

@@ -1,0 +1,44 @@
+<div class="student-shell">
+  <header class="student-shell__header">
+    <a class="student-shell__brand" routerLink="/dashboard">
+      <span class="student-shell__brand-mark">Learning Hub</span>
+      <span class="student-shell__brand-subtitle">Student Space</span>
+    </a>
+
+    <nav aria-label="Student navigation" class="student-shell__nav">
+      <a
+        *ngFor="let navItem of navItems"
+        [routerLink]="navItem.route"
+        routerLinkActive="student-shell__nav-link--active"
+        [routerLinkActiveOptions]="{ exact: navItem.route === '/dashboard' }"
+        class="student-shell__nav-link"
+      >
+        {{ navItem.label }}
+      </a>
+    </nav>
+
+    <div class="student-shell__actions">
+      @if (studentProfile?.avatarUrl) {
+      <img
+        [src]="studentProfile?.avatarUrl"
+        [alt]="(studentProfile?.firstName || 'Student') + '\'' + 's avatar'"
+        class="student-shell__avatar"
+      />
+      }
+
+      <button class="student-shell__logout" type="button" (click)="logout()">
+        Log out
+      </button>
+    </div>
+  </header>
+
+  <main class="student-shell__content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="student-shell__footer">
+    <p>
+      Practice consistently, build confidence, and track progress in one place.
+    </p>
+  </footer>
+</div>

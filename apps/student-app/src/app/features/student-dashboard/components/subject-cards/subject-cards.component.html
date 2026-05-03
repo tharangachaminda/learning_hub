@@ -1,10 +1,13 @@
 <!-- Subject Cards Template (AC8, AC25) -->
 <div class="subject-cards" aria-label="Available subjects with progress">
-  <h3 class="section-title">📚 My Subjects</h3>
+  <h3 class="section-title">
+    <fa-icon [icon]="bookIcon"></fa-icon>
+    My Subjects
+  </h3>
 
   @if (subjects.length === 0) {
   <div data-testid="no-subjects" class="empty-state">
-    <p>No subjects available yet. Check back soon! 🌈</p>
+    <p>No subjects available yet. Check back soon.</p>
   </div>
   }
 
@@ -14,6 +17,10 @@
       data-testid="subject-card"
       class="subject-card"
       type="button"
+      [style.--subject-accent]="getSubjectTone(subject).accent"
+      [style.--subject-accent-strong]="getSubjectTone(subject).accentStrong"
+      [style.--subject-background]="getSubjectTone(subject).background"
+      [style.--subject-border]="getSubjectTone(subject).border"
       [attr.aria-label]="
         'Practice ' +
         subject.displayName +
@@ -23,7 +30,9 @@
       "
       (click)="onSubjectClick(subject)"
     >
-      <div class="card-icon">{{ subject.icon }}</div>
+      <div class="card-icon">
+        <fa-icon [icon]="getSubjectIcon(subject)"></fa-icon>
+      </div>
       <h4 class="subject-name">{{ subject.displayName }}</h4>
       <div class="progress-wrapper">
         <div
@@ -42,7 +51,10 @@
       <p class="questions-count">
         {{ subject.questionsAnswered }} questions answered
       </p>
-      <span class="practice-link">Practice ▶</span>
+      <span class="practice-link">
+        Practice
+        <fa-icon [icon]="arrowIcon"></fa-icon>
+      </span>
     </button>
     }
   </div>

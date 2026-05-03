@@ -45,6 +45,16 @@
 
 /* ---- Title ---- */
 
+.login-brand {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary-color, #4361ee);
+  margin: 0 0 0.75rem;
+}
+
 .login-title {
   text-align: center;
   font-size: 28px;
