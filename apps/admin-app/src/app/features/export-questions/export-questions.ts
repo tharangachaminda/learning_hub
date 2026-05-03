@@ -1,5 +1,5 @@
 import {
-  AfterViewChecked,
+  AfterViewInit,
   Component,
   ElementRef,
   OnInit,
@@ -37,7 +37,7 @@ type PdfDocument = InstanceType<typeof import('jspdf').default>;
   templateUrl: './export-questions.html',
   styleUrl: './export-questions.scss',
 })
-export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
+export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   @ViewChild('questionExportSection')
   private questionExportSection?: ElementRef<HTMLElement>;
 
@@ -71,6 +71,7 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private exportViewReady = false;
+  private hasNormalizedQueryParams = false;
 
   ngOnInit(): void {
     const user = this.authService.getUser();
@@ -78,14 +79,15 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
     this.userRole = user?.role ?? 'teacher';
 
     const params = this.route.snapshot.queryParams;
-    if (params['grade']) {
-      this.filterGrade = +params['grade'];
-    }
+    this.filterGrade = this.parseGradeParam(params['grade']);
     if (params['topic']) {
       this.filterTopic = params['topic'];
     }
-    if (params['difficulty']) {
-      this.filterDifficulty = params['difficulty'] as DifficultyFilter;
+    this.filterDifficulty = this.parseDifficultyParam(params['difficulty']);
+
+    if (this.shouldNormalizeQueryParams(params)) {
+      this.hasNormalizedQueryParams = true;
+      this.updateQueryParams();
     }
 
     this.authService.getCurriculum().subscribe({
@@ -98,7 +100,7 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
     this.loadQuestions();
   }
 
-  ngAfterViewChecked(): void {
+  ngAfterViewInit(): void {
     this.exportViewReady = true;
   }
 
@@ -207,15 +209,23 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
 
     this.selectedQuestionMap.set(question._id, question);
     this.selectedQuestionOrder.push(question._id);
+    this.resetExportStatus();
   }
 
   addCurrentPage(): void {
+    let hasAddedQuestion = false;
+
     this.questions.forEach((question) => {
       if (!this.selectedQuestionMap.has(question._id)) {
         this.selectedQuestionMap.set(question._id, question);
         this.selectedQuestionOrder.push(question._id);
+        hasAddedQuestion = true;
       }
     });
+
+    if (hasAddedQuestion) {
+      this.resetExportStatus();
+    }
   }
 
   removeQuestion(questionId: string): void {
@@ -223,13 +233,14 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
     const index = this.selectedQuestionOrder.indexOf(questionId);
     if (index >= 0) {
       this.selectedQuestionOrder.splice(index, 1);
+      this.resetExportStatus();
     }
   }
 
   clearSelection(): void {
     this.selectedQuestionMap.clear();
     this.selectedQuestionOrder.length = 0;
-    this.success = null;
+    this.resetExportStatus();
   }
 
   moveQuestion(questionId: string, direction: -1 | 1): void {
@@ -246,6 +257,7 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
 
     const [item] = this.selectedQuestionOrder.splice(index, 1);
     this.selectedQuestionOrder.splice(targetIndex, 0, item);
+    this.resetExportStatus();
   }
 
   dropSelectedQuestion(event: CdkDragDrop<QuestionItem[]>): void {
@@ -258,7 +270,7 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
       event.previousIndex,
       event.currentIndex
     );
-    this.success = null;
+    this.resetExportStatus();
   }
 
   async generatePdf(): Promise<void> {
@@ -350,6 +362,45 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
       },
       queryParamsHandling: 'merge',
     });
+  }
+
+  private resetExportStatus(): void {
+    this.success = null;
+    this.error = null;
+  }
+
+  private parseGradeParam(value: unknown): number | null {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return null;
+    }
+
+    const grade = Number(value);
+    return Number.isInteger(grade) && grade > 0 ? grade : null;
+  }
+
+  private parseDifficultyParam(value: unknown): DifficultyFilter {
+    if (value === 'easy' || value === 'medium' || value === 'hard') {
+      return value;
+    }
+
+    return '';
+  }
+
+  private shouldNormalizeQueryParams(params: Record<string, unknown>): boolean {
+    if (this.hasNormalizedQueryParams) {
+      return false;
+    }
+
+    const rawGrade = params['grade'];
+    const rawDifficulty = params['difficulty'];
+
+    const hasInvalidGrade =
+      rawGrade !== undefined && this.parseGradeParam(rawGrade) === null;
+    const hasInvalidDifficulty =
+      rawDifficulty !== undefined &&
+      this.parseDifficultyParam(rawDifficulty) === '';
+
+    return hasInvalidGrade || hasInvalidDifficulty;
   }
 
   private async addSectionToPdf(

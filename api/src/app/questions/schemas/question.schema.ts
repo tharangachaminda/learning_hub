@@ -110,7 +110,7 @@ export type QuestionDocument = HydratedDocument<Question>;
  * review status, and curriculum alignment data. Supports duplicate
  * detection via a compound unique index on (questionText, grade, topic)
  * and fast filtered queries via individual indexes on grade, topic,
- * status, and format (REQ-QG-022).
+ * status, format, and metadata.difficulty (REQ-QG-022).
  *
  * @example
  * ```typescript
@@ -234,3 +234,4 @@ QuestionSchema.index({ grade: 1 });
 QuestionSchema.index({ topic: 1 });
 QuestionSchema.index({ status: 1 });
 QuestionSchema.index({ format: 1 });
+QuestionSchema.index({ 'metadata.difficulty': 1 });
