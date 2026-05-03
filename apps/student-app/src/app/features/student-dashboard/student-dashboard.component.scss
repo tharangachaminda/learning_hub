@@ -1,6 +1,8 @@
 /* Student Dashboard Styles (AC11, AC12, AC14, AC15) */
 
 .dashboard-container {
+  display: grid;
+  gap: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -51,24 +53,95 @@
   border-radius: 12px;
 }
 
-/* Dashboard Grid */
-.dashboard-grid {
+.dashboard-summary {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
-/* Tablet landscape and desktop (AC12) */
-@media (min-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
+.dashboard-summary__card,
+.dashboard-achievements-preview {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(32, 33, 36, 0.08);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-soft);
 }
 
-@media (min-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(3, 1fr);
+.dashboard-summary__card {
+  padding: 1.25rem;
+}
+
+.dashboard-summary__label,
+.dashboard-section__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.dashboard-summary__card h2,
+.dashboard-achievements-preview__header h2 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+}
+
+.dashboard-summary__detail,
+.dashboard-achievements-preview__header a {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1rem;
+}
+
+.dashboard-layout__primary,
+.dashboard-layout__secondary {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-layout__secondary {
+  gap: 0.75rem;
+}
+
+.dashboard-achievements-preview {
+  padding: 1.5rem;
+}
+
+.dashboard-achievements-preview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-achievements-preview__header a {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Tablet landscape and desktop (AC12) */
+@media (max-width: 1024px) {
+  .dashboard-summary,
+  .dashboard-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-summary,
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-achievements-preview__header {
+    display: grid;
   }
 }
 

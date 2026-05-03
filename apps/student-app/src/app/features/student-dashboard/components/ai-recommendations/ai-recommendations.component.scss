@@ -4,7 +4,7 @@
   background: white;
   border-radius: 16px;
   padding: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .section-title {
@@ -25,7 +25,7 @@
 
 .recommendation-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  box-shadow: var(--shadow-soft);
 }
 
 .card-header {

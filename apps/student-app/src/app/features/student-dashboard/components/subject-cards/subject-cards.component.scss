@@ -4,7 +4,7 @@
   background: white;
   border-radius: 16px;
   padding: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .section-title {
@@ -36,7 +36,7 @@
 
 .subject-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(92, 157, 106, 0.2);
+  box-shadow: var(--shadow-medium);
 }
 
 .subject-card:focus-visible {

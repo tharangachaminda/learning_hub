@@ -4,10 +4,9 @@
   gap: 1.5rem;
   align-items: flex-end;
   padding: 1.75rem;
-  margin-bottom: 1.5rem;
   border-radius: 1.5rem;
   border: 1px solid rgba(32, 33, 36, 0.08);
-  box-shadow: 0 16px 40px rgba(24, 39, 75, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .page-hero--surface {

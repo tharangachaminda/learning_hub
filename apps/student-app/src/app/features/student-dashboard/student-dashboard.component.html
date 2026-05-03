@@ -46,36 +46,48 @@
   >
   </app-page-hero>
 
-  <!-- Dashboard Grid -->
-  <div class="dashboard-grid">
-    <!-- Daily Goal & Streak (AC3, AC4) -->
-    <app-daily-goal-widget
-      [dailyGoal]="dashboardData.dailyGoal"
-      [streak]="dashboardData.streak"
-    >
-    </app-daily-goal-widget>
+  <div class="dashboard-summary" aria-label="Dashboard summary">
+    @for (card of summaryCards; track card.label) {
+    <article class="dashboard-summary__card">
+      <p class="dashboard-summary__label">{{ card.label }}</p>
+      <h2>{{ card.value }}</h2>
+      <p class="dashboard-summary__detail">{{ card.detail }}</p>
+    </article>
+    }
+  </div>
 
-    <!-- AI Recommendations (AC5, AC7) -->
-    <app-ai-recommendations
-      [recommendations]="dashboardData.recommendations"
-      (startPractice)="onStartPractice($event)"
-    >
-    </app-ai-recommendations>
+  <div class="dashboard-layout">
+    <div class="dashboard-layout__primary">
+      <app-subject-cards
+        [subjects]="dashboardData.subjects"
+        (practiceSubject)="onPracticeSubject($event)"
+      >
+      </app-subject-cards>
 
-    <!-- Recent Activity (AC6) -->
-    <app-recent-activity [recentActivity]="dashboardData.recentActivity">
-    </app-recent-activity>
+      <app-ai-recommendations
+        [recommendations]="dashboardData.recommendations"
+        (startPractice)="onStartPractice($event)"
+      >
+      </app-ai-recommendations>
+    </div>
 
-    <!-- Subject Cards (AC8) -->
-    <app-subject-cards
-      [subjects]="dashboardData.subjects"
-      (practiceSubject)="onPracticeSubject($event)"
-    >
-    </app-subject-cards>
+    <div class="dashboard-layout__secondary">
+      <app-recent-activity [recentActivity]="dashboardData.recentActivity">
+      </app-recent-activity>
 
-    <!-- Achievement Showcase (AC9) -->
-    <app-achievement-showcase [achievements]="dashboardData.achievements">
-    </app-achievement-showcase>
+      <div class="dashboard-achievements-preview">
+        <div class="dashboard-achievements-preview__header">
+          <div>
+            <p class="dashboard-section__eyebrow">Motivation</p>
+            <h2>Recent wins</h2>
+          </div>
+          <a routerLink="/achievements">See all</a>
+        </div>
+
+        <app-achievement-showcase [achievements]="dashboardData.achievements">
+        </app-achievement-showcase>
+      </div>
+    </div>
   </div>
   }
 </div>

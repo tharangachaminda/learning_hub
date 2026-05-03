@@ -9,7 +9,7 @@
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(32, 33, 36, 0.08);
   border-radius: 1.5rem;
-  box-shadow: 0 16px 40px rgba(24, 39, 75, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
 .performance-page__eyebrow,
