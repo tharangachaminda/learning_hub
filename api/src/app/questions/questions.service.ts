@@ -110,6 +110,8 @@ export interface QuestionFilters {
   status?: QuestionStatus;
   /** Presentation format */
   format?: QuestionFormat;
+  /** Stored difficulty metadata */
+  difficulty?: string;
 }
 
 /**
@@ -232,6 +234,9 @@ export class QuestionsService {
     if (filters.topic !== undefined) query.topic = filters.topic;
     if (filters.status !== undefined) query.status = filters.status;
     if (filters.format !== undefined) query.format = filters.format;
+    if (filters.difficulty !== undefined) {
+      query['metadata.difficulty'] = filters.difficulty;
+    }
 
     const skip = (page - 1) * limit;
 

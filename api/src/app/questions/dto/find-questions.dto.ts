@@ -9,6 +9,12 @@ import {
 import { Type } from 'class-transformer';
 import { QuestionStatus, QuestionFormat } from '../schemas/question.schema';
 
+export enum PersistedQuestionDifficulty {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+}
+
 /**
  * DTO for querying persisted questions with optional filters and pagination.
  * All fields are optional — omitting a field means no filter on that dimension.
@@ -49,6 +55,13 @@ export class FindQuestionsDto {
   @IsOptional()
   @IsEnum(QuestionFormat)
   format?: QuestionFormat;
+
+  /**
+   * Filter by stored difficulty metadata (easy, medium, hard).
+   */
+  @IsOptional()
+  @IsEnum(PersistedQuestionDifficulty)
+  difficulty?: PersistedQuestionDifficulty;
 
   /**
    * Page number for pagination (1-based, default: 1).

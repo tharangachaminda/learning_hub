@@ -364,6 +364,7 @@ export class AuthService {
     grade?: number;
     topic?: string;
     status?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
     page?: number;
     limit?: number;
   }): Observable<PaginatedQuestions> {
@@ -371,6 +372,9 @@ export class AuthService {
     if (filters.grade) params = params.set('grade', filters.grade.toString());
     if (filters.topic) params = params.set('topic', filters.topic);
     if (filters.status) params = params.set('status', filters.status);
+    if (filters.difficulty) {
+      params = params.set('difficulty', filters.difficulty);
+    }
     if (filters.page) params = params.set('page', filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
     return this.http.get<PaginatedQuestions>(this.questionsApiUrl, { params });
