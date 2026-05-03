@@ -140,6 +140,20 @@
           <a routerLink="/review" class="action-btn"> Open Review Queue </a>
         </div>
 
+        <div class="action-card analytics-card">
+          <h4>Export Worksheets</h4>
+          <p>
+            Filter approved questions by year, topic, and difficulty, then
+            generate a printable PDF with an optional answer sheet.
+          </p>
+          <a
+            routerLink="/review/export"
+            [queryParams]="{ status: 'approved' }"
+            class="action-btn analytics-btn"
+            >Open PDF Exporter</a
+          >
+        </div>
+
         @if (isAdmin) {
         <div class="action-card invite-card">
           <h4>Manage Users</h4>

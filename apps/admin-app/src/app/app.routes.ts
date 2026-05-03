@@ -36,6 +36,15 @@ export const appRoutes: Route[] = [
     canActivate: [authGuard],
   },
   {
+    path: 'review/export',
+    loadComponent: () =>
+      import('./features/export-questions/export-questions').then(
+        (module) => module.ExportQuestionsComponent
+      ),
+    title: 'Worksheet PDF Export',
+    canActivate: [authGuard],
+  },
+  {
     path: 'review/:id',
     component: QuestionDetailComponent,
     title: 'Question Detail',

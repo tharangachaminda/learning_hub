@@ -1,0 +1,349 @@
+<div class="export-page">
+  <header class="page-header">
+    <div class="header-copy">
+      <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
+      <div>
+        <h1>Worksheet PDF Export</h1>
+        <p>
+          Build a printable worksheet from approved questions and optionally add
+          a separate answer sheet.
+        </p>
+      </div>
+    </div>
+
+    <nav class="header-nav">
+      <a routerLink="/review" [queryParams]="{ status: 'approved' }"
+        >Review Queue</a
+      >
+      <a routerLink="/analytics">Analytics</a>
+      <button class="btn-link" (click)="logout()">Sign Out</button>
+    </nav>
+  </header>
+
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+
+  <section class="workspace-shell">
+    <div class="filters-panel panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Approved Questions Only</p>
+          <h2>Select questions</h2>
+        </div>
+        <span class="results-pill">{{ totalItems }} matches</span>
+      </div>
+
+      <div class="filter-grid">
+        <label class="field-group">
+          <span>Year</span>
+          <select [(ngModel)]="filterGrade" (ngModelChange)="onGradeChange()">
+            <option [ngValue]="null">All years</option>
+            @for (grade of grades; track grade.grade) {
+            <option [ngValue]="grade.grade">Year {{ grade.grade }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-group">
+          <span>Topic</span>
+          <select
+            [(ngModel)]="filterTopic"
+            (ngModelChange)="onFilterChange()"
+            [disabled]="!filterGrade"
+          >
+            <option value="">All topics</option>
+            @for (topic of filteredTopics; track topic.key) {
+            <option [value]="topic.key">{{ topic.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-group">
+          <span>Difficulty</span>
+          <select
+            [(ngModel)]="filterDifficulty"
+            (ngModelChange)="onFilterChange()"
+          >
+            <option value="">All levels</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="list-toolbar">
+        <button
+          class="btn btn-secondary"
+          (click)="addCurrentPage()"
+          [disabled]="questions.length === 0"
+        >
+          Add current page
+        </button>
+        <span class="selection-summary"
+          >{{ selectedQuestions.length }} question(s) selected</span
+        >
+      </div>
+
+      @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading approved questions...</p>
+      </div>
+      } @else if (questions.length === 0) {
+      <div class="empty-state">
+        <p>No approved questions match the current filters.</p>
+      </div>
+      } @else {
+      <div class="question-results">
+        @for (question of questions; track question._id) {
+        <article
+          class="result-card"
+          [class.is-selected]="isSelected(question._id)"
+        >
+          <div class="card-topline">
+            <span class="badge badge-grade">Year {{ question.grade }}</span>
+            <span class="badge badge-topic"
+              >{{ topicLabel(question.topic) }}</span
+            >
+            <span class="badge badge-difficulty"
+              >{{ difficultyLabel(question.metadata.difficulty) }}</span
+            >
+          </div>
+
+          <div class="question-copy">
+            <app-katex-render
+              [content]="question.questionText"
+            ></app-katex-render>
+          </div>
+
+          @if (question.options.length > 0) {
+          <div class="option-grid">
+            @for (option of question.options; track option; let optionIndex =
+            $index) {
+            <div class="option-chip">
+              <span
+                >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1
+                }}.</span
+              >
+              <app-katex-render [content]="option"></app-katex-render>
+            </div>
+            }
+          </div>
+          }
+
+          <div class="card-actions">
+            <button class="btn btn-primary" (click)="toggleQuestion(question)">
+              {{ isSelected(question._id) ? 'Remove' : 'Add to worksheet' }}
+            </button>
+          </div>
+        </article>
+        }
+      </div>
+      }
+
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="btn btn-page"
+          [disabled]="currentPage === 1"
+          (click)="goToPage(currentPage - 1)"
+        >
+          &larr; Prev
+        </button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button
+          class="btn btn-page"
+          [disabled]="currentPage === totalPages"
+          (click)="goToPage(currentPage + 1)"
+        >
+          Next &rarr;
+        </button>
+      </div>
+    </div>
+
+    <aside class="selection-panel panel">
+      <div class="panel-header sticky-header">
+        <div>
+          <p class="eyebrow">Export Builder</p>
+          <h2>Selected questions</h2>
+        </div>
+        @if (selectedQuestions.length > 0) {
+        <button class="btn-link subtle" (click)="clearSelection()">
+          Clear all
+        </button>
+        }
+      </div>
+
+      <label class="field-group">
+        <span>Worksheet title</span>
+        <input [(ngModel)]="exportTitle" type="text" maxlength="80" />
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" [(ngModel)]="includeAnswerSheet" />
+        <span>Include answer sheet on a new page</span>
+      </label>
+
+      <button
+        class="btn btn-generate"
+        (click)="generatePdf()"
+        [disabled]="!canGeneratePdf"
+      >
+        {{ isGeneratingPdf ? 'Generating PDF...' : 'Generate PDF' }}
+      </button>
+
+      @if (selectedQuestions.length === 0) {
+      <div class="empty-selection">
+        <p>
+          Select approved questions from the left to start assembling the
+          worksheet.
+        </p>
+      </div>
+      } @else {
+      <div class="selected-stack">
+        @for (question of selectedQuestions; track question._id; let index =
+        $index) {
+        <article class="selected-card">
+          <div class="selected-header">
+            <span class="question-number">Q{{ index + 1 }}</span>
+            <div class="reorder-controls">
+              <button
+                class="mini-btn"
+                (click)="moveQuestion(question._id, -1)"
+                [disabled]="index === 0"
+              >
+                ↑
+              </button>
+              <button
+                class="mini-btn"
+                (click)="moveQuestion(question._id, 1)"
+                [disabled]="index === selectedQuestions.length - 1"
+              >
+                ↓
+              </button>
+              <button
+                class="mini-btn danger"
+                (click)="removeQuestion(question._id)"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div class="selected-meta">
+            <span>Year {{ question.grade }}</span>
+            <span>{{ topicLabel(question.topic) }}</span>
+            <span>{{ difficultyLabel(question.metadata.difficulty) }}</span>
+          </div>
+
+          <div class="selected-copy">
+            <app-katex-render
+              [content]="question.questionText"
+            ></app-katex-render>
+          </div>
+        </article>
+        }
+      </div>
+      }
+    </aside>
+  </section>
+
+  <div class="export-stage" aria-hidden="true">
+    <section #questionExportSection class="pdf-sheet pdf-questions">
+      <header class="pdf-header">
+        <div>
+          <p class="pdf-kicker">LearningHub Worksheet</p>
+          <h1>{{ exportTitle }}</h1>
+        </div>
+        <div class="pdf-summary">
+          <span>{{ selectedQuestions.length }} question(s)</span>
+          <span
+            >{{ includeAnswerSheet ? 'With answer sheet' : 'Questions only'
+            }}</span
+          >
+        </div>
+      </header>
+
+      @for (question of selectedQuestions; track question._id; let index =
+      $index) {
+      <article class="pdf-question-block">
+        <div class="pdf-question-heading">
+          <span class="pdf-number">Question {{ index + 1 }}</span>
+          <span class="pdf-topic"
+            >Year {{ question.grade }} · {{ topicLabel(question.topic) }} · {{
+            difficultyLabel(question.metadata.difficulty) }}</span
+          >
+        </div>
+
+        <div class="pdf-question-copy">
+          <app-katex-render
+            [content]="question.questionText"
+          ></app-katex-render>
+        </div>
+
+        @if (question.options.length > 0) {
+        <div class="pdf-options-grid">
+          @for (option of question.options; track option; let optionIndex =
+          $index) {
+          <div class="pdf-option-row">
+            <span
+              >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1 }}.</span
+            >
+            <app-katex-render [content]="option"></app-katex-render>
+          </div>
+          }
+        </div>
+        } @if (question.options.length === 0) {
+        <div class="answer-space"></div>
+        }
+      </article>
+      }
+    </section>
+
+    @if (includeAnswerSheet) {
+    <section #answerExportSection class="pdf-sheet pdf-answer-sheet">
+      <header class="pdf-header page-break-before">
+        <div>
+          <p class="pdf-kicker">LearningHub Worksheet</p>
+          <h1>{{ exportTitle }}: Answer Sheet</h1>
+        </div>
+      </header>
+
+      <ol class="answer-sheet-list">
+        @for (question of selectedQuestions; track question._id; let index =
+        $index) {
+        <li class="answer-sheet-item">
+          <div class="answer-sheet-main">
+            <span class="answer-label">Q{{ index + 1 }}</span>
+            <div>
+              <div class="answer-value">
+                <app-katex-render
+                  [content]="'' + question.answer"
+                ></app-katex-render>
+              </div>
+              @if (question.stepByStepSolution.length > 0) {
+              <div class="answer-steps">
+                @for (step of question.stepByStepSolution; track step) {
+                <div class="answer-step">
+                  <app-katex-render [content]="step"></app-katex-render>
+                </div>
+                }
+              </div>
+              } @else if (question.explanation) {
+              <div class="answer-steps">
+                <div class="answer-step">
+                  <app-katex-render
+                    [content]="question.explanation"
+                  ></app-katex-render>
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+        </li>
+        }
+      </ol>
+    </section>
+    }
+  </div>
+</div>

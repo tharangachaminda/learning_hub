@@ -8,6 +8,7 @@
     <nav class="header-nav">
       <a routerLink="/dashboard">Dashboard</a>
       <a routerLink="/generate">Generate</a>
+      <a routerLink="/review/export">PDF Export</a>
       <a routerLink="/lessons-learned">Lessons Learned</a>
       <button class="btn-link" (click)="logout()">Sign Out</button>
     </nav>
@@ -156,9 +157,9 @@
           <td class="col-difficulty">
             <span
               class="difficulty-badge"
-              [ngClass]="'diff-' + (q.metadata?.difficulty || 'medium')"
+              [ngClass]="'diff-' + (q.metadata.difficulty || 'medium')"
             >
-              {{ q.metadata?.difficulty || 'medium' }}
+              {{ q.metadata.difficulty || 'medium' }}
             </span>
           </td>
           <td class="col-status">
