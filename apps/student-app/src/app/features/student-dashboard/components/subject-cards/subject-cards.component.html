@@ -17,6 +17,10 @@
       data-testid="subject-card"
       class="subject-card"
       type="button"
+      [style.--subject-accent]="getSubjectTone(subject).accent"
+      [style.--subject-accent-strong]="getSubjectTone(subject).accentStrong"
+      [style.--subject-background]="getSubjectTone(subject).background"
+      [style.--subject-border]="getSubjectTone(subject).border"
       [attr.aria-label]="
         'Practice ' +
         subject.displayName +

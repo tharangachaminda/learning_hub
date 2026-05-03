@@ -28,6 +28,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { SubjectProgress } from '../../../../models/dashboard.model';
 
+interface SubjectTone {
+  accent: string;
+  accentStrong: string;
+  background: string;
+  border: string;
+}
+
 @Component({
   selector: 'app-subject-cards',
   standalone: true,
@@ -75,5 +82,48 @@ export class SubjectCardsComponent {
     }
 
     return faCalculator;
+  }
+
+  getSubjectTone(subject: SubjectProgress): SubjectTone {
+    const normalized =
+      `${subject.subject} ${subject.displayName}`.toLowerCase();
+
+    if (normalized.includes('shape') || normalized.includes('geometry')) {
+      return {
+        accent: '#805ad5',
+        accentStrong: '#6b46c1',
+        background: 'rgba(128, 90, 213, 0.12)',
+        border: 'rgba(128, 90, 213, 0.28)',
+      };
+    }
+
+    if (normalized.includes('time')) {
+      return {
+        accent: '#dd6b20',
+        accentStrong: '#c05621',
+        background: 'rgba(221, 107, 32, 0.12)',
+        border: 'rgba(221, 107, 32, 0.28)',
+      };
+    }
+
+    if (
+      normalized.includes('data') ||
+      normalized.includes('chart') ||
+      normalized.includes('probability')
+    ) {
+      return {
+        accent: '#2b6cb0',
+        accentStrong: '#1f4f82',
+        background: 'rgba(43, 108, 176, 0.12)',
+        border: 'rgba(43, 108, 176, 0.28)',
+      };
+    }
+
+    return {
+      accent: '#5c9d6a',
+      accentStrong: '#467b52',
+      background: 'rgba(92, 157, 106, 0.12)',
+      border: 'rgba(92, 157, 106, 0.28)',
+    };
   }
 }
