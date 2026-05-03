@@ -1,10 +1,12 @@
-<div class="auth-shell">
+<div class="auth-shell" [class.auth-shell--compact]="!(showHeader$ | async)">
+  @if (showHeader$ | async) {
   <header class="auth-shell__header">
     <a class="auth-shell__brand" routerLink="/login">Learning Hub</a>
     <p class="auth-shell__tagline">
       A focused space for students to practise, improve, and celebrate progress.
     </p>
   </header>
+  }
 
   <main class="auth-shell__content">
     <router-outlet></router-outlet>

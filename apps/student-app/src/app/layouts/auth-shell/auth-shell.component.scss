@@ -37,6 +37,10 @@
   width: 100%;
 }
 
+.auth-shell--compact .auth-shell__content {
+  align-items: start;
+}
+
 @media (max-width: 640px) {
   .auth-shell {
     padding-inline: 0.75rem;
