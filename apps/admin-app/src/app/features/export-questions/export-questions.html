@@ -210,14 +210,31 @@
         </p>
       </div>
       } @else {
-      <div class="selected-stack">
+      <div
+        class="selected-stack"
+        cdkDropList
+        [cdkDropListData]="selectedQuestions"
+        (cdkDropListDropped)="dropSelectedQuestion($event)"
+      >
         @for (question of selectedQuestions; track question._id; let index =
         $index) {
-        <article class="selected-card">
+        <article class="selected-card" cdkDrag>
           <div class="selected-header">
-            <span class="question-number">Q{{ index + 1 }}</span>
+            <div class="selected-title-row">
+              <button
+                type="button"
+                class="drag-handle"
+                cdkDragHandle
+                aria-label="Drag to reorder question"
+                title="Drag to reorder"
+              >
+                ⋮⋮
+              </button>
+              <span class="question-number">Q{{ index + 1 }}</span>
+            </div>
             <div class="reorder-controls">
               <button
+                type="button"
                 class="mini-btn"
                 (click)="moveQuestion(question._id, -1)"
                 [disabled]="index === 0"
@@ -225,6 +242,7 @@
                 ↑
               </button>
               <button
+                type="button"
                 class="mini-btn"
                 (click)="moveQuestion(question._id, 1)"
                 [disabled]="index === selectedQuestions.length - 1"
@@ -232,6 +250,7 @@
                 ↓
               </button>
               <button
+                type="button"
                 class="mini-btn danger"
                 (click)="removeQuestion(question._id)"
               >

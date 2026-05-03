@@ -6,6 +6,11 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -22,7 +27,13 @@ type PdfDocument = InstanceType<typeof import('jspdf').default>;
 @Component({
   selector: 'app-export-questions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, KatexRenderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    DragDropModule,
+    KatexRenderComponent,
+  ],
   templateUrl: './export-questions.html',
   styleUrl: './export-questions.scss',
 })
@@ -235,6 +246,19 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
 
     const [item] = this.selectedQuestionOrder.splice(index, 1);
     this.selectedQuestionOrder.splice(targetIndex, 0, item);
+  }
+
+  dropSelectedQuestion(event: CdkDragDrop<QuestionItem[]>): void {
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    moveItemInArray(
+      this.selectedQuestionOrder,
+      event.previousIndex,
+      event.currentIndex
+    );
+    this.success = null;
   }
 
   async generatePdf(): Promise<void> {
