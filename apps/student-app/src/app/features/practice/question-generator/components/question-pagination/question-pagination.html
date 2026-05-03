@@ -6,7 +6,7 @@
   [attr.aria-valuenow]="progressPercent()"
   aria-valuemin="0"
   aria-valuemax="100"
-  [attr.aria-label]="'Question ' + (currentIndex() + 1) + ' of ' + totalQuestions()"
+  [attr.aria-label]="'Answered ' + totalAnswered() + ' of ' + totalQuestions() + ' questions'"
 >
   <div
     class="progress-bar-fill"
@@ -28,9 +28,27 @@
     ← Previous
   </button>
 
-  <span class="page-counter" data-testid="page-counter">
-    Q {{ currentIndex() + 1 }}/{{ totalQuestions() }}
-  </span>
+  <div
+    class="question-jump-grid"
+    data-testid="question-jump-grid"
+    role="group"
+    aria-label="Question navigation"
+  >
+    @for (questionIndex of questionIndexes(); track questionIndex) {
+    <button
+      type="button"
+      class="question-jump-btn"
+      [class.question-jump-btn--current]="currentIndex() === questionIndex"
+      [class.question-jump-btn--answered]="isAnswered(questionIndex)"
+      [attr.data-testid]="'question-jump-' + (questionIndex + 1)"
+      [attr.aria-current]="currentIndex() === questionIndex ? 'step' : null"
+      [attr.aria-label]="'Go to question ' + (questionIndex + 1) + (isAnswered(questionIndex) ? ', answered' : ', unanswered')"
+      (click)="onSelectQuestion(questionIndex)"
+    >
+      {{ questionIndex + 1 }}
+    </button>
+    }
+  </div>
 
   <button
     type="button"

@@ -1,6 +1,7 @@
 import { Route } from '@angular/router';
 import { BadgeGalleryComponent } from './features/achievements/components/badge-gallery/badge-gallery.component';
 import { Login } from './features/login/login';
+import { questionGeneratorPendingExitGuard } from './features/practice/question-generator/question-generator-deactivation.guard';
 import { Registration } from './features/registration';
 import { QuestionGeneratorComponent } from './features/practice/question-generator/question-generator';
 import { StudentPerformanceComponent } from './features/student-performance/student-performance.component';
@@ -52,6 +53,7 @@ export const appRoutes: Route[] = [
           {
             path: 'generate',
             component: QuestionGeneratorComponent,
+            canDeactivate: [questionGeneratorPendingExitGuard],
             title: 'AI Question Generator',
           },
         ],

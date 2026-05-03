@@ -1,16 +1,26 @@
 <div class="question-card">
   <!-- Header: counter + difficulty badge -->
   <div class="question-card__header">
-    <span class="question-card__counter" data-testid="question-counter">
-      <fa-icon [icon]="counterIcon"></fa-icon>
-      Question {{ questionNumber() }} of {{ totalQuestions() }}
-    </span>
-    <span
-      class="question-card__badge badge-{{ question().metadata.difficulty }}"
-      data-testid="difficulty-badge"
-    >
-      {{ question().metadata.difficulty }}
-    </span>
+    <div class="question-card__header-main">
+      <span class="question-card__counter" data-testid="question-counter">
+        <fa-icon [icon]="counterIcon"></fa-icon>
+        Question {{ questionNumber() }} of {{ totalQuestions() }}
+      </span>
+      <div class="question-card__meta" data-testid="question-meta">
+        <span class="question-card__meta-chip">
+          Year {{ question().metadata.grade }}
+        </span>
+        <span class="question-card__meta-chip question-card__meta-chip--topic">
+          {{ formatTopic(question().metadata.topic) }}
+        </span>
+        <span
+          class="question-card__badge badge-{{ question().metadata.difficulty }}"
+          data-testid="difficulty-badge"
+        >
+          {{ question().metadata.difficulty }}
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- Question text with LaTeX rendering -->

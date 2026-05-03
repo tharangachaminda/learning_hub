@@ -587,11 +587,10 @@ describe('QuestionGeneratorComponent', () => {
       );
     }));
 
-    it('should compute progressPercent based on currentIndex', fakeAsync(() => {
+    it('should compute progressPercent based on answered questions', fakeAsync(() => {
       initWithQuestions();
       tick();
-      // Question 1 of 3 → ((0+1)/3)*100 ≈ 33.33%
-      expect(component.progressPercent()).toBeCloseTo(33.33, 0);
+      expect(component.progressPercent()).toBe(0);
     }));
 
     it('should navigate to next question with goToNext()', fakeAsync(() => {
@@ -638,20 +637,21 @@ describe('QuestionGeneratorComponent', () => {
       expect(component.currentIndex()).toBe(2);
     }));
 
-    it('should update progressPercent when navigating', fakeAsync(() => {
+    it('should update progressPercent when an answer is added', fakeAsync(() => {
       initWithQuestions();
       tick();
-      component.goToNext(); // index 1 → Question 2 of 3
-      // ((1+1)/3)*100 ≈ 66.67
-      expect(component.progressPercent()).toBeCloseTo(66.67, 0);
+      component.onOptionSelected('A');
+      expect(component.progressPercent()).toBeCloseTo(33.33, 0);
     }));
 
-    it('should reach 100% on the last question', fakeAsync(() => {
+    it('should reach 100% when all questions are answered', fakeAsync(() => {
       initWithQuestions();
       tick();
-      component.goToNext(); // index 1
-      component.goToNext(); // index 2 (last)
-      // ((2+1)/3)*100 = 100%
+      component.onOptionSelected('8');
+      component.goToNext();
+      component.onOptionSelected('5');
+      component.goToNext();
+      component.onOptionSelected('12');
       expect(component.progressPercent()).toBe(100);
     }));
 
@@ -661,7 +661,7 @@ describe('QuestionGeneratorComponent', () => {
       expect(component.answers().size).toBe(0);
     }));
 
-    it('should compute totalAnswered from answers map size', fakeAsync(() => {
+    it('should compute totalAnswered from meaningful answers only', fakeAsync(() => {
       initWithQuestions();
       tick();
       expect(component.totalAnswered()).toBe(0);
@@ -766,11 +766,38 @@ describe('QuestionGeneratorComponent', () => {
       expect(component.totalAnswered()).toBe(1);
     }));
 
+    it('should count notes-only answers as answered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onNotesChanged('My working');
+
+      expect(component.totalAnswered()).toBe(1);
+      expect(component.answeredQuestionIndexes()).toEqual([0]);
+    }));
+
+    it('should not count whitespace-only notes as answered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onNotesChanged('   ');
+
+      expect(component.totalAnswered()).toBe(0);
+      expect(component.canSubmit()).toBe(false);
+    }));
+
     it('should store hintUsed via onHintToggled()', fakeAsync(() => {
       initWithQuestions();
       tick();
       component.onHintToggled(true);
       expect(component.answers().get(0)?.hintUsed).toBe(true);
+    }));
+
+    it('should not count hint-only interactions as answered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onHintToggled(true);
+
+      expect(component.totalAnswered()).toBe(0);
+      expect(component.canSubmit()).toBe(false);
     }));
 
     it('should preserve hintUsed state on navigation', fakeAsync(() => {
@@ -780,6 +807,25 @@ describe('QuestionGeneratorComponent', () => {
       component.goToNext();
       component.goToPrevious();
       expect(component.answers().get(0)?.hintUsed).toBe(true);
+    }));
+
+    it('should jump directly to a selected question', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+
+      component.goToQuestion(1);
+
+      expect(component.currentIndex()).toBe(1);
+    }));
+
+    it('should jump to the next unanswered question', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onOptionSelected('A');
+
+      component.goToNextUnanswered();
+
+      expect(component.currentIndex()).toBe(1);
     }));
   });
 
@@ -952,10 +998,18 @@ describe('QuestionGeneratorComponent', () => {
       expect(component.canSubmit()).toBe(false);
     }));
 
-    it('should compute canSubmit as true when at least 1 answer exists', fakeAsync(() => {
+    it('should compute canSubmit as true when at least 1 meaningful answer exists', fakeAsync(() => {
       initWithQuestions();
       tick();
       component.onOptionSelected('8');
+      expect(component.canSubmit()).toBe(true);
+    }));
+
+    it('should compute canSubmit as true when only notes are entered', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+      component.onNotesChanged('Used number bonds');
+
       expect(component.canSubmit()).toBe(true);
     }));
 
@@ -976,6 +1030,84 @@ describe('QuestionGeneratorComponent', () => {
       component.onOptionSelected('12'); // Q3
       expect(component.allAnswered()).toBe(true);
     }));
+  });
+
+  describe('Exit Confirmation', () => {
+    const mockQuestions: GeneratedQuestion[] = [
+      {
+        question: 'Q1',
+        answer: 8,
+        explanation: 'E1',
+        metadata: {
+          grade: 3,
+          topic: 'ADD',
+          difficulty: 'easy',
+          country: 'NZ',
+          generated_by: 'ollama',
+          generation_time: 400,
+        },
+      },
+    ];
+
+    const mockParams: GenerationParams = {
+      grade: 3,
+      topic: 'ADDITION',
+      difficulty: 'easy',
+      count: 1,
+      country: 'NZ',
+    };
+
+    function initWithQuestions(): void {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      component.onGenerate(mockParams);
+      const genReq = expectPracticeRequest();
+      genReq.flush(createPracticeApiResponse(mockQuestions));
+    }
+
+    it('should ask for confirmation when leaving the active questions phase', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+
+      let decision: boolean | undefined;
+      (component.canDeactivate() as Promise<boolean>).then((value) => {
+        decision = value;
+      });
+
+      expect(component.showExitConfirmModal()).toBe(true);
+
+      component.onStayInPractice();
+      tick();
+
+      expect(decision).toBe(false);
+      expect(component.showExitConfirmModal()).toBe(false);
+    }));
+
+    it('should allow exit after the student confirms quitting', fakeAsync(() => {
+      initWithQuestions();
+      tick();
+
+      let decision: boolean | undefined;
+      (component.canDeactivate() as Promise<boolean>).then((value) => {
+        decision = value;
+      });
+
+      component.onConfirmQuitPractice();
+      tick();
+
+      expect(decision).toBe(true);
+      expect(component.showExitConfirmModal()).toBe(false);
+    }));
+
+    it('should not ask for confirmation outside the active questions phase', () => {
+      fixture.detectChanges();
+      const healthReq = httpMock.expectOne('/api/math-questions/health');
+      healthReq.flush({ status: 'ok' });
+
+      expect(component.canDeactivate()).toBe(true);
+    });
   });
 
   // ────────────────────────────────────────────────────
