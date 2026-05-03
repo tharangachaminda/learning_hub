@@ -174,6 +174,11 @@
         }
       </div>
 
+      <div class="selected-count-banner">
+        <span class="selected-count-value">{{ selectedQuestions.length }}</span>
+        <span class="selected-count-label">question(s) selected</span>
+      </div>
+
       <label class="field-group">
         <span>Worksheet title</span>
         <input [(ngModel)]="exportTitle" type="text" maxlength="80" />
@@ -182,6 +187,11 @@
       <label class="toggle-row">
         <input type="checkbox" [(ngModel)]="includeAnswerSheet" />
         <span>Include answer sheet on a new page</span>
+      </label>
+
+      <label class="toggle-row">
+        <input type="checkbox" [(ngModel)]="useLargePdfFont" />
+        <span>Use large question font size (kids friendly 16pt)</span>
       </label>
 
       <button
@@ -275,7 +285,7 @@
           >
         </div>
 
-        <div class="pdf-question-copy">
+        <div class="pdf-question-copy" [ngClass]="pdfQuestionFontClass">
           <app-katex-render
             [content]="question.questionText"
           ></app-katex-render>

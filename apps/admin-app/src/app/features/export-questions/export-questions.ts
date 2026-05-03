@@ -48,6 +48,7 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
 
   includeAnswerSheet = false;
   exportTitle = 'LearningHub Worksheet';
+  useLargePdfFont = false;
 
   currentPage = 1;
   pageSize = 12;
@@ -108,6 +109,12 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
 
   get canGeneratePdf(): boolean {
     return this.selectedQuestions.length > 0 && !this.isGeneratingPdf;
+  }
+
+  get pdfQuestionFontClass(): string {
+    return this.useLargePdfFont
+      ? 'pdf-question-font-large'
+      : 'pdf-question-font-standard';
   }
 
   loadQuestions(): void {
