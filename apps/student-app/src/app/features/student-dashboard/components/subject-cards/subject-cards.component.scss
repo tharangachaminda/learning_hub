@@ -26,8 +26,8 @@
   text-align: center;
   padding: 1.25rem 1rem;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  border: 2px solid #a5d6a7;
+  background: rgba(92, 157, 106, 0.12);
+  border: 2px solid rgba(92, 157, 106, 0.28);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
   font-family: inherit;
@@ -36,11 +36,11 @@
 
 .subject-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.2);
+  box-shadow: 0 6px 16px rgba(92, 157, 106, 0.2);
 }
 
 .subject-card:focus-visible {
-  outline: 3px solid #43a047;
+  outline: 3px solid var(--secondary-color);
   outline-offset: 2px;
 }
 
@@ -49,7 +49,7 @@
   margin-top: 0.5rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #2e7d32;
+  color: var(--secondary-hover);
 }
 
 .card-icon {
@@ -74,7 +74,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #66bb6a, #43a047);
+  background: var(--secondary-color);
   border-radius: 5px;
   transition: width 0.5s ease;
 }
@@ -82,7 +82,7 @@
 .mastery-text {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #2e7d32;
+  color: var(--secondary-hover);
   margin: 0 0 0.25rem;
 }
 

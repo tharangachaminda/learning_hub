@@ -65,6 +65,10 @@ export class StudentPerformanceComponent implements OnInit {
   }
 
   getDailyAccuracyWidth(day: DailyProgressSummary): number {
+    if (day.accuracyPercentage <= 0) {
+      return 0;
+    }
+
     return Math.max(8, day.accuracyPercentage);
   }
 

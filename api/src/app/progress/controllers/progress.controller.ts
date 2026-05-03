@@ -396,15 +396,15 @@ export class ProgressController {
    */
   private getEncouragementMessage(accuracyPercentage: number): string {
     if (accuracyPercentage >= 90) {
-      return "Amazing work! You're a math superstar! ⭐";
+      return "Amazing work! You're a math superstar!";
     } else if (accuracyPercentage >= 75) {
-      return 'Great job! Keep up the excellent work! 👍';
+      return 'Great job! Keep up the excellent work!';
     } else if (accuracyPercentage >= 60) {
-      return "Nice progress! You're getting better! 📈";
+      return "Nice progress! You're getting better!";
     } else if (accuracyPercentage > 0) {
-      return 'Keep practicing! You can do it! 💪';
+      return 'Keep practicing! You can do it!';
     } else {
-      return "Let's get started! Every question helps you learn! 🚀";
+      return "Let's get started! Every question helps you learn!";
     }
   }
 }
