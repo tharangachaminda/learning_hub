@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { PerformanceService } from '../../services/performance.service';
@@ -9,15 +8,32 @@ import {
   WeeklyProgressSummary,
 } from '../../models/performance.model';
 import { SubjectProgress } from '../../models/dashboard.model';
+import {
+  PageHeroAction,
+  PageHeroComponent,
+} from '../../shared/components/page-hero/page-hero.component';
 
 @Component({
   selector: 'app-student-performance',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, PageHeroComponent],
   templateUrl: './student-performance.component.html',
   styleUrl: './student-performance.component.scss',
 })
 export class StudentPerformanceComponent implements OnInit {
+  protected readonly heroActions: PageHeroAction[] = [
+    {
+      label: 'Start practice',
+      route: '/practice/generate',
+      variant: 'primary',
+    },
+    {
+      label: 'Back to dashboard',
+      route: '/dashboard',
+      variant: 'secondary',
+    },
+  ];
+
   dailyProgress: DailyProgressSummary | null = null;
   weeklyProgress: WeeklyProgressSummary | null = null;
   subjects: SubjectProgress[] = [];

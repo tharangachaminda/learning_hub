@@ -7,7 +7,6 @@
  */
 
 import { Component, OnInit, Input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
@@ -26,11 +25,16 @@ import {
 } from '../../../../models/achievement.model';
 import { AchievementService } from '../../../../services/achievement.service';
 import { AuthService } from '../../../../services/auth.service';
+import {
+  PageHeroAction,
+  PageHeroComponent,
+  PageHeroStat,
+} from '../../../../shared/components/page-hero/page-hero.component';
 
 @Component({
   selector: 'app-badge-gallery',
   standalone: true,
-  imports: [RouterLink, FaIconComponent],
+  imports: [FaIconComponent, PageHeroComponent],
   templateUrl: './badge-gallery.component.html',
   styleUrls: ['./badge-gallery.component.scss'],
 })
@@ -43,6 +47,20 @@ export class BadgeGalleryComponent implements OnInit {
   protected readonly dateIcon = faCalendarDay;
   protected readonly pointsIcon = faStar;
   protected readonly performanceIcon = faChartLine;
+
+  protected readonly heroActions: PageHeroAction[] = [
+    {
+      label: 'Practice again',
+      route: '/practice/generate',
+      variant: 'success',
+    },
+    {
+      label: 'View performance',
+      route: '/performance',
+      icon: faChartLine,
+      variant: 'secondary',
+    },
+  ];
 
   achievements: Achievement[] = [];
   totalPoints = 0;
@@ -162,5 +180,18 @@ export class BadgeGalleryComponent implements OnInit {
     }
   ): Achievement['category'] {
     return category.key;
+  }
+
+  get heroStats(): PageHeroStat[] {
+    return [
+      {
+        value: String(this.totalPoints),
+        label: 'Total Points',
+      },
+      {
+        value: `${this.completionPercentage}%`,
+        label: 'Complete',
+      },
+    ];
   }
 }

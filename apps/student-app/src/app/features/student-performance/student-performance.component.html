@@ -1,26 +1,11 @@
 <section class="performance-page">
-  <header class="performance-page__hero">
-    <div>
-      <p class="performance-page__eyebrow">Student Performance</p>
-      <h1>Track your learning momentum</h1>
-      <p class="performance-page__intro">
-        Review today’s effort, this week’s trend, and the subjects that need the
-        most attention.
-      </p>
-    </div>
-
-    <div class="performance-page__actions">
-      <a
-        class="performance-page__action performance-page__action--primary"
-        routerLink="/practice/generate"
-      >
-        Start practice
-      </a>
-      <a class="performance-page__action" routerLink="/dashboard"
-        >Back to dashboard</a
-      >
-    </div>
-  </header>
+  <app-page-hero
+    appearance="brand"
+    eyebrow="Student Performance"
+    title="Track your learning momentum"
+    description="Review today’s effort, this week’s trend, and the subjects that need the most attention."
+    [actions]="heroActions"
+  ></app-page-hero>
 
   @if (loading) {
   <div class="performance-state">

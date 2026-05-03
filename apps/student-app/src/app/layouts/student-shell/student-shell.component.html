@@ -17,9 +17,19 @@
       </a>
     </nav>
 
-    <button class="student-shell__logout" type="button" (click)="logout()">
-      Log out
-    </button>
+    <div class="student-shell__actions">
+      @if (studentProfile?.avatarUrl) {
+      <img
+        [src]="studentProfile?.avatarUrl"
+        [alt]="(studentProfile?.firstName || 'Student') + '\'' + 's avatar'"
+        class="student-shell__avatar"
+      />
+      }
+
+      <button class="student-shell__logout" type="button" (click)="logout()">
+        Log out
+      </button>
+    </div>
   </header>
 
   <main class="student-shell__content">

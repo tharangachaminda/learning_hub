@@ -4,40 +4,15 @@
 
 <div class="badge-gallery-container">
   <!-- Header Section -->
-  <div class="gallery-header">
-    <div class="gallery-header__copy">
-      <p class="gallery-kicker">Achievement Collection</p>
-      <h2 class="gallery-title">
-        <fa-icon [icon]="titleIcon"></fa-icon>
-        My Achievements
-      </h2>
-      <p class="gallery-description">
-        Review unlocked milestones, see what is close, and jump straight back
-        into practice.
-      </p>
-    </div>
-    <div class="gallery-stats">
-      <div class="stat-item">
-        <span class="stat-value">{{ totalPoints }}</span>
-        <span class="stat-label">Total Points</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">{{ completionPercentage }}%</span>
-        <span class="stat-label">Complete</span>
-      </div>
-    </div>
-    <div class="gallery-actions">
-      <a
-        class="gallery-action gallery-action--primary"
-        routerLink="/practice/generate"
-        >Practice again</a
-      >
-      <a class="gallery-action" routerLink="/performance">
-        <fa-icon [icon]="performanceIcon"></fa-icon>
-        View performance
-      </a>
-    </div>
-  </div>
+  <app-page-hero
+    appearance="brand"
+    eyebrow="Achievement Collection"
+    title="My Achievements"
+    description="Review unlocked milestones, see what is close, and jump straight back into practice."
+    [titleIcon]="titleIcon"
+    [stats]="heroStats"
+    [actions]="heroActions"
+  ></app-page-hero>
 
   <!-- Loading State -->
   @if (loading) {

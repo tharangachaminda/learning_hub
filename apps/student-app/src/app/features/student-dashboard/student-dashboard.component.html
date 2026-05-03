@@ -37,45 +37,14 @@
   <!-- Dashboard Content -->
   @if (dashboardData && !loading) {
   <!-- Welcome Banner (AC2, AC11) -->
-  <section
+  <app-page-hero
     data-testid="welcome-banner"
-    class="welcome-banner"
-    aria-label="Welcome message"
+    appearance="brand"
+    [title]="getGreeting() + ', ' + dashboardData.student.firstName"
+    description="Your dashboard, achievements, and performance are connected in one place."
+    [actions]="heroActions"
   >
-    <div class="welcome-content">
-      <h1 class="greeting">
-        {{ getGreeting() }}, {{ dashboardData.student.firstName }}
-      </h1>
-      <p class="motivational-text">
-        Your dashboard, achievements, and performance are connected in one
-        place.
-      </p>
-      <div class="dashboard-actions">
-        <a
-          class="dashboard-link dashboard-link--primary"
-          routerLink="/practice/generate"
-        >
-          Start practice
-          <fa-icon [icon]="arrowIcon"></fa-icon>
-        </a>
-        <a class="dashboard-link" routerLink="/performance">
-          <fa-icon [icon]="performanceIcon"></fa-icon>
-          View performance
-        </a>
-        <a class="dashboard-link" routerLink="/achievements">
-          <fa-icon [icon]="achievementIcon"></fa-icon>
-          View achievements
-        </a>
-      </div>
-    </div>
-    @if (dashboardData.student.avatarUrl) {
-    <img
-      [src]="dashboardData.student.avatarUrl"
-      [alt]="dashboardData.student.firstName + '\'s avatar'"
-      class="student-avatar"
-    />
-    }
-  </section>
+  </app-page-hero>
 
   <!-- Dashboard Grid -->
   <div class="dashboard-grid">

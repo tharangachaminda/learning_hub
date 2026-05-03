@@ -19,7 +19,7 @@
  */
 
 import { Component, OnInit, Input } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import {
   faArrowRight,
@@ -36,6 +36,10 @@ import {
   TopicRecommendation,
   SubjectProgress,
 } from '../../models/dashboard.model';
+import {
+  PageHeroAction,
+  PageHeroComponent,
+} from '../../shared/components/page-hero/page-hero.component';
 import { DailyGoalWidgetComponent } from './components/daily-goal-widget/daily-goal-widget.component';
 import { AiRecommendationsComponent } from './components/ai-recommendations/ai-recommendations.component';
 import { RecentActivityComponent } from './components/recent-activity/recent-activity.component';
@@ -51,8 +55,8 @@ import { SubjectCardsComponent } from './components/subject-cards/subject-cards.
     RecentActivityComponent,
     AchievementShowcaseComponent,
     SubjectCardsComponent,
-    RouterLink,
     FaIconComponent,
+    PageHeroComponent,
   ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss'],
@@ -64,6 +68,28 @@ export class StudentDashboardComponent implements OnInit {
   protected readonly performanceIcon = faChartLine;
   protected readonly achievementIcon = faTrophy;
   protected readonly arrowIcon = faArrowRight;
+
+  protected readonly heroActions: PageHeroAction[] = [
+    {
+      label: 'Start practice',
+      route: '/practice/generate',
+      icon: faArrowRight,
+      iconPosition: 'end',
+      variant: 'primary',
+    },
+    {
+      label: 'View performance',
+      route: '/performance',
+      icon: faChartLine,
+      variant: 'secondary',
+    },
+    {
+      label: 'View achievements',
+      route: '/achievements',
+      icon: faTrophy,
+      variant: 'secondary',
+    },
+  ];
 
   /** Student ID for API calls. Should be provided by auth context. */
   @Input() studentId = 'integration-test-student';
