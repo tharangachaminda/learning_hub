@@ -27,6 +27,7 @@ describe('QuestionPaginationComponent', () => {
     fixture.componentRef.setInput('totalQuestions', 10);
     fixture.componentRef.setInput('progressPercent', 0);
     fixture.componentRef.setInput('totalAnswered', 0);
+    fixture.componentRef.setInput('answeredIndexes', []);
     fixture.detectChanges();
     expect(component).toBeTruthy();
   });
@@ -37,6 +38,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 0);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const prevBtn = fixture.nativeElement.querySelector(
@@ -51,6 +53,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 20);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const prevBtn = fixture.nativeElement.querySelector(
@@ -64,6 +67,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 20);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const spy = jest.fn();
@@ -82,6 +86,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 10);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const prevBtn = fixture.nativeElement.querySelector(
@@ -97,6 +102,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 90);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const nextBtn = fixture.nativeElement.querySelector(
@@ -110,6 +116,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 0);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const nextBtn = fixture.nativeElement.querySelector(
@@ -123,6 +130,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 0);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const spy = jest.fn();
@@ -141,6 +149,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 0);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const nextBtn = fixture.nativeElement.querySelector(
@@ -150,28 +159,13 @@ describe('QuestionPaginationComponent', () => {
     });
   });
 
-  describe('Question Counter (AC-6)', () => {
-    it('should display "Q X/N" counter', () => {
-      fixture.componentRef.setInput('currentIndex', 4);
-      fixture.componentRef.setInput('totalQuestions', 10);
-      fixture.componentRef.setInput('progressPercent', 40);
-      fixture.componentRef.setInput('totalAnswered', 0);
-      fixture.detectChanges();
-
-      const counter = fixture.nativeElement.querySelector(
-        '[data-testid="page-counter"]'
-      );
-      expect(counter).toBeTruthy();
-      expect(counter.textContent).toContain('Q 5/10');
-    });
-  });
-
   describe('Progress Bar (AC-7)', () => {
     it('should render progress bar element', () => {
       fixture.componentRef.setInput('currentIndex', 0);
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 0);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const progressBar = fixture.nativeElement.querySelector(
@@ -185,6 +179,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 40);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const progressFill = fixture.nativeElement.querySelector(
@@ -198,6 +193,7 @@ describe('QuestionPaginationComponent', () => {
       fixture.componentRef.setInput('totalQuestions', 10);
       fixture.componentRef.setInput('progressPercent', 20);
       fixture.componentRef.setInput('totalAnswered', 0);
+      fixture.componentRef.setInput('answeredIndexes', []);
       fixture.detectChanges();
 
       const progressBar = fixture.nativeElement.querySelector(
@@ -205,6 +201,92 @@ describe('QuestionPaginationComponent', () => {
       );
       expect(progressBar.getAttribute('role')).toBe('progressbar');
       expect(progressBar.getAttribute('aria-valuenow')).toBe('20');
+      expect(progressBar.getAttribute('aria-label')).toBe(
+        'Answered 0 of 10 questions'
+      );
+    });
+  });
+
+  describe('Question Jump Navigation', () => {
+    it('should render one jump button per question', () => {
+      fixture.componentRef.setInput('currentIndex', 1);
+      fixture.componentRef.setInput('totalQuestions', 4);
+      fixture.componentRef.setInput('progressPercent', 50);
+      fixture.componentRef.setInput('totalAnswered', 2);
+      fixture.componentRef.setInput('answeredIndexes', [0, 2]);
+      fixture.detectChanges();
+
+      const jumpButtons = fixture.nativeElement.querySelectorAll(
+        '[data-testid^="question-jump-"]:not([data-testid="question-jump-grid"])'
+      );
+
+      expect(jumpButtons).toHaveLength(4);
+    });
+
+    it('should emit questionSelected when a jump button is clicked', () => {
+      fixture.componentRef.setInput('currentIndex', 1);
+      fixture.componentRef.setInput('totalQuestions', 4);
+      fixture.componentRef.setInput('progressPercent', 50);
+      fixture.componentRef.setInput('totalAnswered', 2);
+      fixture.componentRef.setInput('answeredIndexes', [0, 2]);
+      fixture.detectChanges();
+
+      const spy = jest.fn();
+      component.questionSelected.subscribe(spy);
+
+      const jumpButton = fixture.nativeElement.querySelector(
+        '[data-testid="question-jump-3"]'
+      ) as HTMLButtonElement;
+      jumpButton.click();
+
+      expect(spy).toHaveBeenCalledWith(2);
+    });
+
+    it('should mark answered jump buttons with a distinct class', () => {
+      fixture.componentRef.setInput('currentIndex', 1);
+      fixture.componentRef.setInput('totalQuestions', 4);
+      fixture.componentRef.setInput('progressPercent', 50);
+      fixture.componentRef.setInput('totalAnswered', 2);
+      fixture.componentRef.setInput('answeredIndexes', [0, 2]);
+      fixture.detectChanges();
+
+      const answeredButton = fixture.nativeElement.querySelector(
+        '[data-testid="question-jump-1"]'
+      ) as HTMLButtonElement;
+
+      expect(answeredButton.classList).toContain('question-jump-btn--answered');
+    });
+  });
+
+  describe('Inline Navigation Layout', () => {
+    it('should not render the old page counter', () => {
+      fixture.componentRef.setInput('currentIndex', 1);
+      fixture.componentRef.setInput('totalQuestions', 4);
+      fixture.componentRef.setInput('progressPercent', 50);
+      fixture.componentRef.setInput('totalAnswered', 2);
+      fixture.componentRef.setInput('answeredIndexes', [0, 2]);
+      fixture.detectChanges();
+
+      const counter = fixture.nativeElement.querySelector(
+        '[data-testid="page-counter"]'
+      );
+
+      expect(counter).toBeFalsy();
+    });
+
+    it('should not render the next unanswered button', () => {
+      fixture.componentRef.setInput('currentIndex', 1);
+      fixture.componentRef.setInput('totalQuestions', 4);
+      fixture.componentRef.setInput('progressPercent', 50);
+      fixture.componentRef.setInput('totalAnswered', 2);
+      fixture.componentRef.setInput('answeredIndexes', [0, 2]);
+      fixture.detectChanges();
+
+      const nextUnansweredButton = fixture.nativeElement.querySelector(
+        '[data-testid="next-unanswered-btn"]'
+      );
+
+      expect(nextUnansweredButton).toBeFalsy();
     });
   });
 });

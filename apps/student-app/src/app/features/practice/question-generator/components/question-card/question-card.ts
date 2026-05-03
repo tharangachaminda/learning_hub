@@ -89,7 +89,12 @@ export class QuestionCardComponent {
     effect(() => {
       this.showHint.set(this.hintExpanded());
     });
+
+    effect(() => {
+      this.notesLength.set(this.notes().length);
+    });
   }
+
   /**
    * Handles option selection and emits the selected letter.
    *
@@ -118,5 +123,13 @@ export class QuestionCardComponent {
     const newState = !this.showHint();
     this.showHint.set(newState);
     this.hintToggled.emit(newState);
+  }
+
+  formatTopic(topic: string): string {
+    return topic
+      .split('_')
+      .join(' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (letter: string) => letter.toUpperCase());
   }
 }

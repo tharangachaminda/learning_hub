@@ -1,146 +1,190 @@
-<!-- Health Error Banner -->
-@if (!serviceHealthy()) {
-<div class="health-error-banner" data-testid="health-error-banner" role="alert">
-  <span class="health-error-icon"
-    ><fa-icon [icon]="healthWarningIcon"></fa-icon
-  ></span>
-  <span
-    >Our question service is not available right now. Please try again
-    later!</span
+<div class="practice-page">
+  <!-- Health Error Banner -->
+  @if (!serviceHealthy()) {
+  <div
+    class="health-error-banner"
+    data-testid="health-error-banner"
+    role="alert"
   >
-</div>
-}
-
-<!-- Phase 1: Generation Controls -->
-@if (phase() === 'controls') {
-<app-generation-controls
-  [grade]="profileGrade()"
-  [country]="profileCountry()"
-  [initialTopic]="initialTopic()"
-  [isGenerating]="isGenerating()"
-  [serviceHealthy]="serviceHealthy()"
-  (generate)="onGenerate($event)"
-/>
-}
-
-<!-- Empty State: 0 questions returned -->
-@if (emptyState()) {
-<div class="empty-state-card" data-testid="empty-state" role="alert">
-  <p class="empty-state-text">
-    <fa-icon [icon]="emptyStateIcon"></fa-icon>
-    No practice questions are available for this topic yet. Our team is working
-    on adding more questions — check back soon!
-  </p>
-  <button
-    class="btn-retry"
-    data-testid="try-different-btn"
-    (click)="onTryDifferent()"
-    type="button"
-  >
-    Try a Different Topic
-  </button>
-</div>
-}
-
-<!-- Phase 2: Question Display -->
-@if (phase() === 'questions' && currentQuestion()) {
-<div class="questions-phase" data-testid="questions-phase">
-  <app-question-card
-    [question]="currentQuestion()!"
-    [questionNumber]="currentIndex() + 1"
-    [totalQuestions]="questions().length"
-    [options]="currentOptions()"
-    [selectedOption]="currentAnswer()?.selectedOption"
-    [notes]="currentAnswer()?.additionalNotes ?? ''"
-    [hintExpanded]="currentAnswer()?.hintUsed ?? false"
-    (optionSelected)="onOptionSelected($event)"
-    (notesChanged)="onNotesChanged($event)"
-    (hintToggled)="onHintToggled($event)"
-  />
-
-  <app-question-pagination
-    [currentIndex]="currentIndex()"
-    [totalQuestions]="questions().length"
-    [progressPercent]="progressPercent()"
-    [totalAnswered]="totalAnswered()"
-    (previous)="goToPrevious()"
-    (next)="goToNext()"
-  />
-
-  <!-- Submit Button: visible when ≥1 answer exists -->
-  @if (canSubmit()) {
-  <button
-    class="btn-submit-all"
-    data-testid="submit-btn"
-    [disabled]="isSubmitting()"
-    (click)="onSubmitClick()"
-    type="button"
-    aria-live="polite"
-    [attr.aria-label]="'Submit all answers. ' + totalAnswered() + ' of ' + questions().length + ' answered'"
-  >
-    <fa-icon [icon]="submitIcon"></fa-icon>
-    Submit All Answers ({{ totalAnswered() }} of {{ questions().length }}
-    answered)
-  </button>
+    <span class="health-error-icon"
+      ><fa-icon [icon]="healthWarningIcon"></fa-icon
+    ></span>
+    <span
+      >Our question service is not available right now. Please try again
+      later!</span
+    >
+  </div>
   }
-</div>
-}
 
-<!-- Confirmation Modal -->
-@if (showConfirmModal()) {
-<app-submit-summary
-  [mode]="'confirm'"
-  [totalAnswered]="totalAnswered()"
-  [totalQuestions]="questions().length"
-  (cancel)="onCancelSubmit()"
-  (confirmSubmit)="onConfirmSubmit()"
-/>
-}
+  <!-- Phase 1: Generation Controls -->
+  @if (phase() === 'controls') {
+  <app-generation-controls
+    [grade]="profileGrade()"
+    [country]="profileCountry()"
+    [initialTopic]="initialTopic()"
+    [isGenerating]="isGenerating()"
+    [serviceHealthy]="serviceHealthy()"
+    (generate)="onGenerate($event)"
+  />
+  }
 
-<!-- Results Phase -->
-@if (phase() === 'results') {
-<app-submit-summary
-  [mode]="'results'"
-  [scoringResult]="scoringResult()"
-  [totalAnswered]="totalAnswered()"
-  [totalQuestions]="questions().length"
-  (tryAgain)="onTryAgain()"
-  (backToDashboard)="onBackToDashboard()"
-/>
-}
-
-<!-- Error State: API failure -->
-@if (errorState()) {
-<div class="error-state-card" data-testid="error-state" role="alert">
-  <p class="error-state-title">
-    <fa-icon [icon]="healthWarningIcon"></fa-icon>
-    Oops! Something went wrong
-  </p>
-  <p class="error-state-text">
-    We couldn't generate your questions right now. Let's try again!
-  </p>
-  <div class="error-actions">
+  <!-- Empty State: 0 questions returned -->
+  @if (emptyState()) {
+  <div class="empty-state-card" data-testid="empty-state" role="alert">
+    <p class="empty-state-text">
+      <fa-icon [icon]="emptyStateIcon"></fa-icon>
+      No practice questions are available for this topic yet. Our team is
+      working on adding more questions — check back soon!
+    </p>
     <button
       class="btn-retry"
-      data-testid="retry-btn"
-      (click)="onRetry()"
+      data-testid="try-different-btn"
+      (click)="onTryDifferent()"
       type="button"
     >
-      <fa-icon [icon]="retryIcon"></fa-icon>
-      Try Again
-    </button>
-    <button
-      class="btn-dashboard"
-      data-testid="dashboard-btn"
-      type="button"
-      (click)="onBackToDashboard()"
-    >
-      <fa-icon [icon]="dashboardIcon"></fa-icon>
-      Back to Dashboard
+      Try a Different Topic
     </button>
   </div>
+  }
+
+  <!-- Phase 2: Question Display -->
+  @if (phase() === 'questions' && currentQuestion()) {
+  <div class="questions-phase" data-testid="questions-phase">
+    <app-question-card
+      [question]="currentQuestion()!"
+      [questionNumber]="currentIndex() + 1"
+      [totalQuestions]="questions().length"
+      [options]="currentOptions()"
+      [selectedOption]="currentAnswer()?.selectedOption"
+      [notes]="currentAnswer()?.additionalNotes ?? ''"
+      [hintExpanded]="currentAnswer()?.hintUsed ?? false"
+      (optionSelected)="onOptionSelected($event)"
+      (notesChanged)="onNotesChanged($event)"
+      (hintToggled)="onHintToggled($event)"
+    />
+
+    <app-question-pagination
+      [currentIndex]="currentIndex()"
+      [totalQuestions]="questions().length"
+      [progressPercent]="progressPercent()"
+      [totalAnswered]="totalAnswered()"
+      [answeredIndexes]="answeredQuestionIndexes()"
+      (previous)="goToPrevious()"
+      (next)="goToNext()"
+      (questionSelected)="goToQuestion($event)"
+    />
+
+    <!-- Submit Button: visible when ≥1 meaningful answer exists -->
+    @if (canSubmit()) {
+    <button
+      class="btn-submit-all"
+      data-testid="submit-btn"
+      [disabled]="isSubmitting()"
+      (click)="onSubmitClick()"
+      type="button"
+      aria-live="polite"
+      [attr.aria-label]="'Submit all answers. ' + totalAnswered() + ' of ' + questions().length + ' answered'"
+    >
+      <fa-icon [icon]="submitIcon"></fa-icon>
+      Submit All Answers ({{ totalAnswered() }} of {{ questions().length }}
+      answered)
+    </button>
+    }
+  </div>
+  }
+
+  <!-- Confirmation Modal -->
+  @if (showConfirmModal()) {
+  <app-submit-summary
+    [mode]="'confirm'"
+    [totalAnswered]="totalAnswered()"
+    [totalQuestions]="questions().length"
+    (cancel)="onCancelSubmit()"
+    (confirmSubmit)="onConfirmSubmit()"
+  />
+  } @if (showExitConfirmModal()) {
+  <div
+    class="quit-confirm-overlay"
+    data-testid="quit-confirm-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="quit-confirm-title"
+    aria-describedby="quit-confirm-desc"
+  >
+    <div class="quit-confirm-card">
+      <h2 id="quit-confirm-title" class="quit-confirm-title">
+        Leave practice?
+      </h2>
+      <p id="quit-confirm-desc" class="quit-confirm-message">
+        Your current progress will be lost if you quit now.
+      </p>
+      <div class="quit-confirm-actions">
+        <button
+          class="quit-confirm-cancel"
+          data-testid="stay-in-practice-btn"
+          type="button"
+          (click)="onStayInPractice()"
+        >
+          Stay here
+        </button>
+        <button
+          class="quit-confirm-leave"
+          data-testid="confirm-quit-btn"
+          type="button"
+          (click)="onConfirmQuitPractice()"
+        >
+          Quit practice
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Results Phase -->
+  @if (phase() === 'results') {
+  <app-submit-summary
+    [mode]="'results'"
+    [scoringResult]="scoringResult()"
+    [totalAnswered]="totalAnswered()"
+    [totalQuestions]="questions().length"
+    (tryAgain)="onTryAgain()"
+    (backToDashboard)="onBackToDashboard()"
+  />
+  }
+
+  <!-- Error State: API failure -->
+  @if (errorState()) {
+  <div class="error-state-card" data-testid="error-state" role="alert">
+    <p class="error-state-title">
+      <fa-icon [icon]="healthWarningIcon"></fa-icon>
+      Oops! Something went wrong
+    </p>
+    <p class="error-state-text">
+      We couldn't generate your questions right now. Let's try again!
+    </p>
+    <div class="error-actions">
+      <button
+        class="btn-retry"
+        data-testid="retry-btn"
+        (click)="onRetry()"
+        type="button"
+      >
+        <fa-icon [icon]="retryIcon"></fa-icon>
+        Try Again
+      </button>
+      <button
+        class="btn-dashboard"
+        data-testid="dashboard-btn"
+        type="button"
+        (click)="onBackToDashboard()"
+      >
+        <fa-icon [icon]="dashboardIcon"></fa-icon>
+        Back to Dashboard
+      </button>
+    </div>
+  </div>
+  }
 </div>
-}
 
 <!-- Loading Overlay -->
 @if (isGenerating()) {

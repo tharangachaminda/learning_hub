@@ -1,4 +1,11 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -120,8 +127,14 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Whether the confirmation modal is displayed. */
   showConfirmModal = signal<boolean>(false);
 
+  /** Whether the quit-confirm modal is displayed. */
+  showExitConfirmModal = signal<boolean>(false);
+
   /** The last assembled submission data, available for future persistence. */
   lastSubmission = signal<AnswerSubmission | null>(null);
+
+  /** Pending resolver for a route exit confirmation prompt. */
+  private pendingExitDecision: ((allowExit: boolean) => void) | null = null;
 
   /** The currently displayed question derived from questions and currentIndex. */
   currentQuestion = computed(() => this.questions()[this.currentIndex()]);
@@ -129,11 +142,23 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Progress percentage through the question set (0–100). */
   progressPercent = computed(() => {
     const total = this.questions().length;
-    return total > 0 ? ((this.currentIndex() + 1) / total) * 100 : 0;
+    return total > 0 ? (this.totalAnswered() / total) * 100 : 0;
   });
 
   /** Number of questions the student has answered so far. */
-  totalAnswered = computed(() => this.answers().size);
+  totalAnswered = computed(() => this.answeredQuestionIndexes().length);
+
+  /** Question indexes that contain meaningful student input. */
+  answeredQuestionIndexes = computed(() =>
+    [...this.answers().entries()]
+      .filter(([, answer]) => this.hasMeaningfulAnswer(answer))
+      .map(([index]) => index)
+  );
+
+  /** Fast lookup for answered questions in the current session. */
+  answeredQuestionIndexSet = computed(
+    () => new Set(this.answeredQuestionIndexes())
+  );
 
   /** The current answer for the active question, if one exists. */
   currentAnswer = computed(() => this.answers().get(this.currentIndex()));
@@ -144,6 +169,18 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Options for the currently displayed question (empty if open-ended). */
   currentOptions = computed(
     () => this.questionOptions().get(this.currentIndex()) ?? []
+  );
+
+  /** Question indexes that do not yet have meaningful input. */
+  unansweredQuestionIndexes = computed(() =>
+    this.questions()
+      .map((_, index) => index)
+      .filter((index) => !this.answeredQuestionIndexSet().has(index))
+  );
+
+  /** Whether any unanswered questions remain in the set. */
+  hasUnansweredQuestions = computed(
+    () => this.unansweredQuestionIndexes().length > 0
   );
 
   /** Whether at least one answer exists, enabling the submit button. */
@@ -240,9 +277,7 @@ export class QuestionGeneratorComponent implements OnInit {
   goToNext(): void {
     const maxIndex = this.questions().length - 1;
     if (this.currentIndex() < maxIndex) {
-      this.recordTimeSpent();
-      this.currentIndex.update((i) => i + 1);
-      this.questionStartTime.set(Date.now());
+      this.navigateToQuestion(this.currentIndex() + 1);
     }
   }
 
@@ -252,9 +287,28 @@ export class QuestionGeneratorComponent implements OnInit {
    */
   goToPrevious(): void {
     if (this.currentIndex() > 0) {
-      this.recordTimeSpent();
-      this.currentIndex.update((i) => i - 1);
-      this.questionStartTime.set(Date.now());
+      this.navigateToQuestion(this.currentIndex() - 1);
+    }
+  }
+
+  /**
+   * Navigates directly to a specific question index.
+   * Records time spent on the current question before switching.
+   *
+   * @param index - 0-based target question index
+   */
+  goToQuestion(index: number): void {
+    this.navigateToQuestion(index);
+  }
+
+  /**
+   * Navigates to the next unanswered question, wrapping forward
+   * through the set when needed.
+   */
+  goToNextUnanswered(): void {
+    const nextIndex = this.findNextUnansweredIndex();
+    if (nextIndex !== null) {
+      this.navigateToQuestion(nextIndex);
     }
   }
 
@@ -296,11 +350,33 @@ export class QuestionGeneratorComponent implements OnInit {
   }
 
   /**
+   * Requests exit from the practice session.
+   * The route-level deactivation guard handles confirmation if required.
+   */
+  requestQuitPractice(): void {
+    this.router.navigate(['/dashboard']);
+  }
+
+  /**
    * Handles cancel from the confirmation modal.
    * Closes the modal and returns to the question view.
    */
   onCancelSubmit(): void {
     this.showConfirmModal.set(false);
+  }
+
+  /**
+   * Keeps the student in the current practice session.
+   */
+  onStayInPractice(): void {
+    this.resolveExitDecision(false);
+  }
+
+  /**
+   * Confirms that the student wants to leave the current practice session.
+   */
+  onConfirmQuitPractice(): void {
+    this.resolveExitDecision(true);
   }
 
   /**
@@ -407,6 +483,34 @@ export class QuestionGeneratorComponent implements OnInit {
    */
   onBackToDashboard(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  /**
+   * Route-level pending exit hook for the active questions view.
+   */
+  canDeactivate(): boolean | Promise<boolean> {
+    if (!this.shouldConfirmExit()) {
+      return true;
+    }
+
+    if (this.pendingExitDecision) {
+      return false;
+    }
+
+    this.showExitConfirmModal.set(true);
+    return new Promise<boolean>((resolve) => {
+      this.pendingExitDecision = resolve;
+    });
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.shouldConfirmExit()) {
+      return;
+    }
+
+    event.preventDefault();
+    event.returnValue = '';
   }
 
   private buildProgressRequests(
@@ -561,5 +665,61 @@ export class QuestionGeneratorComponent implements OnInit {
     const newMap = new Map(this.answers());
     newMap.set(idx, updated);
     this.answers.set(newMap);
+  }
+
+  private navigateToQuestion(index: number): void {
+    if (
+      index === this.currentIndex() ||
+      index < 0 ||
+      index >= this.questions().length
+    ) {
+      return;
+    }
+
+    this.recordTimeSpent();
+    this.currentIndex.set(index);
+    this.questionStartTime.set(Date.now());
+  }
+
+  private shouldConfirmExit(): boolean {
+    return this.phase() === 'questions' && !this.isSubmitting();
+  }
+
+  private resolveExitDecision(allowExit: boolean): void {
+    this.showExitConfirmModal.set(false);
+
+    const pendingResolver = this.pendingExitDecision;
+    this.pendingExitDecision = null;
+    pendingResolver?.(allowExit);
+  }
+
+  private findNextUnansweredIndex(): number | null {
+    const totalQuestions = this.questions().length;
+    if (totalQuestions === 0) {
+      return null;
+    }
+
+    const answeredIndexes = this.answeredQuestionIndexSet();
+    for (let offset = 1; offset < totalQuestions; offset += 1) {
+      const candidate = (this.currentIndex() + offset) % totalQuestions;
+      if (!answeredIndexes.has(candidate)) {
+        return candidate;
+      }
+    }
+
+    return answeredIndexes.has(this.currentIndex())
+      ? null
+      : this.currentIndex();
+  }
+
+  private hasMeaningfulAnswer(answer?: StudentAnswer): boolean {
+    if (!answer) {
+      return false;
+    }
+
+    const hasSelectedOption = Boolean(answer.selectedOption?.trim());
+    const hasNotes = Boolean(answer.additionalNotes?.trim());
+
+    return hasSelectedOption || hasNotes;
   }
 }

@@ -8,7 +8,7 @@ import {
 /**
  * Presentation component for question navigation and progress tracking.
  *
- * Renders Previous/Next buttons, "Q X/N" counter, and a progress bar.
+ * Renders Previous/Next buttons, compact question jump buttons, and a progress bar.
  * Navigation events are emitted to the parent container.
  *
  * @example
@@ -43,11 +43,17 @@ export class QuestionPaginationComponent {
   /** Number of questions answered so far. */
   readonly totalAnswered = input<number>(0);
 
+  /** Question indexes that have meaningful input. */
+  readonly answeredIndexes = input<number[]>([]);
+
   /** Emitted when the student clicks Previous. */
   readonly previous = output<void>();
 
   /** Emitted when the student clicks Next. */
   readonly next = output<void>();
+
+  /** Emitted when the student jumps directly to a question. */
+  readonly questionSelected = output<number>();
 
   /**
    * Emits the previous navigation event.
@@ -61,5 +67,17 @@ export class QuestionPaginationComponent {
    */
   onNext(): void {
     this.next.emit();
+  }
+
+  onSelectQuestion(index: number): void {
+    this.questionSelected.emit(index);
+  }
+
+  questionIndexes(): number[] {
+    return Array.from({ length: this.totalQuestions() }, (_, index) => index);
+  }
+
+  isAnswered(index: number): boolean {
+    return this.answeredIndexes().includes(index);
   }
 }
