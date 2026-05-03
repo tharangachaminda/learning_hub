@@ -117,6 +117,26 @@ export class ExportQuestionsComponent implements OnInit, AfterViewChecked {
       : 'pdf-question-font-standard';
   }
 
+  get pdfSubjectLabel(): string {
+    return 'Mathematics';
+  }
+
+  get pdfGradeSummary(): string {
+    const uniqueGrades = Array.from(
+      new Set(this.selectedQuestions.map((question) => question.grade))
+    ).sort((left, right) => left - right);
+
+    if (uniqueGrades.length === 0) {
+      return 'Year/Grade: -';
+    }
+
+    if (uniqueGrades.length === 1) {
+      return `Year/Grade: ${uniqueGrades[0]}`;
+    }
+
+    return `Year/Grade: ${uniqueGrades.join(', ')}`;
+  }
+
   loadQuestions(): void {
     this.isLoading = true;
     this.error = null;

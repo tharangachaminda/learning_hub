@@ -264,13 +264,19 @@
         <div>
           <p class="pdf-kicker">LearningHub Worksheet</p>
           <h1>{{ exportTitle }}</h1>
+          <div class="pdf-meta-row">
+            <p class="pdf-subtitle">{{ pdfSubjectLabel }}</p>
+            <div class="pdf-student-row">
+              <span class="pdf-student-label">Student Name: </span>
+              <span class="pdf-student-line"></span>
+            </div>
+          </div>
         </div>
         <div class="pdf-summary">
-          <span>{{ selectedQuestions.length }} question(s)</span>
-          <span
-            >{{ includeAnswerSheet ? 'With answer sheet' : 'Questions only'
-            }}</span
+          <span class="pdf-summary-primary"
+            >{{ selectedQuestions.length }} questions</span
           >
+          <span class="pdf-summary-secondary">{{ pdfGradeSummary }}</span>
         </div>
       </header>
 
@@ -279,10 +285,7 @@
       <article class="pdf-question-block">
         <div class="pdf-question-heading">
           <span class="pdf-number">Question {{ index + 1 }}</span>
-          <span class="pdf-topic"
-            >Year {{ question.grade }} · {{ topicLabel(question.topic) }} · {{
-            difficultyLabel(question.metadata.difficulty) }}</span
-          >
+          <span class="pdf-year">Year {{ question.grade }}</span>
         </div>
 
         <div class="pdf-question-copy" [ngClass]="pdfQuestionFontClass">
@@ -316,6 +319,13 @@
         <div>
           <p class="pdf-kicker">LearningHub Worksheet</p>
           <h1>{{ exportTitle }}: Answer Sheet</h1>
+          <div class="pdf-meta-row">
+            <p class="pdf-subtitle">{{ pdfSubjectLabel }}</p>
+            <div class="pdf-student-row">
+              <span class="pdf-student-label">Student Name</span>
+              <span class="pdf-student-line"></span>
+            </div>
+          </div>
         </div>
       </header>
 
