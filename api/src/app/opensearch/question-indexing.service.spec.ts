@@ -6,13 +6,14 @@ import {
   MathQuestion,
   DifficultyLevel,
 } from '../math-questions/entities/math-question.entity';
+import { Types } from 'mongoose';
 
 describe('QuestionIndexingService', () => {
   let service: QuestionIndexingService;
   let embeddingService: EmbeddingService;
   let vectorIndexService: VectorIndexService;
 
-  const mockEmbedding384 = new Array(384).fill(0).map((_, i) => Math.random());
+  const mockEmbedding768 = new Array(768).fill(0).map((_, i) => Math.random());
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +59,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateEmbedding')
-        .mockResolvedValue(mockEmbedding384);
+        .mockResolvedValue(mockEmbedding768);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -67,14 +68,15 @@ describe('QuestionIndexingService', () => {
       await service.indexQuestion(question);
 
       expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
-        'What is 5 + 3?'
+        'What is 5 + 3?\n\nExplanation: Step 1\nStep 2'
       );
       expect(vectorIndexService.createIndexIfNotExists).toHaveBeenCalled();
       expect(vectorIndexService.indexQuestion).toHaveBeenCalledWith(
         'q-001',
         'What is 5 + 3?',
+        'Step 1\nStep 2',
         8,
-        mockEmbedding384,
+        mockEmbedding768,
         {
           grade: '3',
           topic: 'ADDITION',
@@ -114,7 +116,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateEmbedding')
-        .mockResolvedValue(mockEmbedding384);
+        .mockResolvedValue(mockEmbedding768);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -138,7 +140,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateEmbedding')
-        .mockResolvedValue(mockEmbedding384);
+        .mockResolvedValue(mockEmbedding768);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -149,8 +151,9 @@ describe('QuestionIndexingService', () => {
       expect(vectorIndexService.indexQuestion).toHaveBeenCalledWith(
         'q-002',
         expect.any(String),
+        expect.any(String),
         expect.any(Number),
-        mockEmbedding384,
+        mockEmbedding768,
         expect.objectContaining({
           grade: '3',
         })
@@ -179,7 +182,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateBatchEmbeddings')
-        .mockResolvedValue([mockEmbedding384, mockEmbedding384]);
+        .mockResolvedValue([mockEmbedding768, mockEmbedding768]);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -196,10 +199,12 @@ describe('QuestionIndexingService', () => {
         expect.objectContaining({
           id: 'q-001',
           questionText: 'What is 5 + 3?',
+          explanation: '',
         }),
         expect.objectContaining({
           id: 'q-002',
           questionText: 'Calculate 10 - 4',
+          explanation: '',
         }),
       ]);
     });
@@ -243,7 +248,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateEmbedding')
-        .mockResolvedValue(mockEmbedding384);
+        .mockResolvedValue(mockEmbedding768);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -255,7 +260,7 @@ describe('QuestionIndexingService', () => {
       // Parameters: (questionId, questionText, answer, embedding, metadata)
       const callArgs = (vectorIndexService.indexQuestion as jest.Mock).mock
         .calls[0];
-      const metadata = callArgs[4]; // 5th parameter is metadata
+      const metadata = callArgs[5]; // 6th parameter is metadata
       expect(metadata.difficulty_score).toBeGreaterThanOrEqual(0);
       expect(metadata.difficulty_score).toBeLessThanOrEqual(1);
     });
@@ -271,7 +276,7 @@ describe('QuestionIndexingService', () => {
 
       jest
         .spyOn(embeddingService, 'generateEmbedding')
-        .mockResolvedValue(mockEmbedding384);
+        .mockResolvedValue(mockEmbedding768);
       jest
         .spyOn(vectorIndexService, 'createIndexIfNotExists')
         .mockResolvedValue();
@@ -282,8 +287,9 @@ describe('QuestionIndexingService', () => {
       expect(vectorIndexService.indexQuestion).toHaveBeenCalledWith(
         'q-sub-001',
         'What is 10 - 4?',
+        '',
         6,
-        mockEmbedding384,
+        mockEmbedding768,
         expect.objectContaining({
           topic: 'SUBTRACTION',
           operation: 'SUBTRACTION',
@@ -311,6 +317,52 @@ describe('QuestionIndexingService', () => {
       await expect(service.ensureIndexExists()).rejects.toThrow(
         'Index creation failed'
       );
+    });
+  });
+
+  describe('indexStoredQuestions', () => {
+    it('should index persisted questions using question text plus explanation', async () => {
+      const storedQuestion = {
+        _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        questionText: 'What is $12 + 5$?',
+        explanation: 'Add the ones, then the tens.',
+        answer: 17,
+        grade: 3,
+        topic: 'ADDITION',
+        category: 'number-operations',
+        metadata: {
+          difficulty: 'medium',
+        },
+      } as any;
+
+      jest
+        .spyOn(embeddingService, 'generateBatchEmbeddings')
+        .mockResolvedValue([mockEmbedding768]);
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
+      jest.spyOn(vectorIndexService, 'bulkIndexQuestions').mockResolvedValue();
+
+      await service.indexStoredQuestions([storedQuestion]);
+
+      expect(embeddingService.generateBatchEmbeddings).toHaveBeenCalledWith([
+        'What is $12 + 5$?\n\nExplanation: Add the ones, then the tens.',
+      ]);
+      expect(vectorIndexService.bulkIndexQuestions).toHaveBeenCalledWith([
+        expect.objectContaining({
+          id: '507f1f77bcf86cd799439011',
+          questionText: 'What is $12 + 5$?',
+          explanation: 'Add the ones, then the tens.',
+          metadata: expect.objectContaining({
+            grade: '3',
+            topic: 'ADDITION',
+            operation: 'ADDITION',
+            difficulty: 'medium',
+            category: 'number-operations',
+            curriculum_strand: 'number-operations',
+          }),
+        }),
+      ]);
     });
   });
 });

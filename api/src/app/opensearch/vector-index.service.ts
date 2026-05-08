@@ -53,6 +53,10 @@ export class VectorIndexService implements OnModuleInit {
           type: 'text',
           analyzer: 'standard',
         },
+        explanation: {
+          type: 'text',
+          analyzer: 'standard',
+        },
         embedding: {
           type: 'knn_vector',
           dimension: 768,
@@ -206,13 +210,15 @@ export class VectorIndexService implements OnModuleInit {
    *
    * @param questionId - Unique identifier for the question
    * @param questionText - The question text
+   * @param explanation - Supporting explanation text
    * @param answer - The correct answer
-   * @param embedding - 384-dimensional embedding vector
+   * @param embedding - 768-dimensional embedding vector
    * @param metadata - Additional metadata for filtering
    */
   async indexQuestion(
     questionId: string,
     questionText: string,
+    explanation: string,
     answer: number,
     embedding: number[],
     metadata: {
@@ -227,6 +233,7 @@ export class VectorIndexService implements OnModuleInit {
   ): Promise<void> {
     const document = {
       questionText,
+      explanation,
       answer,
       embedding,
       metadata: {
@@ -253,6 +260,7 @@ export class VectorIndexService implements OnModuleInit {
     questions: Array<{
       id: string;
       questionText: string;
+      explanation: string;
       answer: number;
       embedding: number[];
       metadata: any;
@@ -262,6 +270,7 @@ export class VectorIndexService implements OnModuleInit {
       id: q.id,
       document: {
         questionText: q.questionText,
+        explanation: q.explanation,
         answer: q.answer,
         embedding: q.embedding,
         metadata: {

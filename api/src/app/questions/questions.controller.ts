@@ -258,12 +258,10 @@ export class QuestionsController {
     const stored = await this.questionsService.createMany(questionDtos);
 
     // Index newly generated questions into OpenSearch for future RAG retrieval
-    if (generated.length > 0) {
+    if (stored.length > 0) {
       try {
-        await this.questionIndexingService.indexQuestions(generated);
-        this.logger.log(
-          `Indexed ${generated.length} questions into OpenSearch`
-        );
+        await this.questionIndexingService.indexStoredQuestions(stored);
+        this.logger.log(`Indexed ${stored.length} questions into OpenSearch`);
       } catch (indexError) {
         // Non-blocking: questions are stored in MongoDB even if indexing fails
         this.logger.warn(

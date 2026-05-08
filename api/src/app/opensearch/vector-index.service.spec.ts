@@ -48,9 +48,13 @@ describe('VectorIndexService', () => {
         type: 'text',
         analyzer: 'standard',
       });
+      expect(mapping.properties.explanation).toEqual({
+        type: 'text',
+        analyzer: 'standard',
+      });
       expect(mapping.properties.embedding).toBeDefined();
       expect(mapping.properties.embedding.type).toBe('knn_vector');
-      expect(mapping.properties.embedding.dimension).toBe(384);
+      expect(mapping.properties.embedding.dimension).toBe(768);
       expect(mapping.properties.metadata).toBeDefined();
     });
 
@@ -81,7 +85,7 @@ describe('VectorIndexService', () => {
       const settings = service.getIndexSettings();
 
       expect(settings.index.knn).toBe(true);
-      expect(settings.index.knn_algo_param_ef_search).toBe(100);
+      expect(settings.index['knn.algo_param.ef_search']).toBe(100);
     });
 
     it('should configure single shard for development', () => {
@@ -191,8 +195,9 @@ describe('VectorIndexService', () => {
 
       const questionId = 'q-123';
       const questionText = '5 + 3 = ?';
+      const explanation = 'Add 5 and 3 to make 8.';
       const answer = 8;
-      const embedding = new Array(384).fill(0.1);
+      const embedding = new Array(768).fill(0.1);
       const metadata = {
         grade: 'grade_3',
         topic: 'addition',
@@ -203,6 +208,7 @@ describe('VectorIndexService', () => {
       await service.indexQuestion(
         questionId,
         questionText,
+        explanation,
         answer,
         embedding,
         metadata
@@ -213,6 +219,7 @@ describe('VectorIndexService', () => {
         questionId,
         expect.objectContaining({
           questionText,
+          explanation,
           answer,
           embedding,
           metadata: expect.objectContaining({
@@ -232,15 +239,17 @@ describe('VectorIndexService', () => {
         {
           id: 'q-1',
           questionText: '5 + 3 = ?',
+          explanation: 'Add 5 and 3 to get 8.',
           answer: 8,
-          embedding: new Array(384).fill(0.1),
+          embedding: new Array(768).fill(0.1),
           metadata: { grade: 'grade_3', topic: 'addition' },
         },
         {
           id: 'q-2',
           questionText: '10 - 4 = ?',
+          explanation: 'Subtract 4 from 10 to get 6.',
           answer: 6,
-          embedding: new Array(384).fill(0.2),
+          embedding: new Array(768).fill(0.2),
           metadata: { grade: 'grade_3', topic: 'subtraction' },
         },
       ];
@@ -254,6 +263,7 @@ describe('VectorIndexService', () => {
             id: 'q-1',
             document: expect.objectContaining({
               questionText: '5 + 3 = ?',
+              explanation: 'Add 5 and 3 to get 8.',
               answer: 8,
             }),
           }),
@@ -261,6 +271,7 @@ describe('VectorIndexService', () => {
             id: 'q-2',
             document: expect.objectContaining({
               questionText: '10 - 4 = ?',
+              explanation: 'Subtract 4 from 10 to get 6.',
               answer: 6,
             }),
           }),

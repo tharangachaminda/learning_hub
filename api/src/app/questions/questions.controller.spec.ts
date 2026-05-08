@@ -4,6 +4,7 @@ import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { OllamaService } from '../ai/ollama.service';
 import { QuestionStatus, QuestionFormat } from './schemas/question.schema';
+import { QuestionIndexingService } from '../opensearch/question-indexing.service';
 
 const mockQuestion = {
   _id: '507f1f77bcf86cd799439011',
@@ -38,6 +39,7 @@ describe('QuestionsController', () => {
   let controller: QuestionsController;
   let questionsService: jest.Mocked<QuestionsService>;
   let mathGenerator: jest.Mocked<MathQuestionGenerator>;
+  let questionIndexingService: jest.Mocked<QuestionIndexingService>;
 
   beforeEach(async () => {
     const mockQuestionsService = {
@@ -59,18 +61,27 @@ describe('QuestionsController', () => {
       ]),
     };
 
+    const mockQuestionIndexingService = {
+      indexStoredQuestions: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuestionsController],
       providers: [
         { provide: QuestionsService, useValue: mockQuestionsService },
         { provide: MathQuestionGenerator, useValue: mockMathGenerator },
         { provide: OllamaService, useValue: { generateRaw: jest.fn() } },
+        {
+          provide: QuestionIndexingService,
+          useValue: mockQuestionIndexingService,
+        },
       ],
     }).compile();
 
     controller = module.get<QuestionsController>(QuestionsController);
     questionsService = module.get(QuestionsService);
     mathGenerator = module.get(MathQuestionGenerator);
+    questionIndexingService = module.get(QuestionIndexingService);
   });
 
   it('should be defined', () => {
@@ -202,6 +213,9 @@ describe('QuestionsController', () => {
 
       expect(mathGenerator.generateQuestions).toHaveBeenCalled();
       expect(questionsService.createMany).toHaveBeenCalled();
+      expect(questionIndexingService.indexStoredQuestions).toHaveBeenCalledWith(
+        savedQuestions
+      );
       expect(result.stored).toBe(10);
       expect(result.questions).toHaveLength(10);
     });
