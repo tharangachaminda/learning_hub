@@ -1,25 +1,4 @@
-<div class="export-page">
-  <header class="page-header">
-    <div class="header-copy">
-      <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
-      <div>
-        <h1>Worksheet PDF Export</h1>
-        <p>
-          Build a printable worksheet from approved questions and optionally add
-          a separate answer sheet.
-        </p>
-      </div>
-    </div>
-
-    <nav class="header-nav">
-      <a routerLink="/review" [queryParams]="{ status: 'approved' }"
-        >Review Queue</a
-      >
-      <a routerLink="/analytics">Analytics</a>
-      <button class="btn-link" (click)="logout()">Sign Out</button>
-    </nav>
-  </header>
-
+<div class="export-page admin-page">
   <div class="alert alert-success" *ngIf="success">{{ success }}</div>
   <div class="alert alert-error" *ngIf="error">{{ error }}</div>
 

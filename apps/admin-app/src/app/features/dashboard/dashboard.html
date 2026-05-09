@@ -1,27 +1,35 @@
-<div class="dashboard-container">
-  <header class="dashboard-header">
-    <div class="header-left">
-      <h1>LearningHub Admin</h1>
-      <span class="role-badge">{{ userRole }}</span>
+<ng-template #headerActions>
+  @if (stats && !isLoading) {
+  <div class="hero-summary">
+    <div class="hero-stat">
+      <span class="hero-stat-label">Pending</span>
+      <strong>{{ stats.pending }}</strong>
     </div>
-    <div class="header-right">
-      <span class="welcome">{{ userName }}</span>
-      <button class="logout-btn" (click)="logout()">Sign Out</button>
+    <div class="hero-stat">
+      <span class="hero-stat-label">Approved</span>
+      <strong>{{ stats.approved }}</strong>
     </div>
-  </header>
+    <div class="hero-stat">
+      <span class="hero-stat-label">Coverage Ready</span>
+      <strong>{{ adequateCoverage }}/{{ totalCombos }}</strong>
+    </div>
+  </div>
+  }
+</ng-template>
 
-  <main class="dashboard-content">
-    <h2>Question Overview</h2>
-
+<div class="dashboard-page admin-page">
+  <section class="dashboard-main">
     @if (isLoading) {
-    <div class="loading">
+    <div class="loading admin-panel">
       <div class="loading-spinner"></div>
       <p>Loading statistics...</p>
     </div>
     } @if (error) {
-    <div class="error-card">
+    <div class="error-card admin-panel">
       <p>{{ error }}</p>
-      <button (click)="loadStats()">Retry</button>
+      <button class="admin-btn admin-btn-primary" (click)="loadStats()">
+        Retry
+      </button>
     </div>
     } @if (stats && !isLoading) {
     <div class="stats-grid">
@@ -32,7 +40,7 @@
       >
         <div class="stat-value">{{ stats.pending }}</div>
         <div class="stat-label">Pending Review</div>
-        <div class="stat-icon">⏳</div>
+        <fa-icon [icon]="pendingIcon" class="stat-icon"></fa-icon>
       </a>
 
       <a
@@ -42,7 +50,7 @@
       >
         <div class="stat-value">{{ stats.approved }}</div>
         <div class="stat-label">Approved</div>
-        <div class="stat-icon">✅</div>
+        <fa-icon [icon]="approvedIcon" class="stat-icon"></fa-icon>
       </a>
 
       <a
@@ -52,7 +60,7 @@
       >
         <div class="stat-value">{{ stats.rejected }}</div>
         <div class="stat-label">Rejected</div>
-        <div class="stat-icon">❌</div>
+        <fa-icon [icon]="rejectedIcon" class="stat-icon"></fa-icon>
       </a>
 
       <a
@@ -62,12 +70,12 @@
       >
         <div class="stat-value">{{ stats.total }}</div>
         <div class="stat-label">Total Questions</div>
-        <div class="stat-icon">📊</div>
+        <fa-icon [icon]="totalIcon" class="stat-icon"></fa-icon>
       </a>
     </div>
 
     @if (analytics) {
-    <div class="coverage-section">
+    <div class="coverage-section admin-panel">
       <h3>Question Coverage</h3>
       <div class="coverage-summary">
         <span class="coverage-stat">
@@ -106,9 +114,17 @@
     }
 
     <div class="actions-section">
-      <h3>Quick Actions</h3>
+      <div class="actions-header">
+        <div>
+          <p class="admin-eyebrow">Priority Workflows</p>
+          <h3>Quick Actions</h3>
+        </div>
+      </div>
       <div class="action-cards">
         <div class="action-card analytics-card">
+          <span class="action-icon"
+            ><fa-icon [icon]="analyticsIcon"></fa-icon
+          ></span>
           <h4>Question Analytics</h4>
           <p>
             View detailed question coverage heatmap, identify gaps, and balance
@@ -120,6 +136,9 @@
         </div>
 
         <div class="action-card generate-card">
+          <span class="action-icon"
+            ><fa-icon [icon]="generateIcon"></fa-icon
+          ></span>
           <h4>Generate Questions</h4>
           <p>
             Use AI to generate new curriculum-aligned questions for any grade
@@ -131,6 +150,9 @@
         </div>
 
         <div class="action-card" [class.has-pending]="stats.pending > 0">
+          <span class="action-icon"
+            ><fa-icon [icon]="reviewIcon"></fa-icon
+          ></span>
           <h4>Review Queue</h4>
           <p>
             @if (stats.pending > 0) {
@@ -141,6 +163,9 @@
         </div>
 
         <div class="action-card analytics-card">
+          <span class="action-icon"
+            ><fa-icon [icon]="exportIcon"></fa-icon
+          ></span>
           <h4>Export Worksheets</h4>
           <p>
             Filter approved questions by year, topic, and difficulty, then
@@ -156,6 +181,9 @@
 
         @if (isAdmin) {
         <div class="action-card invite-card">
+          <span class="action-icon"
+            ><fa-icon [icon]="approvedIcon"></fa-icon
+          ></span>
           <h4>Manage Users</h4>
           <p>View, invite, and manage admin and teacher accounts.</p>
           <a routerLink="/users" class="action-btn invite-btn">Manage Users</a>
@@ -164,5 +192,5 @@
       </div>
     </div>
     }
-  </main>
+  </section>
 </div>

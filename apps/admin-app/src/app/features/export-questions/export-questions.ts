@@ -50,8 +50,6 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   isGeneratingPdf = false;
   error: string | null = null;
   success: string | null = null;
-  userName = '';
-  userRole = '';
 
   filterGrade: number | null = null;
   filterTopic = '';
@@ -74,10 +72,6 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   private hasNormalizedQueryParams = false;
 
   ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Teacher';
-    this.userRole = user?.role ?? 'teacher';
-
     const params = this.route.snapshot.queryParams;
     this.filterGrade = this.parseGradeParam(params['grade']);
     if (params['topic']) {
@@ -337,11 +331,6 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
     return (difficulty || 'medium').replace(/\b\w/g, (char) =>
       char.toUpperCase()
     );
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 
   private syncLoadedQuestionsIntoSelection(): void {

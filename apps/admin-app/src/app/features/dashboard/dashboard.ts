@@ -1,28 +1,57 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowTrendUp,
+  faBookOpen,
+  faChartColumn,
+  faCircleCheck,
+  faClipboardCheck,
+  faClock,
+  faFileCirclePlus,
+  faTriangleExclamation,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
   QuestionStats,
   QuestionAnalytics,
   CoverageGap,
 } from '../../services/auth.service';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FontAwesomeModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   stats: QuestionStats | null = null;
   analytics: QuestionAnalytics | null = null;
   isLoading = true;
   error: string | null = null;
-  userName = '';
-  userRole = '';
   isAdmin = false;
+  protected readonly pendingIcon = faClock;
+  protected readonly approvedIcon = faCircleCheck;
+  protected readonly rejectedIcon = faTriangleExclamation;
+  protected readonly totalIcon = faChartColumn;
+  protected readonly analyticsIcon = faArrowTrendUp;
+  protected readonly generateIcon = faFileCirclePlus;
+  protected readonly reviewIcon = faClipboardCheck;
+  protected readonly exportIcon = faBookOpen;
 
   /** Number of grade×topic combos with adequate coverage */
   adequateCoverage = 0;
@@ -32,16 +61,21 @@ export class DashboardComponent implements OnInit {
   topGaps: CoverageGap[] = [];
 
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Admin';
-    this.userRole = user?.role ?? '';
     this.isAdmin = this.authService.isAdmin();
 
     this.loadStats();
     this.loadAnalytics();
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   loadStats(): void {
@@ -81,10 +115,5 @@ export class DashboardComponent implements OnInit {
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

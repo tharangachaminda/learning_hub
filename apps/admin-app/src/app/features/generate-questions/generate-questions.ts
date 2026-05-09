@@ -1,7 +1,21 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faRobot,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
   GradeInfo,
@@ -9,15 +23,27 @@ import {
   BatchGenerateResponse,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-generate-questions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, KatexRenderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    KatexRenderComponent,
+    FontAwesomeModule,
+  ],
   templateUrl: './generate-questions.html',
   styleUrl: './generate-questions.scss',
 })
-export class GenerateQuestionsComponent implements OnInit {
+export class GenerateQuestionsComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   grades: GradeInfo[] = [];
   selectedGrade: number | null = null;
   availableTopics: GradeTopic[] = [];
@@ -28,17 +54,15 @@ export class GenerateQuestionsComponent implements OnInit {
   isGenerating = false;
   error: string | null = null;
   result: BatchGenerateResponse | null = null;
-  userName = '';
-  userRole = '';
+  protected readonly sparklesIcon = faRobot;
+  protected readonly generateIcon = faWandMagicSparkles;
+  protected readonly arrowIcon = faArrowRight;
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Admin';
-    this.userRole = user?.role ?? '';
-
     this.authService.getCurriculum().subscribe({
       next: (data) => {
         this.grades = data.grades;
@@ -49,6 +73,14 @@ export class GenerateQuestionsComponent implements OnInit {
         this.isLoadingCurriculum = false;
       },
     });
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   onGradeChange(): void {
@@ -94,10 +126,5 @@ export class GenerateQuestionsComponent implements OnInit {
 
   navigateToReview(): void {
     this.router.navigate(['/review']);
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

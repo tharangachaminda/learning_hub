@@ -1,70 +1,13 @@
-.invite-container {
-  min-height: 100vh;
-  background: #f3f4f6;
-}
-
-.invite-header {
-  background: #1e3a5f;
-  color: #fff;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-
-    h1 {
-      margin: 0;
-      font-size: 1.25rem;
-    }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-  }
-}
-
-.role-badge {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  text-transform: capitalize;
-}
-
-.back-link {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #fff;
-  }
-}
+.invite-page { width: 100%; }
+.invite-header-panel { padding: 1.35rem 1.5rem; }
 
 .invite-content {
   max-width: 640px;
   margin: 0 auto;
-  padding: 2rem;
 }
 
 .invite-card {
-  background: #fff;
-  border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-
-  h2 {
-    color: #1e3a5f;
-    margin: 0 0 0.5rem;
-    font-size: 1.5rem;
-  }
 
   .subtitle {
     color: #6b7280;
@@ -82,10 +25,6 @@
   border-radius: 8px;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
-
-  .alert-icon {
-    flex-shrink: 0;
-  }
 
   &.alert-success {
     background: #f0fdf4;
@@ -214,7 +153,7 @@
   }
 
   .invite-content {
-    padding: 1rem;
+    width: 100%;
   }
 
   .invite-card {

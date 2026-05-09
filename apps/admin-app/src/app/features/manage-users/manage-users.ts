@@ -1,4 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -13,6 +21,7 @@ import {
   StaffUser,
   StaffStats,
 } from '../../services/auth.service';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-manage-users',
@@ -21,7 +30,10 @@ import {
   templateUrl: './manage-users.html',
   styleUrl: './manage-users.scss',
 })
-export class ManageUsersComponent implements OnInit {
+export class ManageUsersComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   users: StaffUser[] = [];
   stats: StaffStats | null = null;
   isLoading = true;
@@ -41,6 +53,7 @@ export class ManageUsersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
     if (!this.authService.isAdmin()) {
@@ -80,6 +93,14 @@ export class ManageUsersComponent implements OnInit {
     });
 
     this.loadData();
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   loadData(): void {
@@ -189,10 +210,5 @@ export class ManageUsersComponent implements OnInit {
     return (
       (user.profile.firstName?.[0] ?? '') + (user.profile.lastName?.[0] ?? '')
     ).toUpperCase();
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

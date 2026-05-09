@@ -1,4 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -9,6 +17,7 @@ import {
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
 import { LatexEditorComponent } from '../../shared/latex-editor/latex-editor';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-question-detail',
@@ -23,7 +32,12 @@ import { LatexEditorComponent } from '../../shared/latex-editor/latex-editor';
   templateUrl: './question-detail.html',
   styleUrl: './question-detail.scss',
 })
-export class QuestionDetailComponent implements OnInit {
+export class QuestionDetailComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   question: QuestionItem | null = null;
   isLoading = true;
   error: string | null = null;
@@ -71,10 +85,19 @@ export class QuestionDetailComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
     this.questionId = this.route.snapshot.params['id'] ?? '';
     this.loadQuestion();
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   loadQuestion(): void {
@@ -369,10 +392,5 @@ export class QuestionDetailComponent implements OnInit {
 
   trackByIndex(index: number): number {
     return index;
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }
