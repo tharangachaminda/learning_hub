@@ -19,6 +19,7 @@ import {
   faFilter,
   faLayerGroup,
   faMagnifyingGlass,
+  faWandMagicSparkles,
   faPenToSquare,
   faTrash,
   faXmark,
@@ -58,6 +59,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly filterIcon = faFilter;
   protected readonly resultsIcon = faLayerGroup;
   protected readonly searchIcon = faMagnifyingGlass;
+  protected readonly generateIcon = faWandMagicSparkles;
   protected readonly approveIcon = faCheck;
   protected readonly rejectIcon = faXmark;
   protected readonly retryIcon = faArrowRotateRight;
