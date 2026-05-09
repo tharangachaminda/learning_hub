@@ -57,13 +57,21 @@
 
     @if (analytics) {
     <div class="coverage-section admin-panel">
-      <h3>Question Coverage</h3>
+      <div class="coverage-header">
+        <div>
+          <p class="admin-eyebrow">Coverage Snapshot</p>
+          <h3>Question Coverage</h3>
+        </div>
+      </div>
       <div class="coverage-summary">
-        <span class="coverage-stat">
-          <strong>{{ adequateCoverage }}</strong> of
-          <strong>{{ totalCombos }}</strong>
-          grade/topic combinations have adequate coverage (≥10 approved)
-        </span>
+        <div class="coverage-stat-card">
+          <span class="coverage-stat-value"
+            >{{ adequateCoverage }}/{{ totalCombos }}</span
+          >
+          <span class="coverage-stat">
+            grade/topic combinations have adequate coverage (≥10 approved)
+          </span>
+        </div>
       </div>
       @if (topGaps.length > 0) {
       <div class="gap-alerts">
@@ -80,7 +88,7 @@
             <a
               routerLink="/generate"
               [queryParams]="{ grade: gap.grade, topic: gap.topic }"
-              class="gap-action"
+              class="gap-action admin-btn admin-btn-primary"
               >Generate</a
             >
           </li>
@@ -88,7 +96,9 @@
         </ul>
       </div>
       }
-      <a routerLink="/analytics" class="view-analytics-link"
+      <a
+        routerLink="/analytics"
+        class="view-analytics-link admin-btn admin-btn-primary"
         >View Full Analytics →</a
       >
     </div>
@@ -102,52 +112,69 @@
         </div>
       </div>
       <div class="action-cards">
-        <div class="action-card analytics-card">
-          <span class="action-icon"
-            ><fa-icon [icon]="analyticsIcon"></fa-icon
-          ></span>
-          <h4>Question Analytics</h4>
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="analyticsIcon"></fa-icon
+            ></span>
+            <h4>Question Analytics</h4>
+          </div>
           <p>
             View detailed question coverage heatmap, identify gaps, and balance
             question generation across grades and topics.
           </p>
-          <a routerLink="/analytics" class="action-btn analytics-btn"
+          <a
+            routerLink="/analytics"
+            class="action-btn admin-btn admin-btn-primary"
             >View Analytics</a
           >
         </div>
 
-        <div class="action-card generate-card">
-          <span class="action-icon"
-            ><fa-icon [icon]="generateIcon"></fa-icon
-          ></span>
-          <h4>Generate Questions</h4>
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="generateIcon"></fa-icon
+            ></span>
+            <h4>Generate Questions</h4>
+          </div>
           <p>
             Use AI to generate new curriculum-aligned questions for any grade
             and topic.
           </p>
-          <a routerLink="/generate" class="action-btn generate-btn"
+          <a
+            routerLink="/generate"
+            class="action-btn admin-btn admin-btn-primary"
             >Generate Questions</a
           >
         </div>
 
-        <div class="action-card" [class.has-pending]="stats.pending > 0">
-          <span class="action-icon"
-            ><fa-icon [icon]="reviewIcon"></fa-icon
-          ></span>
-          <h4>Review Queue</h4>
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="reviewIcon"></fa-icon
+            ></span>
+            <h4>Review Queue</h4>
+          </div>
           <p>
             @if (stats.pending > 0) {
             <strong>{{ stats.pending }}</strong> questions awaiting your review
             } @else { No questions pending review }
           </p>
-          <a routerLink="/review" class="action-btn"> Open Review Queue </a>
+          <a
+            routerLink="/review"
+            class="action-btn admin-btn admin-btn-primary"
+          >
+            Open Review Queue
+          </a>
         </div>
 
-        <div class="action-card analytics-card">
-          <span class="action-icon"
-            ><fa-icon [icon]="exportIcon"></fa-icon
-          ></span>
-          <h4>Export Worksheets</h4>
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="exportIcon"></fa-icon
+            ></span>
+            <h4>Export Worksheets</h4>
+          </div>
           <p>
             Filter approved questions by year, topic, and difficulty, then
             generate a printable PDF with an optional answer sheet.
@@ -155,19 +182,23 @@
           <a
             routerLink="/review/export"
             [queryParams]="{ status: 'approved' }"
-            class="action-btn analytics-btn"
+            class="action-btn admin-btn admin-btn-primary"
             >Open PDF Exporter</a
           >
         </div>
 
         @if (isAdmin) {
-        <div class="action-card invite-card">
-          <span class="action-icon"
-            ><fa-icon [icon]="approvedIcon"></fa-icon
-          ></span>
-          <h4>Manage Users</h4>
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="approvedIcon"></fa-icon
+            ></span>
+            <h4>Manage Users</h4>
+          </div>
           <p>View, invite, and manage admin and teacher accounts.</p>
-          <a routerLink="/users" class="action-btn invite-btn">Manage Users</a>
+          <a routerLink="/users" class="action-btn admin-btn admin-btn-primary"
+            >Manage Users</a
+          >
         </div>
         }
       </div>

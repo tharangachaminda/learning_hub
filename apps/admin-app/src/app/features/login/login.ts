@@ -7,12 +7,14 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-admin-login',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, FontAwesomeModule],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -21,6 +23,8 @@ export class LoginComponent implements OnInit {
   isLoading = false;
   loginError: string | null = null;
   showPassword = false;
+  protected readonly showPasswordIcon = faEye;
+  protected readonly hidePasswordIcon = faEyeSlash;
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);

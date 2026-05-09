@@ -2,8 +2,8 @@
   <aside class="admin-sidebar" [class.open]="sidebarOpen">
     <div class="sidebar-brand">
       <div class="brand-mark">LH</div>
-      <div>
-        <p class="brand-kicker">Operations</p>
+      <div class="brand-copy">
+        <p class="brand-kicker">Admin Portal</p>
         <h1>LearningHub Admin</h1>
       </div>
     </div>
@@ -28,18 +28,17 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-user-card">
-        <span class="meta-label">Signed in as</span>
-        <strong>{{ currentUser?.name || 'Admin' }}</strong>
-        <span class="meta-value">{{ currentUser?.role || 'staff' }}</span>
+        <strong class="sidebar-user-name"
+          >{{ currentUser?.name || 'Admin' }}</strong
+        >
+        <span class="sidebar-user-role"
+          >{{ currentUser?.role || 'staff' }}</span
+        >
       </div>
       <button type="button" class="logout-button" (click)="logout()">
         <fa-icon [icon]="logoutIcon"></fa-icon>
         <span>Sign Out</span>
       </button>
-      <p class="sidebar-note">
-        Curriculum operations, review control, and coverage insight in one
-        workspace.
-      </p>
     </div>
   </aside>
 

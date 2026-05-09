@@ -120,7 +120,12 @@
           }
 
           <div class="card-actions">
-            <button class="btn btn-primary" (click)="toggleQuestion(question)">
+            <button
+              class="admin-btn"
+              [class.admin-btn-primary]="!isSelected(question._id)"
+              [class.admin-btn-danger]="isSelected(question._id)"
+              (click)="toggleQuestion(question)"
+            >
               {{ isSelected(question._id) ? 'Remove' : 'Add to worksheet' }}
             </button>
           </div>
