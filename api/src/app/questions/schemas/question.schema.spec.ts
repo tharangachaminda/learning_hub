@@ -3,6 +3,7 @@ import {
   QuestionDocument,
   QuestionStatus,
   QuestionFormat,
+  VectorSyncStatus,
   QuestionSchema,
 } from './question.schema';
 
@@ -96,6 +97,28 @@ describe('Question Schema', () => {
       expect(path).toBeDefined();
       expect(path.instance).toBe('Date');
     });
+
+    it('should define vectorSync as a nested sub-document', () => {
+      const statusPath = QuestionSchema.path('vectorSync.status');
+      const preparedAtPath = QuestionSchema.path('vectorSync.preparedAt');
+      const storedAtPath = QuestionSchema.path('vectorSync.storedAt');
+      const storedByPath = QuestionSchema.path('vectorSync.storedBy');
+      const documentIdPath = QuestionSchema.path('vectorSync.documentId');
+      const syncErrorPath = QuestionSchema.path('vectorSync.syncError');
+      const contentHashPath = QuestionSchema.path('vectorSync.contentHash');
+      const embeddingModelVersionPath = QuestionSchema.path(
+        'vectorSync.embeddingModelVersion'
+      );
+
+      expect(statusPath).toBeDefined();
+      expect(preparedAtPath).toBeDefined();
+      expect(storedAtPath).toBeDefined();
+      expect(storedByPath).toBeDefined();
+      expect(documentIdPath).toBeDefined();
+      expect(syncErrorPath).toBeDefined();
+      expect(contentHashPath).toBeDefined();
+      expect(embeddingModelVersionPath).toBeDefined();
+    });
   });
 
   describe('Schema Options', () => {
@@ -156,6 +179,28 @@ describe('Question Schema', () => {
       );
       expect(formatIndex).toBeDefined();
     });
+
+    it('should define a query index on vectorSync.status', () => {
+      const indexes = QuestionSchema.indexes();
+      const vectorStatusIndex = indexes.find(
+        ([fields]) =>
+          fields['vectorSync.status'] === 1 && Object.keys(fields).length === 1
+      );
+      expect(vectorStatusIndex).toBeDefined();
+    });
+
+    it('should define a sparse index on vectorSync.documentId', () => {
+      const indexes = QuestionSchema.indexes();
+      const vectorDocumentIdIndex = indexes.find(
+        ([fields]) =>
+          fields['vectorSync.documentId'] === 1 &&
+          Object.keys(fields).length === 1
+      );
+      expect(vectorDocumentIdIndex).toBeDefined();
+      expect(vectorDocumentIdIndex?.[1]).toEqual(
+        expect.objectContaining({ sparse: true })
+      );
+    });
   });
 
   describe('Enums', () => {
@@ -168,6 +213,13 @@ describe('Question Schema', () => {
     it('should define QuestionFormat with open-ended and multiple-choice values', () => {
       expect(QuestionFormat.OPEN_ENDED).toBe('open-ended');
       expect(QuestionFormat.MULTIPLE_CHOICE).toBe('multiple-choice');
+    });
+
+    it('should define VectorSyncStatus values for the index lifecycle', () => {
+      expect(VectorSyncStatus.PENDING).toBe('pending');
+      expect(VectorSyncStatus.PREPARED).toBe('prepared');
+      expect(VectorSyncStatus.STORED).toBe('stored');
+      expect(VectorSyncStatus.FAILED).toBe('failed');
     });
   });
 
@@ -194,6 +246,11 @@ describe('Question Schema', () => {
       const path = QuestionSchema.path('stepByStepSolution');
       const defaultVal = (path as any).defaultValue;
       expect(defaultVal).toBeDefined();
+    });
+
+    it('should default vectorSync.status to pending', () => {
+      const path = QuestionSchema.path('vectorSync.status');
+      expect((path as any).defaultValue).toBe(VectorSyncStatus.PENDING);
     });
   });
 });

@@ -64,6 +64,18 @@
         </option>
       </select>
     </div>
+    <div class="filter-group filter-checkbox">
+      <span class="filter-caption">Index Coverage</span>
+      <label class="checkbox-label" for="approvedNotIndexedFilter">
+        <input
+          id="approvedNotIndexedFilter"
+          type="checkbox"
+          [(ngModel)]="filterApprovedNotIndexed"
+          (ngModelChange)="onApprovedNotIndexedChange()"
+        />
+        Approved but not indexed
+      </label>
+    </div>
     <div class="filter-actions" *ngIf="selectedIds.size > 0">
       <span class="selected-count">{{ selectedIds.size }} selected</span>
       <button
@@ -166,6 +178,15 @@
             <span class="status-badge" [ngClass]="getStatusClass(q.status)"
               >{{ q.status }}</span
             >
+            <div class="index-status" *ngIf="q.status === 'approved'">
+              <span
+                class="index-badge"
+                [ngClass]="getIndexStateClass(q)"
+                [title]="getIndexStateTitle(q)"
+              >
+                {{ getIndexStateLabel(q) }}
+              </span>
+            </div>
             <div
               class="rejection-reason"
               *ngIf="q.status === 'rejected' && q.reviewNotes"
@@ -192,6 +213,15 @@
                 title="Reject"
               >
                 ✗
+              </button>
+              <button
+                class="btn btn-index-sm"
+                *ngIf="canRetryIndex(q)"
+                [disabled]="actionInProgress === q._id"
+                (click)="retryIndex(q._id); $event.stopPropagation()"
+                title="Retry indexing"
+              >
+                ⟳
               </button>
               <button
                 class="btn btn-edit-sm"

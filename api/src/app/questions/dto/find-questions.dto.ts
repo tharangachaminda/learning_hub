@@ -1,12 +1,14 @@
 import {
+  Allow,
   IsOptional,
   IsNumber,
   IsString,
   IsEnum,
+  IsBoolean,
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { QuestionStatus, QuestionFormat } from '../schemas/question.schema';
 
 export enum PersistedQuestionDifficulty {
@@ -62,6 +64,15 @@ export class FindQuestionsDto {
   @IsOptional()
   @IsEnum(PersistedQuestionDifficulty)
   difficulty?: PersistedQuestionDifficulty;
+
+  /**
+   * Restrict results to approved questions that are not yet stored in OpenSearch.
+   */
+  @Allow()
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  approvedNotIndexed?: boolean;
 
   /**
    * Page number for pagination (1-based, default: 1).

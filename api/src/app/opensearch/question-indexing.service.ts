@@ -5,6 +5,24 @@ import {
   MathQuestion,
   DifficultyLevel,
 } from '../math-questions/entities/math-question.entity';
+import { QuestionDocument } from '../questions/schemas/question.schema';
+
+interface PreparedQuestionDocument {
+  id: string;
+  questionText: string;
+  explanation: string;
+  answer: number;
+  embeddingSourceText: string;
+  metadata: {
+    grade: string;
+    topic: string;
+    operation: string;
+    difficulty: string;
+    difficulty_score: number;
+    category: string;
+    curriculum_strand: string;
+  };
+}
 
 /**
  * Service for indexing math questions with embeddings in OpenSearch.
@@ -42,41 +60,33 @@ export class QuestionIndexingService {
    */
   async indexQuestion(question: MathQuestion): Promise<void> {
     try {
+      const prepared = this.prepareGeneratedQuestion(question);
+
       // Ensure index exists before indexing
       await this.vectorIndexService.createIndexIfNotExists();
 
-      // Generate embedding for question text
+      // Generate embedding for the retrieval text
       const embedding = await this.embeddingService.generateEmbedding(
-        question.question
+        prepared.embeddingSourceText
       );
-
-      // Extract metadata from question
-      const metadata = this.extractMetadata(question);
 
       // Index in OpenSearch
       await this.vectorIndexService.indexQuestion(
-        question.id || this.generateQuestionId(question),
-        question.question,
-        question.answer,
+        prepared.id,
+        prepared.questionText,
+        prepared.explanation,
+        prepared.answer,
         embedding,
-        {
-          grade: metadata.grade.toString(),
-          topic: metadata.topic,
-          operation: metadata.operation,
-          difficulty: metadata.difficulty,
-          difficulty_score: metadata.difficulty_score,
-          category: metadata.category,
-          curriculum_strand: metadata.curriculum_strand,
-        }
+        prepared.metadata
       );
 
       this.logger.log(
         `Successfully indexed question: ${question.id || 'generated-id'}`
       );
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index question: ${question.question}`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index question: ${error.message}`);
     }
@@ -104,22 +114,29 @@ export class QuestionIndexingService {
     }
 
     try {
+      const preparedQuestions = questions.map((question) =>
+        this.prepareGeneratedQuestion(question)
+      );
+
       // Ensure index exists before bulk indexing
       await this.vectorIndexService.createIndexIfNotExists();
 
       // Generate embeddings for all questions
-      const questionTexts = questions.map((q) => q.question);
+      const questionTexts = preparedQuestions.map(
+        (question) => question.embeddingSourceText
+      );
       const embeddings = await this.embeddingService.generateBatchEmbeddings(
         questionTexts
       );
 
       // Prepare documents for bulk indexing
-      const documents = questions.map((question, index) => ({
-        id: question.id || this.generateQuestionId(question),
-        questionText: question.question,
+      const documents = preparedQuestions.map((question, index) => ({
+        id: question.id,
+        questionText: question.questionText,
+        explanation: question.explanation,
         answer: question.answer,
         embedding: embeddings[index],
-        metadata: this.extractMetadata(question),
+        metadata: question.metadata,
       }));
 
       // Bulk index in OpenSearch
@@ -129,9 +146,9 @@ export class QuestionIndexingService {
         `Successfully indexed ${questions.length} questions in batch`
       );
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index ${questions.length} questions in batch`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index questions: ${error.message}`);
     }
@@ -152,6 +169,139 @@ export class QuestionIndexingService {
    */
   async ensureIndexExists(): Promise<void> {
     await this.vectorIndexService.createIndexIfNotExists();
+  }
+
+  /**
+   * Indexes a persisted question document using the richer stored structure.
+   */
+  async indexStoredQuestion(question: QuestionDocument): Promise<void> {
+    try {
+      const prepared = this.prepareStoredQuestion(question);
+
+      await this.vectorIndexService.createIndexIfNotExists();
+
+      const embedding = await this.embeddingService.generateEmbedding(
+        prepared.embeddingSourceText
+      );
+
+      await this.vectorIndexService.indexQuestion(
+        prepared.id,
+        prepared.questionText,
+        prepared.explanation,
+        prepared.answer,
+        embedding,
+        prepared.metadata
+      );
+
+      this.logger.log(`Successfully indexed stored question: ${prepared.id}`);
+    } catch (error) {
+      this.logIndexingFailure(
+        `Failed to index stored question: ${
+          question._id?.toString?.() ?? 'unknown'
+        }`,
+        error
+      );
+      throw new Error(`Failed to index question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Indexes multiple persisted question documents in batch.
+   */
+  async indexStoredQuestions(questions: QuestionDocument[]): Promise<void> {
+    if (questions.length === 0) {
+      this.logger.debug('No stored questions to index');
+      return;
+    }
+
+    try {
+      const preparedQuestions = questions.map((question) =>
+        this.prepareStoredQuestion(question)
+      );
+
+      await this.vectorIndexService.createIndexIfNotExists();
+
+      const embeddings = await this.embeddingService.generateBatchEmbeddings(
+        preparedQuestions.map((question) => question.embeddingSourceText)
+      );
+
+      await this.vectorIndexService.bulkIndexQuestions(
+        preparedQuestions.map((question, index) => ({
+          id: question.id,
+          questionText: question.questionText,
+          explanation: question.explanation,
+          answer: question.answer,
+          embedding: embeddings[index],
+          metadata: question.metadata,
+        }))
+      );
+
+      this.logger.log(
+        `Successfully indexed ${questions.length} stored questions in batch`
+      );
+    } catch (error) {
+      this.logIndexingFailure(
+        `Failed to index ${questions.length} stored questions in batch`,
+        error
+      );
+      throw new Error(`Failed to index questions: ${error.message}`);
+    }
+  }
+
+  private logIndexingFailure(context: string, error: unknown): void {
+    if (this.isOpenSearchUnavailableError(error)) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`${context} (OpenSearch unavailable): ${message}`);
+      return;
+    }
+
+    if (error instanceof Error) {
+      this.logger.error(context, error.stack);
+      return;
+    }
+
+    this.logger.error(`${context}: ${String(error)}`);
+  }
+
+  private isOpenSearchUnavailableError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('connection error') ||
+      message.includes('connection failed') ||
+      message.includes('connect econnrefused') ||
+      message.includes('index_not_found_exception') ||
+      message.includes('no living connections')
+    );
+  }
+
+  prepareStoredQuestion(question: QuestionDocument): PreparedQuestionDocument {
+    const explanation = question.explanation?.trim() || '';
+    const difficulty = question.metadata?.difficulty || 'medium';
+    const category = question.category || 'math';
+
+    return {
+      id: question._id.toString(),
+      questionText: question.questionText,
+      explanation,
+      answer: this.normalizeAnswer(question.answer),
+      embeddingSourceText: this.buildEmbeddingSourceText(
+        question.questionText,
+        explanation
+      ),
+      metadata: {
+        grade: question.grade.toString(),
+        topic: question.topic,
+        operation: question.topic,
+        difficulty,
+        difficulty_score: this.calculateQuestionDifficultyScore(difficulty),
+        category,
+        curriculum_strand: category,
+      },
+    };
   }
 
   /**
@@ -183,6 +333,62 @@ export class QuestionIndexingService {
       category: 'math',
       curriculum_strand: 'number',
     };
+  }
+
+  private prepareGeneratedQuestion(
+    question: MathQuestion
+  ): PreparedQuestionDocument {
+    const metadata = this.extractMetadata(question);
+    const explanation = question.stepByStepSolution?.join('\n').trim() || '';
+
+    return {
+      id: question.id || this.generateQuestionId(question),
+      questionText: question.question,
+      explanation,
+      answer: question.answer,
+      embeddingSourceText: this.buildEmbeddingSourceText(
+        question.question,
+        explanation
+      ),
+      metadata: {
+        grade: metadata.grade.toString(),
+        topic: metadata.topic,
+        operation: metadata.operation,
+        difficulty: metadata.difficulty,
+        difficulty_score: metadata.difficulty_score,
+        category: metadata.category,
+        curriculum_strand: metadata.curriculum_strand,
+      },
+    };
+  }
+
+  private buildEmbeddingSourceText(
+    questionText: string,
+    explanation: string
+  ): string {
+    return explanation
+      ? `${questionText}\n\nExplanation: ${explanation}`
+      : questionText;
+  }
+
+  private normalizeAnswer(answer: number | string): number {
+    if (typeof answer === 'number') {
+      return answer;
+    }
+
+    const numericAnswer = Number(answer);
+    return Number.isFinite(numericAnswer) ? numericAnswer : 0;
+  }
+
+  private calculateQuestionDifficultyScore(difficulty: string): number {
+    const normalizedDifficulty = difficulty.toLowerCase();
+    const scoreMap: Record<string, number> = {
+      easy: 0.33,
+      medium: 0.66,
+      hard: 1,
+    };
+
+    return scoreMap[normalizedDifficulty] ?? 0.66;
   }
 
   /**

@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { OllamaService } from '../ai/ollama.service';
 import { QuestionStatus, QuestionFormat } from './schemas/question.schema';
+import { QuestionIndexingService } from '../opensearch/question-indexing.service';
 
 const mockQuestion = {
   _id: '507f1f77bcf86cd799439011',
+  id: '507f1f77bcf86cd799439011',
   questionText: 'What is $5 + 3$?',
   answer: 8,
   explanation: 'Add five and three to get eight.',
@@ -18,7 +21,7 @@ const mockQuestion = {
   status: QuestionStatus.PENDING,
   stepByStepSolution: ['Start with 5', 'Add 3', 'Answer is 8'],
   metadata: {
-    generatedBy: 'llama3.1:latest',
+    generatedBy: 'falcon3:latest',
     generationTime: 1200,
     difficulty: 'medium',
     country: 'NZ',
@@ -38,6 +41,7 @@ describe('QuestionsController', () => {
   let controller: QuestionsController;
   let questionsService: jest.Mocked<QuestionsService>;
   let mathGenerator: jest.Mocked<MathQuestionGenerator>;
+  let questionIndexingService: jest.Mocked<QuestionIndexingService>;
 
   beforeEach(async () => {
     const mockQuestionsService = {
@@ -45,6 +49,19 @@ describe('QuestionsController', () => {
       findOne: jest.fn().mockResolvedValue(mockQuestion),
       create: jest.fn().mockResolvedValue(mockQuestion),
       createMany: jest.fn().mockResolvedValue([mockQuestion]),
+      reviewQuestion: jest.fn().mockResolvedValue(mockQuestion),
+      markVectorSyncPrepared: jest.fn().mockResolvedValue({
+        ...mockQuestion,
+        vectorSync: { status: 'prepared' },
+      }),
+      markVectorSyncStored: jest.fn().mockResolvedValue({
+        ...mockQuestion,
+        vectorSync: { status: 'stored' },
+      }),
+      markVectorSyncFailed: jest.fn().mockResolvedValue({
+        ...mockQuestion,
+        vectorSync: { status: 'failed' },
+      }),
     };
 
     const mockMathGenerator = {
@@ -59,18 +76,28 @@ describe('QuestionsController', () => {
       ]),
     };
 
+    const mockQuestionIndexingService = {
+      indexStoredQuestions: jest.fn().mockResolvedValue(undefined),
+      indexStoredQuestion: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuestionsController],
       providers: [
         { provide: QuestionsService, useValue: mockQuestionsService },
         { provide: MathQuestionGenerator, useValue: mockMathGenerator },
         { provide: OllamaService, useValue: { generateRaw: jest.fn() } },
+        {
+          provide: QuestionIndexingService,
+          useValue: mockQuestionIndexingService,
+        },
       ],
     }).compile();
 
     controller = module.get<QuestionsController>(QuestionsController);
     questionsService = module.get(QuestionsService);
     mathGenerator = module.get(MathQuestionGenerator);
+    questionIndexingService = module.get(QuestionIndexingService);
   });
 
   it('should be defined', () => {
@@ -110,6 +137,16 @@ describe('QuestionsController', () => {
 
       expect(questionsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({ status: QuestionStatus.APPROVED }),
+        1,
+        20
+      );
+    });
+
+    it('should pass approvedNotIndexed filter to service', async () => {
+      await controller.findAll({ approvedNotIndexed: true });
+
+      expect(questionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ approvedNotIndexed: true }),
         1,
         20
       );
@@ -202,6 +239,9 @@ describe('QuestionsController', () => {
 
       expect(mathGenerator.generateQuestions).toHaveBeenCalled();
       expect(questionsService.createMany).toHaveBeenCalled();
+      expect(
+        questionIndexingService.indexStoredQuestions
+      ).not.toHaveBeenCalled();
       expect(result.stored).toBe(10);
       expect(result.questions).toHaveLength(10);
     });
@@ -294,6 +334,152 @@ describe('QuestionsController', () => {
 
       const createManyArgs = questionsService.createMany.mock.calls[0][0];
       expect(createManyArgs[0].metadata.difficulty).toBe('medium');
+    });
+  });
+
+  describe('PATCH /questions/:id/review', () => {
+    it('should automatically index an approved question and mark it as stored', async () => {
+      const approvedQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.APPROVED,
+      };
+      questionsService.reviewQuestion.mockResolvedValue(
+        approvedQuestion as any
+      );
+      questionsService.markVectorSyncStored.mockResolvedValue({
+        ...approvedQuestion,
+        vectorSync: { status: 'stored' },
+      } as any);
+
+      const result = await controller.reviewQuestion(
+        '507f1f77bcf86cd799439011',
+        { status: QuestionStatus.APPROVED },
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(questionsService.reviewQuestion).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        QuestionStatus.APPROVED,
+        'teacher@example.com',
+        undefined
+      );
+      expect(questionsService.markVectorSyncPrepared).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionIndexingService.indexStoredQuestion).toHaveBeenCalledWith(
+        approvedQuestion
+      );
+      expect(questionsService.markVectorSyncStored).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        'teacher@example.com',
+        '507f1f77bcf86cd799439011'
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ vectorSync: { status: 'stored' } })
+      );
+    });
+
+    it('should mark vector sync as failed when approval indexing fails', async () => {
+      const approvedQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.APPROVED,
+      };
+      questionsService.reviewQuestion.mockResolvedValue(
+        approvedQuestion as any
+      );
+      questionIndexingService.indexStoredQuestion.mockRejectedValue(
+        new Error('OpenSearch unavailable')
+      );
+      questionsService.markVectorSyncFailed.mockResolvedValue({
+        ...approvedQuestion,
+        vectorSync: { status: 'failed' },
+      } as any);
+
+      const result = await controller.reviewQuestion(
+        '507f1f77bcf86cd799439011',
+        { status: QuestionStatus.APPROVED },
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(questionsService.markVectorSyncPrepared).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionsService.markVectorSyncFailed).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        'OpenSearch unavailable'
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ vectorSync: { status: 'failed' } })
+      );
+    });
+
+    it('should not index a rejected question', async () => {
+      const rejectedQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.REJECTED,
+      };
+      questionsService.reviewQuestion.mockResolvedValue(
+        rejectedQuestion as any
+      );
+
+      const result = await controller.reviewQuestion(
+        '507f1f77bcf86cd799439011',
+        { status: QuestionStatus.REJECTED, reviewNotes: 'Needs work' },
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(
+        questionIndexingService.indexStoredQuestion
+      ).not.toHaveBeenCalled();
+      expect(questionsService.markVectorSyncPrepared).not.toHaveBeenCalled();
+      expect(result).toEqual(rejectedQuestion);
+    });
+
+    it('should retry indexing an approved question on demand', async () => {
+      const approvedQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.APPROVED,
+      };
+      questionsService.findOne.mockResolvedValue(approvedQuestion as any);
+      questionsService.markVectorSyncStored.mockResolvedValue({
+        ...approvedQuestion,
+        vectorSync: { status: 'stored' },
+      } as any);
+
+      const result = await controller.retryIndexQuestion(
+        '507f1f77bcf86cd799439011',
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(questionsService.findOne).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionsService.markVectorSyncPrepared).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionIndexingService.indexStoredQuestion).toHaveBeenCalledWith(
+        approvedQuestion
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ vectorSync: { status: 'stored' } })
+      );
+    });
+
+    it('should reject retry indexing for non-approved questions', async () => {
+      const pendingQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.PENDING,
+      };
+      questionsService.findOne.mockResolvedValue(pendingQuestion as any);
+
+      await expect(
+        controller.retryIndexQuestion('507f1f77bcf86cd799439011', {
+          user: { email: 'teacher@example.com' },
+        })
+      ).rejects.toThrow(BadRequestException);
+
+      expect(questionsService.markVectorSyncPrepared).not.toHaveBeenCalled();
+      expect(questionIndexingService.indexStoredQuestion).not.toHaveBeenCalled();
     });
   });
 });

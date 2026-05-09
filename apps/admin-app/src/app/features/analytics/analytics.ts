@@ -17,6 +17,7 @@ interface HeatmapRow {
 interface HeatmapCell {
   topic: string;
   approved: number;
+  indexed: number;
   pending: number;
   rejected: number;
   total: number;
@@ -26,10 +27,15 @@ interface HeatmapCell {
 interface DifficultyRow {
   grade: number;
   easy: number;
+  indexedEasy: number;
   medium: number;
+  indexedMedium: number;
   hard: number;
+  indexedHard: number;
   unknown: number;
+  indexedUnknown: number;
   total: number;
+  indexedTotal: number;
 }
 
 interface FormatRow {
@@ -144,6 +150,23 @@ export class AnalyticsComponent implements OnInit {
     return this.topicHealthRows.filter((t) => t.issues.length === 0).length;
   }
 
+  getIndexedCoveragePercent(): number {
+    if (!this.analytics || this.analytics.summary.totalApproved === 0) return 0;
+    return Math.round(
+      (this.analytics.summary.totalIndexed /
+        this.analytics.summary.totalApproved) *
+        100
+    );
+  }
+
+  getIndexedCoverageClass(indexed: number, approved: number): string {
+    if (approved === 0) return 'indexed-na';
+    const coverage = (indexed / approved) * 100;
+    if (coverage >= 90) return 'indexed-good';
+    if (coverage >= 50) return 'indexed-warning';
+    return 'indexed-critical';
+  }
+
   getAvgApprovalRate(): number {
     const rows = this.topicHealthRows.filter((t) => t.total > 0);
     if (rows.length === 0) return 0;
@@ -183,6 +206,14 @@ export class AnalyticsComponent implements OnInit {
     return 'depth-critical';
   }
 
+  getIndexedDepthClass(indexed: number, approved: number): string {
+    if (approved === 0) return 'indexed-na';
+    const coverage = (indexed / approved) * 100;
+    if (coverage >= 90) return 'indexed-good';
+    if (coverage >= 50) return 'indexed-warning';
+    return 'indexed-critical';
+  }
+
   private buildHeatmap(data: QuestionAnalytics): void {
     // Collect topics per grade and build unique topic set
     const topicSet = new Set<string>();
@@ -216,6 +247,7 @@ export class AnalyticsComponent implements OnInit {
           return {
             topic,
             approved: -1,
+            indexed: 0,
             pending: 0,
             rejected: 0,
             total: 0,
@@ -227,6 +259,7 @@ export class AnalyticsComponent implements OnInit {
         return {
           topic,
           approved,
+          indexed: entry?.indexed ?? 0,
           pending: entry?.pending ?? 0,
           rejected: entry?.rejected ?? 0,
           total: entry?.total ?? 0,
@@ -248,27 +281,59 @@ export class AnalyticsComponent implements OnInit {
   private buildDifficultyRows(data: QuestionAnalytics): void {
     const gradeMap = new Map<
       number,
-      { easy: number; medium: number; hard: number; unknown: number }
+      {
+        easy: number;
+        indexedEasy: number;
+        medium: number;
+        indexedMedium: number;
+        hard: number;
+        indexedHard: number;
+        unknown: number;
+        indexedUnknown: number;
+      }
     >();
 
     for (let g = 3; g <= 8; g++) {
-      gradeMap.set(g, { easy: 0, medium: 0, hard: 0, unknown: 0 });
+      gradeMap.set(g, {
+        easy: 0,
+        indexedEasy: 0,
+        medium: 0,
+        indexedMedium: 0,
+        hard: 0,
+        indexedHard: 0,
+        unknown: 0,
+        indexedUnknown: 0,
+      });
     }
 
     for (const entry of data.byDifficulty) {
       const row = gradeMap.get(entry.grade);
       if (!row) continue;
       const d = entry.difficulty?.toLowerCase();
-      if (d === 'easy') row.easy += entry.count;
-      else if (d === 'medium') row.medium += entry.count;
-      else if (d === 'hard') row.hard += entry.count;
-      else row.unknown += entry.count;
+      if (d === 'easy') {
+        row.easy += entry.count;
+        row.indexedEasy += entry.indexed;
+      } else if (d === 'medium') {
+        row.medium += entry.count;
+        row.indexedMedium += entry.indexed;
+      } else if (d === 'hard') {
+        row.hard += entry.count;
+        row.indexedHard += entry.indexed;
+      } else {
+        row.unknown += entry.count;
+        row.indexedUnknown += entry.indexed;
+      }
     }
 
     this.difficultyRows = [];
     for (const [grade, counts] of gradeMap) {
       const total = counts.easy + counts.medium + counts.hard + counts.unknown;
-      this.difficultyRows.push({ grade, ...counts, total });
+      const indexedTotal =
+        counts.indexedEasy +
+        counts.indexedMedium +
+        counts.indexedHard +
+        counts.indexedUnknown;
+      this.difficultyRows.push({ grade, ...counts, total, indexedTotal });
     }
   }
 

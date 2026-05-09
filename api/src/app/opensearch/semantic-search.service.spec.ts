@@ -106,15 +106,14 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                vector: mockEmbedding384,
-                k: 10,
-              }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              vector: mockEmbedding384,
+              k: 10,
             }),
           }),
-        })
+        }),
+        10
       );
       expect(results).toHaveLength(3);
       expect(results[0]).toMatchObject({
@@ -140,16 +139,15 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  term: { 'metadata.grade': '3' },
-                }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.grade': 3 },
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
 
@@ -168,16 +166,15 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  term: { 'metadata.topic': 'addition' },
-                }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.topic': 'addition' },
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
 
@@ -196,16 +193,15 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  term: { 'metadata.operation': 'addition' },
-                }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.operation': 'addition' },
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
 
@@ -228,22 +224,21 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  bool: expect.objectContaining({
-                    must: expect.arrayContaining([
-                      { term: { 'metadata.grade': '3' } },
-                      { term: { 'metadata.topic': 'addition' } },
-                      { term: { 'metadata.operation': 'addition' } },
-                    ]),
-                  }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must: expect.arrayContaining([
+                    { term: { 'metadata.grade': 3 } },
+                    { term: { 'metadata.topic': 'addition' } },
+                    { term: { 'metadata.operation': 'addition' } },
+                  ]),
                 }),
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
 
@@ -263,20 +258,19 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  bool: expect.objectContaining({
-                    must_not: expect.arrayContaining([
-                      { ids: { values: excludeIds } },
-                    ]),
-                  }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must_not: expect.arrayContaining([
+                    { ids: { values: excludeIds } },
+                  ]),
                 }),
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
 
@@ -295,14 +289,13 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                k: 5,
-              }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              k: 5,
             }),
           }),
-        })
+        }),
+        5
       );
     });
 
@@ -332,7 +325,7 @@ describe('SemanticSearchService', () => {
       );
     });
 
-    it('should handle search failure', async () => {
+    it('should return empty results when OpenSearch is unavailable', async () => {
       const questionText = 'What is 5 + 3?';
 
       jest
@@ -340,11 +333,9 @@ describe('SemanticSearchService', () => {
         .mockResolvedValue(mockEmbedding384);
       jest
         .spyOn(openSearchService, 'search')
-        .mockRejectedValue(new Error('OpenSearch connection failed'));
+        .mockRejectedValue(new Error('Connection Error'));
 
-      await expect(service.findSimilar(questionText)).rejects.toThrow(
-        'Failed to find similar questions: OpenSearch connection failed'
-      );
+      await expect(service.findSimilar(questionText)).resolves.toEqual([]);
     });
 
     it('should return results sorted by similarity score descending', async () => {
@@ -400,14 +391,13 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                vector: mockEmbedding384,
-              }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              vector: mockEmbedding384,
             }),
           }),
-        })
+        }),
+        10
       );
       expect(results).toHaveLength(3);
     });
@@ -422,16 +412,15 @@ describe('SemanticSearchService', () => {
       expect(openSearchService.search).toHaveBeenCalledWith(
         'math-questions',
         expect.objectContaining({
-          query: expect.objectContaining({
-            knn: expect.objectContaining({
-              embedding: expect.objectContaining({
-                filter: expect.objectContaining({
-                  term: { 'metadata.grade': '3' },
-                }),
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.grade': 3 },
               }),
             }),
           }),
-        })
+        }),
+        10
       );
     });
   });

@@ -36,12 +36,26 @@ export enum QuestionFormat {
 }
 
 /**
+ * Synchronization lifecycle for publishing a stored question to the vector index.
+ */
+export enum VectorSyncStatus {
+  /** Question has not yet been prepared or stored in OpenSearch */
+  PENDING = 'pending',
+  /** A prepared index payload exists and is ready to be stored */
+  PREPARED = 'prepared',
+  /** Question has been successfully stored in OpenSearch */
+  STORED = 'stored',
+  /** The last sync attempt failed and needs attention */
+  FAILED = 'failed',
+}
+
+/**
  * Embedded metadata sub-document capturing AI generation context.
  * Stored alongside each question to support auditing and analytics.
  */
 @Schema({ _id: false })
 export class QuestionMetadata {
-  /** LLM model identifier used for generation (e.g. 'llama3.1:latest') */
+  /** LLM model identifier used for generation (e.g. 'falcon3:latest') */
   @Prop({ type: String })
   generatedBy: string;
 
@@ -98,6 +112,48 @@ export class RefinementEntry {
   /** When the refinement occurred */
   @Prop({ type: Date, default: Date.now })
   refinedAt: Date;
+}
+
+/**
+ * Tracks the vector index sync lifecycle for a stored question.
+ */
+@Schema({ _id: false })
+export class VectorSyncMetadata {
+  /** Current lifecycle status for vector index synchronization */
+  @Prop({
+    type: String,
+    enum: Object.values(VectorSyncStatus),
+    default: VectorSyncStatus.PENDING,
+  })
+  status: VectorSyncStatus;
+
+  /** Timestamp when an index payload was prepared */
+  @Prop({ type: Date })
+  preparedAt?: Date;
+
+  /** Timestamp when the question was successfully stored in OpenSearch */
+  @Prop({ type: Date })
+  storedAt?: Date;
+
+  /** Identifier of the reviewer who last stored the question in OpenSearch */
+  @Prop({ type: String })
+  storedBy?: string;
+
+  /** OpenSearch document identifier used for the stored vector record */
+  @Prop({ type: String })
+  documentId?: string;
+
+  /** Last sync error message, if any */
+  @Prop({ type: String })
+  syncError?: string;
+
+  /** Content hash used to detect stale vector payloads after edits */
+  @Prop({ type: String })
+  contentHash?: string;
+
+  /** Embedding model version used for the stored vector payload */
+  @Prop({ type: String })
+  embeddingModelVersion?: string;
 }
 
 /** Mongoose hydrated document type for the Question schema */
@@ -216,6 +272,13 @@ export class Question {
   /** History of LLM refinement steps applied to this question */
   @Prop({ type: [RefinementEntry], default: [] })
   refinementHistory: RefinementEntry[];
+
+  /** Vector index synchronization metadata for OpenSearch storage */
+  @Prop({
+    type: VectorSyncMetadata,
+    default: () => ({ status: VectorSyncStatus.PENDING }),
+  })
+  vectorSync: VectorSyncMetadata;
 }
 
 export const QuestionSchema = SchemaFactory.createForClass(Question);
@@ -235,3 +298,5 @@ QuestionSchema.index({ topic: 1 });
 QuestionSchema.index({ status: 1 });
 QuestionSchema.index({ format: 1 });
 QuestionSchema.index({ 'metadata.difficulty': 1 });
+QuestionSchema.index({ 'vectorSync.status': 1 });
+QuestionSchema.index({ 'vectorSync.documentId': 1 }, { sparse: true });

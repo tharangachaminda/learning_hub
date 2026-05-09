@@ -43,7 +43,7 @@ import {
 @Injectable()
 export class OllamaService {
   private readonly ollamaUrl: string;
-  private readonly defaultModel = 'llama3.1:latest';
+  private readonly defaultModel = 'falcon3:latest';
   private readonly curriculumPromptEngine: CurriculumPromptEngine;
 
   /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */

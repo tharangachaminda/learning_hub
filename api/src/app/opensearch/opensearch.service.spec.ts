@@ -15,7 +15,7 @@ describe('OpenSearchService', () => {
           useValue: {
             get: jest.fn((key: string, defaultValue?: string) => {
               if (key === 'OPENSEARCH_HOST') {
-                return 'http://localhost:9200';
+                return undefined;
               }
               return defaultValue;
             }),
@@ -33,9 +33,9 @@ describe('OpenSearchService', () => {
   });
 
   describe('getClient', () => {
-    it('should return OpenSearch client after initialization', async () => {
-      // Mock initialization
-      await service.onModuleInit();
+    it('should return OpenSearch client after initialization', () => {
+      (service as any).client = { cluster: { health: jest.fn() } };
+
       const client = service.getClient();
       expect(client).toBeDefined();
     });
@@ -103,6 +103,48 @@ describe('OpenSearchService', () => {
       const health = await service.checkHealth();
       expect(health.status).toBe('unhealthy');
       expect(health.error).toBe('Connection refused');
+    });
+  });
+
+  describe('host resolution', () => {
+    it('should default to local fallback hosts when OPENSEARCH_HOST is not set', () => {
+      expect((service as any).getCandidateHosts()).toEqual([
+        'http://localhost:9200',
+        'http://localhost:9201',
+      ]);
+    });
+
+    it('should respect explicit OPENSEARCH_HOST values', () => {
+      const explicitConfig = {
+        get: jest.fn((key: string, defaultValue?: string) => {
+          if (key === 'OPENSEARCH_HOST') {
+            return 'http://opensearch-dev:9200';
+          }
+          return defaultValue;
+        }),
+      } as unknown as ConfigService;
+
+      const explicitService = new OpenSearchService(explicitConfig);
+      expect((explicitService as any).getCandidateHosts()).toEqual([
+        'http://opensearch-dev:9200',
+      ]);
+    });
+
+    it('should support comma-separated OPENSEARCH_HOST fallback lists', () => {
+      const explicitConfig = {
+        get: jest.fn((key: string, defaultValue?: string) => {
+          if (key === 'OPENSEARCH_HOST') {
+            return 'http://localhost:9200, http://localhost:9201';
+          }
+          return defaultValue;
+        }),
+      } as unknown as ConfigService;
+
+      const explicitService = new OpenSearchService(explicitConfig);
+      expect((explicitService as any).getCandidateHosts()).toEqual([
+        'http://localhost:9200',
+        'http://localhost:9201',
+      ]);
     });
   });
 
@@ -301,7 +343,11 @@ describe('OpenSearchService', () => {
       (service as any).client = mockClient;
 
       const query = { match: { field: 'value' } };
-      const results = await service.search('test-index', query, 10);
+      const results = (await service.search('test-index', query, 10)) as {
+        hits: {
+          total: { value: number };
+        };
+      };
 
       expect(mockClient.search).toHaveBeenCalledWith({
         index: 'test-index',
