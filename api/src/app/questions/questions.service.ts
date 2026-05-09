@@ -836,13 +836,9 @@ export class QuestionsService {
     }
 
     question.vectorSync = {
-      ...(question.vectorSync || this.buildPendingVectorSync()),
+      ...this.buildPendingVectorSync(),
       status: VectorSyncStatus.PREPARED,
       preparedAt: new Date(),
-      storedAt: undefined,
-      storedBy: undefined,
-      documentId: undefined,
-      syncError: undefined,
     } as VectorSyncMetadata;
 
     await question.save();

@@ -198,8 +198,7 @@
                 } @else {
                 <span>{{ cell.approved }}</span>
                 <span
-                  class="cell-indexed"
-                  [class]="getIndexedCoverageClass(cell.indexed, cell.approved)"
+                  [class]="'cell-indexed ' + getIndexedCoverageClass(cell.indexed, cell.approved)"
                   >{{ cell.indexed }}</span
                 >
                 }

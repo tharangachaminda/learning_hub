@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Param,
@@ -331,6 +332,11 @@ export class QuestionsController {
     const question = await this.questionsService.findOne(id);
     if (!question) {
       throw new NotFoundException('Question not found');
+    }
+    if (question.status !== QuestionStatus.APPROVED) {
+      throw new BadRequestException(
+        'Only approved questions can be retried for OpenSearch indexing'
+      );
     }
 
     const reviewedBy = req.user?.email || req.user?.userId || 'unknown';

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
@@ -462,6 +463,23 @@ describe('QuestionsController', () => {
       expect(result).toEqual(
         expect.objectContaining({ vectorSync: { status: 'stored' } })
       );
+    });
+
+    it('should reject retry indexing for non-approved questions', async () => {
+      const pendingQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.PENDING,
+      };
+      questionsService.findOne.mockResolvedValue(pendingQuestion as any);
+
+      await expect(
+        controller.retryIndexQuestion('507f1f77bcf86cd799439011', {
+          user: { email: 'teacher@example.com' },
+        })
+      ).rejects.toThrow(BadRequestException);
+
+      expect(questionsService.markVectorSyncPrepared).not.toHaveBeenCalled();
+      expect(questionIndexingService.indexStoredQuestion).not.toHaveBeenCalled();
     });
   });
 });

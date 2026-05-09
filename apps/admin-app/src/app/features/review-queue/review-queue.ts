@@ -32,6 +32,7 @@ export class ReviewQueueComponent implements OnInit {
   filterTopic = '';
   filterStatus = 'pending';
   filterApprovedNotIndexed = false;
+  private lastExplicitStatus = 'pending';
 
   // Pagination
   currentPage = 1;
@@ -58,6 +59,7 @@ export class ReviewQueueComponent implements OnInit {
     const params = this.route.snapshot.queryParams;
     if (params['status'] !== undefined) {
       this.filterStatus = params['status'] || '';
+      this.lastExplicitStatus = this.filterStatus;
     }
     if (params['grade']) {
       this.filterGrade = +params['grade'];
@@ -123,6 +125,8 @@ export class ReviewQueueComponent implements OnInit {
   onFilterChange(): void {
     if (this.filterApprovedNotIndexed) {
       this.filterStatus = 'approved';
+    } else {
+      this.lastExplicitStatus = this.filterStatus;
     }
     this.currentPage = 1;
     this.loadQuestions();
@@ -141,7 +145,10 @@ export class ReviewQueueComponent implements OnInit {
 
   onApprovedNotIndexedChange(): void {
     if (this.filterApprovedNotIndexed) {
+      this.lastExplicitStatus = this.filterStatus;
       this.filterStatus = 'approved';
+    } else {
+      this.filterStatus = this.lastExplicitStatus;
     }
     this.onFilterChange();
   }

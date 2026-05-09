@@ -491,7 +491,13 @@ describe('QuestionsService', () => {
       const question = {
         ...mockQuestion,
         vectorSync: {
-          status: VectorSyncStatus.PENDING,
+          status: VectorSyncStatus.STORED,
+          storedAt: new Date('2026-05-08'),
+          storedBy: 'admin@example.com',
+          documentId: 'doc-1',
+          syncError: 'boom',
+          contentHash: 'hash-1',
+          embeddingModelVersion: 'nomic-embed-text:v1',
         },
         save: jest.fn().mockResolvedValue(undefined),
       };
@@ -507,6 +513,12 @@ describe('QuestionsService', () => {
         expect.objectContaining({ status: VectorSyncStatus.PREPARED })
       );
       expect(result.vectorSync.preparedAt).toBeInstanceOf(Date);
+      expect(result.vectorSync.storedAt).toBeUndefined();
+      expect(result.vectorSync.storedBy).toBeUndefined();
+      expect(result.vectorSync.documentId).toBeUndefined();
+      expect(result.vectorSync.syncError).toBeUndefined();
+      expect(result.vectorSync.contentHash).toBeUndefined();
+      expect(result.vectorSync.embeddingModelVersion).toBeUndefined();
       expect(question.save).toHaveBeenCalled();
     });
 
