@@ -12,9 +12,8 @@
       @for (item of visibleNavItems; track item.route) {
       <a
         [routerLink]="item.route"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: item.route !== '/review' }"
         class="nav-item"
+        [class.active]="isNavItemActive(item)"
         (click)="closeSidebar()"
       >
         <fa-icon [icon]="item.icon" class="nav-icon"></fa-icon>
@@ -57,7 +56,6 @@
         </button>
 
         <div>
-          <p class="topbar-kicker">Admin Console</p>
           <h2>{{ currentTitle }}</h2>
           <p class="topbar-description">{{ currentDescription }}</p>
         </div>

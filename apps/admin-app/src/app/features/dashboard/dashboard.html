@@ -1,22 +1,3 @@
-<ng-template #headerActions>
-  @if (stats && !isLoading) {
-  <div class="hero-summary">
-    <div class="hero-stat">
-      <span class="hero-stat-label">Pending</span>
-      <strong>{{ stats.pending }}</strong>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-label">Approved</span>
-      <strong>{{ stats.approved }}</strong>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-label">Coverage Ready</span>
-      <strong>{{ adequateCoverage }}/{{ totalCombos }}</strong>
-    </div>
-  </div>
-  }
-</ng-template>
-
 <div class="dashboard-page admin-page">
   <section class="dashboard-main">
     @if (isLoading) {

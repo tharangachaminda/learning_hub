@@ -1,12 +1,4 @@
-import {
-  AfterViewInit,
-  Component,
-  OnDestroy,
-  OnInit,
-  TemplateRef,
-  ViewChild,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -26,7 +18,6 @@ import {
   QuestionAnalytics,
   CoverageGap,
 } from '../../services/auth.service';
-import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -35,10 +26,7 @@ import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('headerActions')
-  protected headerActionsTemplate?: TemplateRef<unknown>;
-
+export class DashboardComponent implements OnInit {
   stats: QuestionStats | null = null;
   analytics: QuestionAnalytics | null = null;
   isLoading = true;
@@ -61,21 +49,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   topGaps: CoverageGap[] = [];
 
   private readonly authService = inject(AuthService);
-  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
     this.isAdmin = this.authService.isAdmin();
 
     this.loadStats();
     this.loadAnalytics();
-  }
-
-  ngAfterViewInit(): void {
-    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
-  }
-
-  ngOnDestroy(): void {
-    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   loadStats(): void {

@@ -155,7 +155,7 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  padding: 1.4rem 1.6rem;
+  padding: 0.95rem 1.35rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(246, 248, 252, 0.9);
   backdrop-filter: blur(16px);
@@ -163,25 +163,25 @@
 
 .topbar-title-row {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
   flex: 1 1 320px;
   min-width: 0;
 
   h2 {
     margin: 0;
-    font-size: 1.4rem;
-    line-height: 1.1;
+    font-size: 1.15rem;
+    line-height: 1.15;
     letter-spacing: -0.03em;
     color: #0f172a;
   }
 }
 
 .topbar-description {
-  margin: 0.3rem 0 0;
+  margin: 0.12rem 0 0;
   color: #475569;
-  font-size: 0.94rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.35;
 }
 
 .topbar-actions {
@@ -233,13 +233,13 @@
 
 .menu-toggle {
   display: none;
-  width: 2.9rem;
-  height: 2.9rem;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .admin-content {
   min-width: 0;
-  padding: 1.5rem;
+  padding: 1.35rem 1.5rem 1.5rem;
 }
 
 @media (max-width: 1080px) {

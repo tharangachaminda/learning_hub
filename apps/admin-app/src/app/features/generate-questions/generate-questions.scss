@@ -11,7 +11,20 @@
   .count-group { min-width: 96px; }
   .form-action { align-self: end; display: grid; }
 }
-.generate-btn { width: 100%; white-space: nowrap; min-height: 3.2rem; }
+.generate-btn {
+  width: 100%;
+  white-space: nowrap;
+  min-height: 3.2rem;
+  color: #fff;
+
+  &:disabled {
+    background: #e2e8f0;
+    color: #64748b;
+    border-color: #cbd5e1;
+    box-shadow: none;
+    opacity: 1;
+  }
+}
 .btn-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
 .results-section { padding: 1.4rem; display: grid; gap: 1rem; }
 .results-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;

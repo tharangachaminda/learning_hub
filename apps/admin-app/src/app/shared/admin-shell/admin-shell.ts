@@ -133,6 +133,19 @@ export class AdminShellComponent {
     this.sidebarOpen = false;
   }
 
+  protected isNavItemActive(item: AdminNavItem): boolean {
+    const url = this.router.url.split('?')[0];
+
+    if (item.route === '/review') {
+      return (
+        url === '/review' ||
+        (/^\/review\/[^/]+$/.test(url) && url !== '/review/export')
+      );
+    }
+
+    return url === item.route;
+  }
+
   protected logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

@@ -1,19 +1,10 @@
-import {
-  AfterViewInit,
-  Component,
-  OnDestroy,
-  OnInit,
-  TemplateRef,
-  ViewChild,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowRight,
-  faRobot,
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -23,7 +14,6 @@ import {
   BatchGenerateResponse,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
-import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-generate-questions',
@@ -38,12 +28,7 @@ import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header
   templateUrl: './generate-questions.html',
   styleUrl: './generate-questions.scss',
 })
-export class GenerateQuestionsComponent
-  implements OnInit, AfterViewInit, OnDestroy
-{
-  @ViewChild('headerActions')
-  protected headerActionsTemplate?: TemplateRef<unknown>;
-
+export class GenerateQuestionsComponent implements OnInit {
   grades: GradeInfo[] = [];
   selectedGrade: number | null = null;
   availableTopics: GradeTopic[] = [];
@@ -54,13 +39,15 @@ export class GenerateQuestionsComponent
   isGenerating = false;
   error: string | null = null;
   result: BatchGenerateResponse | null = null;
-  protected readonly sparklesIcon = faRobot;
   protected readonly generateIcon = faWandMagicSparkles;
   protected readonly arrowIcon = faArrowRight;
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly adminHeader = inject(AdminHeaderActionsService);
+
+  get canGenerate(): boolean {
+    return Boolean(this.selectedGrade && this.selectedTopic);
+  }
 
   ngOnInit(): void {
     this.authService.getCurriculum().subscribe({
@@ -75,14 +62,6 @@ export class GenerateQuestionsComponent
     });
   }
 
-  ngAfterViewInit(): void {
-    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
-  }
-
-  ngOnDestroy(): void {
-    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
-  }
-
   onGradeChange(): void {
     const grade = this.grades.find((g) => g.grade === this.selectedGrade);
     this.availableTopics = grade?.topics ?? [];
@@ -91,7 +70,12 @@ export class GenerateQuestionsComponent
   }
 
   generate(): void {
-    if (!this.selectedGrade || !this.selectedTopic) return;
+    if (!this.canGenerate) return;
+
+    const grade = this.selectedGrade;
+    const topic = this.selectedTopic;
+
+    if (grade === null || !topic) return;
 
     this.isGenerating = true;
     this.error = null;
@@ -99,8 +83,8 @@ export class GenerateQuestionsComponent
 
     this.authService
       .batchGenerate({
-        grade: this.selectedGrade,
-        topic: this.selectedTopic,
+        grade,
+        topic,
         count: this.count,
         difficulty: this.selectedDifficulty,
       })
