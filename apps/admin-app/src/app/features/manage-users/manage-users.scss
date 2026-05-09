@@ -4,9 +4,7 @@
 .stats-bar { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .mini-stat {
   background: #fff; border-radius: 8px; padding: .75rem 1.25rem; min-width: 100px;
-  text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-left: 3px solid #9ca3af;
-  &.active { border-left-color: #10b981; } &.disabled { border-left-color: #ef4444; }
-  &.admins { border-left-color: #8b5cf6; } &.teachers { border-left-color: #3b82f6; }
+  text-align: center; box-shadow: var(--admin-shadow);
 }
 .mini-stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: #1e3a5f; }
 .mini-stat-label { display: block; font-size: .75rem; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }

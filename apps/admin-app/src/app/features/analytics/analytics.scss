@@ -464,7 +464,6 @@
 // ── Coverage Gaps ────────────────────────────────────────────
 
 .gaps-section {
-  border-left: 4px solid #f59e0b;
 }
 
 .gaps-grid {
@@ -538,7 +537,6 @@
 // ── Health Criteria Section ──────────────────────────────────
 
 .criteria-section {
-  border-left: 4px solid #7c3aed;
 }
 
 .criteria-grid {
@@ -596,7 +594,7 @@
 
   &:hover {
     border-color: #1e3a5f;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--admin-shadow);
     transform: translateY(-1px);
   }
 
