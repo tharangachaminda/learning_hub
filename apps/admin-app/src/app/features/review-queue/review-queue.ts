@@ -31,6 +31,7 @@ export class ReviewQueueComponent implements OnInit {
   filterGrade: number | null = null;
   filterTopic = '';
   filterStatus = 'pending';
+  filterApprovedNotIndexed = false;
 
   // Pagination
   currentPage = 1;
@@ -64,6 +65,9 @@ export class ReviewQueueComponent implements OnInit {
     if (params['topic']) {
       this.filterTopic = params['topic'];
     }
+    if (params['approvedNotIndexed'] !== undefined) {
+      this.filterApprovedNotIndexed = params['approvedNotIndexed'] === 'true';
+    }
 
     this.authService.getCurriculum().subscribe({
       next: (data) => (this.grades = data.grades),
@@ -83,13 +87,16 @@ export class ReviewQueueComponent implements OnInit {
     this.selectedIds.clear();
     this.selectAll = false;
 
-    const filters: Record<string, string | number> = {
+    const filters: Record<string, string | number | boolean> = {
       page: this.currentPage,
       limit: this.pageSize,
     };
     if (this.filterGrade) filters['grade'] = this.filterGrade;
     if (this.filterTopic) filters['topic'] = this.filterTopic;
     if (this.filterStatus) filters['status'] = this.filterStatus;
+    if (this.filterApprovedNotIndexed) {
+      filters['approvedNotIndexed'] = true;
+    }
 
     this.authService.getQuestions(filters).subscribe({
       next: (result) => {
@@ -114,6 +121,9 @@ export class ReviewQueueComponent implements OnInit {
   }
 
   onFilterChange(): void {
+    if (this.filterApprovedNotIndexed) {
+      this.filterStatus = 'approved';
+    }
     this.currentPage = 1;
     this.loadQuestions();
   }
@@ -127,6 +137,47 @@ export class ReviewQueueComponent implements OnInit {
     if (!this.filterGrade) return [];
     const grade = this.grades.find((g) => g.grade === this.filterGrade);
     return grade?.topics ?? [];
+  }
+
+  onApprovedNotIndexedChange(): void {
+    if (this.filterApprovedNotIndexed) {
+      this.filterStatus = 'approved';
+    }
+    this.onFilterChange();
+  }
+
+  getIndexStateClass(question: QuestionItem): string {
+    const status = question.vectorSync?.status;
+    if (status === 'stored') return 'index-stored';
+    if (status === 'failed') return 'index-failed';
+    if (status === 'prepared') return 'index-prepared';
+    return 'index-pending';
+  }
+
+  getIndexStateLabel(question: QuestionItem): string {
+    const status = question.vectorSync?.status;
+    if (status === 'stored') return 'Indexed';
+    if (status === 'failed') return 'Index failed';
+    if (status === 'prepared') return 'Indexing';
+    return 'Not indexed';
+  }
+
+  getIndexStateTitle(question: QuestionItem): string {
+    const status = question.vectorSync?.status;
+    if (status === 'stored') {
+      return question.vectorSync?.storedAt
+        ? `Indexed on ${new Date(
+            question.vectorSync.storedAt
+          ).toLocaleString()}`
+        : 'Indexed in OpenSearch';
+    }
+    if (status === 'failed') {
+      return question.vectorSync?.syncError || 'OpenSearch indexing failed';
+    }
+    if (status === 'prepared') {
+      return 'Index payload prepared and waiting to be stored';
+    }
+    return 'Question is approved but not yet indexed';
   }
 
   get totalPages(): number {
@@ -179,6 +230,27 @@ export class ReviewQueueComponent implements OnInit {
         this.error = 'Failed to approve question.';
       },
     });
+  }
+
+  retryIndex(id: string): void {
+    this.actionInProgress = id;
+    this.authService.retryQuestionIndex(id).subscribe({
+      next: () => {
+        this.actionInProgress = null;
+        this.success = 'Question indexing retried.';
+        this.loadQuestions();
+      },
+      error: () => {
+        this.actionInProgress = null;
+        this.error = 'Failed to retry indexing.';
+      },
+    });
+  }
+
+  canRetryIndex(question: QuestionItem): boolean {
+    return (
+      question.status === 'approved' && question.vectorSync?.status !== 'stored'
+    );
   }
 
   rejectQuestion(id: string): void {

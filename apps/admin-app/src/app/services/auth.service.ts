@@ -110,6 +110,16 @@ export interface QuestionItem {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  vectorSync?: {
+    status: 'pending' | 'prepared' | 'stored' | 'failed';
+    preparedAt?: string;
+    storedAt?: string;
+    storedBy?: string;
+    documentId?: string;
+    syncError?: string;
+    contentHash?: string;
+    embeddingModelVersion?: string;
+  };
   refinementHistory?: RefinementEntry[];
   createdAt: string;
   updatedAt: string;
@@ -185,6 +195,7 @@ export interface GradeTopicCount {
   pending: number;
   rejected: number;
   total: number;
+  indexed: number;
 }
 
 export interface DifficultyCount {
@@ -192,6 +203,7 @@ export interface DifficultyCount {
   topic: string;
   difficulty: string;
   count: number;
+  indexed: number;
 }
 
 export interface FormatCount {
@@ -221,8 +233,10 @@ export interface TopicHealth {
   pending: number;
   rejected: number;
   total: number;
+  indexed: number;
   approvalRate: number;
   difficultyDepth: { easy: number; medium: number; hard: number };
+  indexedDifficultyDepth: { easy: number; medium: number; hard: number };
   formatBalance: { openEnded: number; multipleChoice: number };
   weeklyCreations: { easy: number; medium: number; hard: number };
   lastCreatedAt: string | null;
@@ -238,6 +252,7 @@ export interface QuestionAnalytics {
     totalPending: number;
     totalRejected: number;
     totalQuestions: number;
+    totalIndexed: number;
   };
   coverageGaps: CoverageGap[];
   recentCreations: RecentCreation[];
@@ -364,6 +379,7 @@ export class AuthService {
     grade?: number;
     topic?: string;
     status?: string;
+    approvedNotIndexed?: boolean;
     difficulty?: 'easy' | 'medium' | 'hard';
     page?: number;
     limit?: number;
@@ -372,6 +388,9 @@ export class AuthService {
     if (filters.grade) params = params.set('grade', filters.grade.toString());
     if (filters.topic) params = params.set('topic', filters.topic);
     if (filters.status) params = params.set('status', filters.status);
+    if (filters.approvedNotIndexed) {
+      params = params.set('approvedNotIndexed', 'true');
+    }
     if (filters.difficulty) {
       params = params.set('difficulty', filters.difficulty);
     }
@@ -401,6 +420,13 @@ export class AuthService {
     return this.http.patch<QuestionItem>(
       `${this.questionsApiUrl}/${id}/review`,
       { status, reviewNotes }
+    );
+  }
+
+  retryQuestionIndex(id: string): Observable<QuestionItem> {
+    return this.http.post<QuestionItem>(
+      `${this.questionsApiUrl}/${id}/retry-index`,
+      {}
     );
   }
 

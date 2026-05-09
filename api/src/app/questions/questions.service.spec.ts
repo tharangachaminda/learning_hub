@@ -84,6 +84,7 @@ describe('QuestionsService', () => {
           useValue: {
             new: jest.fn().mockResolvedValue(mockQuestion),
             constructor: jest.fn().mockResolvedValue(mockQuestion),
+            aggregate: jest.fn(),
             create: jest.fn(),
             insertMany: jest.fn(),
             find: jest.fn(),
@@ -240,6 +241,23 @@ describe('QuestionsService', () => {
       );
     });
 
+    it('should limit approvedNotIndexed to approved questions not stored in OpenSearch', async () => {
+      (model.find as jest.Mock).mockReturnValue(mockQueryChain);
+      mockQueryChain.exec.mockResolvedValue([mockQuestion]);
+      (model.countDocuments as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(1),
+      });
+
+      await service.findAll({ approvedNotIndexed: true });
+
+      expect(model.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: QuestionStatus.APPROVED,
+          'vectorSync.status': { $ne: 'stored' },
+        })
+      );
+    });
+
     it('should support combined filters', async () => {
       (model.find as jest.Mock).mockReturnValue(mockQueryChain);
       mockQueryChain.exec.mockResolvedValue([]);
@@ -289,6 +307,80 @@ describe('QuestionsService', () => {
       const result = await service.findAll({});
 
       expect(model.find).toHaveBeenCalledWith({});
+    });
+  });
+
+  describe('getAnalytics', () => {
+    it('should include indexed counts in analytics summaries and difficulty breakdowns', async () => {
+      (model.aggregate as jest.Mock)
+        .mockResolvedValueOnce([
+          {
+            _id: {
+              grade: 3,
+              topic: 'ADDITION',
+              status: QuestionStatus.APPROVED,
+            },
+            count: 4,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            _id: { grade: 3, topic: 'ADDITION', difficulty: 'easy' },
+            count: 2,
+          },
+          {
+            _id: { grade: 3, topic: 'ADDITION', difficulty: 'medium' },
+            count: 2,
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            _id: { grade: 3, topic: 'ADDITION' },
+            count: 1,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            _id: { grade: 3, topic: 'ADDITION', difficulty: 'easy' },
+            count: 1,
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            _id: { grade: 3, topic: 'ADDITION' },
+            lastCreated: new Date('2026-05-09'),
+          },
+        ]);
+
+      const result = await service.getAnalytics(10, 3);
+      const additionEntry = result.gradeTopicMatrix.find(
+        (entry) => entry.grade === 3 && entry.topic === 'ADDITION'
+      );
+      const additionHealth = result.topicHealth.find(
+        (entry) => entry.grade === 3 && entry.topic === 'ADDITION'
+      );
+      const easyDifficulty = result.byDifficulty.find(
+        (entry) =>
+          entry.grade === 3 &&
+          entry.topic === 'ADDITION' &&
+          entry.difficulty === 'easy'
+      );
+
+      expect(additionEntry).toEqual(
+        expect.objectContaining({ approved: 4, indexed: 1 })
+      );
+      expect(result.summary.totalIndexed).toBe(1);
+      expect(easyDifficulty).toEqual(
+        expect.objectContaining({ count: 2, indexed: 1 })
+      );
+      expect(additionHealth).toEqual(
+        expect.objectContaining({
+          indexed: 1,
+          indexedDifficultyDepth: expect.objectContaining({ easy: 1 }),
+        })
+      );
     });
   });
 

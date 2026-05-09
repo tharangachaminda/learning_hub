@@ -141,6 +141,16 @@ describe('QuestionsController', () => {
       );
     });
 
+    it('should pass approvedNotIndexed filter to service', async () => {
+      await controller.findAll({ approvedNotIndexed: true });
+
+      expect(questionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ approvedNotIndexed: true }),
+        1,
+        20
+      );
+    });
+
     it('should pass format filter to service', async () => {
       await controller.findAll({ format: QuestionFormat.OPEN_ENDED });
 
@@ -422,6 +432,36 @@ describe('QuestionsController', () => {
       ).not.toHaveBeenCalled();
       expect(questionsService.markVectorSyncPrepared).not.toHaveBeenCalled();
       expect(result).toEqual(rejectedQuestion);
+    });
+
+    it('should retry indexing an approved question on demand', async () => {
+      const approvedQuestion = {
+        ...mockQuestion,
+        status: QuestionStatus.APPROVED,
+      };
+      questionsService.findOne.mockResolvedValue(approvedQuestion as any);
+      questionsService.markVectorSyncStored.mockResolvedValue({
+        ...approvedQuestion,
+        vectorSync: { status: 'stored' },
+      } as any);
+
+      const result = await controller.retryIndexQuestion(
+        '507f1f77bcf86cd799439011',
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(questionsService.findOne).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionsService.markVectorSyncPrepared).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011'
+      );
+      expect(questionIndexingService.indexStoredQuestion).toHaveBeenCalledWith(
+        approvedQuestion
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ vectorSync: { status: 'stored' } })
+      );
     });
   });
 });

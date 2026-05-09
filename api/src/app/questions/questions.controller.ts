@@ -321,6 +321,22 @@ export class QuestionsController {
     return { succeeded, failed, total: body.questionIds.length };
   }
 
+  @Post(':id/retry-index')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async retryIndexQuestion(
+    @Param('id') id: string,
+    @Request() req: { user?: { email?: string; userId?: string } }
+  ) {
+    const question = await this.questionsService.findOne(id);
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
+    return this.syncApprovedQuestion(question, reviewedBy);
+  }
+
   // ── LLM Refinement ────────────────────────────────────────────
 
   /**

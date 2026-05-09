@@ -22,6 +22,7 @@ export interface GradeTopicCount {
   pending: number;
   rejected: number;
   total: number;
+  indexed: number;
 }
 
 export interface DifficultyCount {
@@ -29,6 +30,7 @@ export interface DifficultyCount {
   topic: string;
   difficulty: string;
   count: number;
+  indexed: number;
 }
 
 export interface FormatCount {
@@ -58,8 +60,10 @@ export interface TopicHealth {
   pending: number;
   rejected: number;
   total: number;
+  indexed: number;
   approvalRate: number;
   difficultyDepth: { easy: number; medium: number; hard: number };
+  indexedDifficultyDepth: { easy: number; medium: number; hard: number };
   formatBalance: { openEnded: number; multipleChoice: number };
   weeklyCreations: { easy: number; medium: number; hard: number };
   lastCreatedAt: Date | null;
@@ -75,6 +79,7 @@ export interface QuestionAnalytics {
     totalPending: number;
     totalRejected: number;
     totalQuestions: number;
+    totalIndexed: number;
   };
   coverageGaps: CoverageGap[];
   recentCreations: RecentCreation[];
@@ -114,6 +119,8 @@ export interface QuestionFilters {
   format?: QuestionFormat;
   /** Stored difficulty metadata */
   difficulty?: string;
+  /** Approved questions whose vectors are not stored yet */
+  approvedNotIndexed?: boolean;
 }
 
 /**
@@ -235,7 +242,12 @@ export class QuestionsService {
 
     if (filters.grade !== undefined) query.grade = filters.grade;
     if (filters.topic !== undefined) query.topic = filters.topic;
-    if (filters.status !== undefined) query.status = filters.status;
+    if (filters.approvedNotIndexed) {
+      query.status = QuestionStatus.APPROVED;
+      query['vectorSync.status'] = { $ne: VectorSyncStatus.STORED };
+    } else if (filters.status !== undefined) {
+      query.status = filters.status;
+    }
     if (filters.format !== undefined) query.format = filters.format;
     if (filters.difficulty !== undefined) {
       query['metadata.difficulty'] = filters.difficulty;
@@ -393,6 +405,46 @@ export class QuestionsService {
       },
     ]);
 
+    const indexedAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string };
+      count: number;
+    }>([
+      {
+        $match: {
+          ...gradeMatch,
+          'vectorSync.status': VectorSyncStatus.STORED,
+        },
+      },
+      {
+        $group: {
+          _id: { grade: '$grade', topic: '$topic' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const indexedDifficultyAgg = await this.questionModel.aggregate<{
+      _id: { grade: number; topic: string; difficulty: string };
+      count: number;
+    }>([
+      {
+        $match: {
+          ...gradeMatch,
+          'vectorSync.status': VectorSyncStatus.STORED,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            grade: '$grade',
+            topic: '$topic',
+            difficulty: '$metadata.difficulty',
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
     // Weekly creations: questions created in the last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -448,6 +500,7 @@ export class QuestionsService {
           pending: 0,
           rejected: 0,
           total: 0,
+          indexed: 0,
         });
       }
     }
@@ -465,6 +518,14 @@ export class QuestionsService {
       }
     }
 
+    for (const row of indexedAgg) {
+      const key = `${row._id.grade}:${row._id.topic}`;
+      const entry = matrixMap.get(key);
+      if (entry) {
+        entry.indexed = row.count;
+      }
+    }
+
     const gradeTopicMatrix = Array.from(matrixMap.values());
 
     // Build summary
@@ -473,12 +534,14 @@ export class QuestionsService {
       totalPending: 0,
       totalRejected: 0,
       totalQuestions: 0,
+      totalIndexed: 0,
     };
     for (const entry of gradeTopicMatrix) {
       summary.totalApproved += entry.approved;
       summary.totalPending += entry.pending;
       summary.totalRejected += entry.rejected;
       summary.totalQuestions += entry.total;
+      summary.totalIndexed += entry.indexed;
     }
 
     // Build coverage gaps
@@ -487,12 +550,37 @@ export class QuestionsService {
       .sort((a, b) => a.approved - b.approved);
 
     // Build difficulty and format arrays
-    const byDifficulty: DifficultyCount[] = difficultyAgg.map((row) => ({
-      grade: row._id.grade,
-      topic: row._id.topic,
-      difficulty: row._id.difficulty || 'unknown',
-      count: row.count,
-    }));
+    const difficultyMap = new Map<string, DifficultyCount>();
+    for (const row of difficultyAgg) {
+      const difficulty = row._id.difficulty || 'unknown';
+      const key = `${row._id.grade}:${row._id.topic}:${difficulty}`;
+      difficultyMap.set(key, {
+        grade: row._id.grade,
+        topic: row._id.topic,
+        difficulty,
+        count: row.count,
+        indexed: 0,
+      });
+    }
+
+    for (const row of indexedDifficultyAgg) {
+      const difficulty = row._id.difficulty || 'unknown';
+      const key = `${row._id.grade}:${row._id.topic}:${difficulty}`;
+      const existing = difficultyMap.get(key);
+      if (existing) {
+        existing.indexed = row.count;
+      } else {
+        difficultyMap.set(key, {
+          grade: row._id.grade,
+          topic: row._id.topic,
+          difficulty,
+          count: 0,
+          indexed: row.count,
+        });
+      }
+    }
+
+    const byDifficulty: DifficultyCount[] = Array.from(difficultyMap.values());
 
     const byFormat: FormatCount[] = formatAgg.map((row) => ({
       grade: row._id.grade,
@@ -515,12 +603,22 @@ export class QuestionsService {
 
       // Difficulty depth (approved only)
       const depth = { easy: 0, medium: 0, hard: 0 };
+      const indexedDepth = { easy: 0, medium: 0, hard: 0 };
       for (const d of difficultyAgg) {
         if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
           const lvl = (d._id.difficulty || '').toLowerCase();
           if (lvl === 'easy') depth.easy = d.count;
           else if (lvl === 'medium') depth.medium = d.count;
           else if (lvl === 'hard') depth.hard = d.count;
+        }
+      }
+
+      for (const d of indexedDifficultyAgg) {
+        if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
+          const lvl = (d._id.difficulty || '').toLowerCase();
+          if (lvl === 'easy') indexedDepth.easy = d.count;
+          else if (lvl === 'medium') indexedDepth.medium = d.count;
+          else if (lvl === 'hard') indexedDepth.hard = d.count;
         }
       }
 
@@ -602,8 +700,10 @@ export class QuestionsService {
         pending: entry.pending,
         rejected: entry.rejected,
         total: entry.total,
+        indexed: entry.indexed,
         approvalRate: Math.round(approvalRate),
         difficultyDepth: depth,
+        indexedDifficultyDepth: indexedDepth,
         formatBalance: formats,
         weeklyCreations: weekly,
         lastCreatedAt: lastEntry?.lastCreated || null,

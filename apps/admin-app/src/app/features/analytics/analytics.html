@@ -70,6 +70,17 @@
         </div>
         <div class="summary-label">Healthy Topics</div>
       </div>
+      <div class="summary-card">
+        <div
+          class="summary-value indexed"
+          [class]="'summary-value indexed ' + getIndexedCoverageClass(analytics.summary.totalIndexed, analytics.summary.totalApproved)"
+        >
+          {{ analytics.summary.totalIndexed }}
+        </div>
+        <div class="summary-label">
+          Indexed ({{ getIndexedCoveragePercent() }}% of approved)
+        </div>
+      </div>
     </div>
 
     <!-- Health Criteria Legend -->
@@ -180,11 +191,18 @@
                 [class]="cell.colorClass"
                 [title]="cell.approved === -1
                   ? 'N/A for this grade'
-                  : 'Approved: ' + cell.approved + ' | Pending: ' + cell.pending + ' | Rejected: ' + cell.rejected + ' | Total: ' + cell.total"
+                  : 'Approved: ' + cell.approved + ' | Indexed: ' + cell.indexed + ' | Pending: ' + cell.pending + ' | Rejected: ' + cell.rejected + ' | Total: ' + cell.total"
               >
                 @if (cell.approved === -1) {
                 <span class="na-text">&mdash;</span>
-                } @else { {{ cell.approved }} }
+                } @else {
+                <span>{{ cell.approved }}</span>
+                <span
+                  class="cell-indexed"
+                  [class]="getIndexedCoverageClass(cell.indexed, cell.approved)"
+                  >{{ cell.indexed }}</span
+                >
+                }
               </td>
               }
             </tr>
@@ -232,6 +250,7 @@
               }
               <th>Topic</th>
               <th class="center">Approved</th>
+              <th class="center">Indexed</th>
               <th class="center">Approval %</th>
               <th class="center">Easy</th>
               <th class="center">Medium</th>
@@ -251,6 +270,13 @@
               <td class="center">{{ h.approved }}</td>
               <td class="center">
                 <span
+                  class="indexed-count"
+                  [class]="'indexed-count ' + getIndexedCoverageClass(h.indexed, h.approved)"
+                  >{{ h.indexed }}/{{ h.approved }}</span
+                >
+              </td>
+              <td class="center">
+                <span
                   class="rate-badge"
                   [class.rate-good]="h.approvalRate >= 80"
                   [class.rate-warning]="h.approvalRate >= 50 && h.approvalRate < 80"
@@ -266,9 +292,11 @@
                     [class]="getDepthClass(h.difficultyDepth.easy)"
                     [style.width.%]="getDepthPercent(h.difficultyDepth.easy)"
                   ></div>
-                  <span class="depth-num"
-                    >{{ h.difficultyDepth.easy }}/{{ thresholds.minPerDifficulty
-                    }}</span
+                  <span class="depth-num">{{ h.difficultyDepth.easy }}</span>
+                  <span
+                    class="depth-sub"
+                    [class]="'depth-sub ' + getIndexedDepthClass(h.indexedDifficultyDepth.easy, h.difficultyDepth.easy)"
+                    >idx {{ h.indexedDifficultyDepth.easy }}</span
                   >
                 </div>
               </td>
@@ -279,9 +307,11 @@
                     [class]="getDepthClass(h.difficultyDepth.medium)"
                     [style.width.%]="getDepthPercent(h.difficultyDepth.medium)"
                   ></div>
-                  <span class="depth-num"
-                    >{{ h.difficultyDepth.medium }}/{{
-                    thresholds.minPerDifficulty }}</span
+                  <span class="depth-num">{{ h.difficultyDepth.medium }}</span>
+                  <span
+                    class="depth-sub"
+                    [class]="'depth-sub ' + getIndexedDepthClass(h.indexedDifficultyDepth.medium, h.difficultyDepth.medium)"
+                    >idx {{ h.indexedDifficultyDepth.medium }}</span
                   >
                 </div>
               </td>
@@ -292,9 +322,11 @@
                     [class]="getDepthClass(h.difficultyDepth.hard)"
                     [style.width.%]="getDepthPercent(h.difficultyDepth.hard)"
                   ></div>
-                  <span class="depth-num"
-                    >{{ h.difficultyDepth.hard }}/{{ thresholds.minPerDifficulty
-                    }}</span
+                  <span class="depth-num">{{ h.difficultyDepth.hard }}</span>
+                  <span
+                    class="depth-sub"
+                    [class]="'depth-sub ' + getIndexedDepthClass(h.indexedDifficultyDepth.hard, h.difficultyDepth.hard)"
+                    >idx {{ h.indexedDifficultyDepth.hard }}</span
                   >
                 </div>
               </td>
@@ -383,7 +415,25 @@
             <span class="no-data">No questions</span>
             }
           </div>
-          <span class="dist-total">{{ row.total }}</span>
+          <div class="dist-metrics">
+            <span class="dist-total">{{ row.total }} approved</span>
+            <span
+              class="dist-indexed"
+              [class]="'dist-indexed ' + getIndexedCoverageClass(row.indexedTotal, row.total)"
+              >{{ row.indexedTotal }} indexed</span
+            >
+          </div>
+        </div>
+        <div class="dist-index-breakdown">
+          <span [class]="getIndexedDepthClass(row.indexedEasy, row.easy)"
+            >Easy idx {{ row.indexedEasy }}</span
+          >
+          <span [class]="getIndexedDepthClass(row.indexedMedium, row.medium)"
+            >Medium idx {{ row.indexedMedium }}</span
+          >
+          <span [class]="getIndexedDepthClass(row.indexedHard, row.hard)"
+            >Hard idx {{ row.indexedHard }}</span
+          >
         </div>
         }
       </div>
