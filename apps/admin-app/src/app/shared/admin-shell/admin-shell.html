@@ -8,7 +8,13 @@
       </div>
     </div>
 
-    <nav class="sidebar-nav" aria-label="Admin navigation">
+    <nav
+      #sidebarNav
+      class="sidebar-nav"
+      aria-label="Admin navigation"
+      (mousemove)="handleSidebarNavPointerMove($event)"
+      (mouseleave)="stopSidebarAutoScroll()"
+    >
       @for (item of visibleNavItems; track item.route) {
       <a
         [routerLink]="item.route"

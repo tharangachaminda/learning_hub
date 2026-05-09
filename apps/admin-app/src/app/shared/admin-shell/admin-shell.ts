@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import {
   Router,
   RouterModule,
@@ -41,10 +47,16 @@ interface AdminNavItem {
   styleUrl: './admin-shell.scss',
 })
 export class AdminShellComponent {
+  @ViewChild('sidebarNav')
+  private sidebarNav?: ElementRef<HTMLElement>;
+
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
   protected readonly adminHeader = inject(AdminHeaderActionsService);
+  private autoScrollFrame: number | null = null;
+  private autoScrollVelocity = 0;
+  private readonly autoScrollTriggerSize = 72;
 
   protected readonly menuIcon = faBars;
   protected readonly chevronIcon = faChevronRight;
@@ -147,8 +159,53 @@ export class AdminShellComponent {
   }
 
   protected logout(): void {
+    this.stopSidebarAutoScroll();
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  protected handleSidebarNavPointerMove(event: MouseEvent): void {
+    const container = this.sidebarNav?.nativeElement;
+    if (!container) {
+      return;
+    }
+
+    const bounds = container.getBoundingClientRect();
+    const distanceFromTop = event.clientY - bounds.top;
+    const distanceFromBottom = bounds.bottom - event.clientY;
+
+    if (distanceFromTop <= this.autoScrollTriggerSize) {
+      this.setSidebarAutoScroll(
+        -this.getAutoScrollVelocity(
+          this.autoScrollTriggerSize - distanceFromTop
+        )
+      );
+      return;
+    }
+
+    if (distanceFromBottom <= this.autoScrollTriggerSize) {
+      this.setSidebarAutoScroll(
+        this.getAutoScrollVelocity(
+          this.autoScrollTriggerSize - distanceFromBottom
+        )
+      );
+      return;
+    }
+
+    this.stopSidebarAutoScroll();
+  }
+
+  protected stopSidebarAutoScroll(): void {
+    this.autoScrollVelocity = 0;
+
+    if (this.autoScrollFrame !== null) {
+      cancelAnimationFrame(this.autoScrollFrame);
+      this.autoScrollFrame = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopSidebarAutoScroll();
   }
 
   private getActiveRoute(route: ActivatedRoute): ActivatedRoute {
@@ -157,5 +214,50 @@ export class AdminShellComponent {
       current = current.firstChild;
     }
     return current;
+  }
+
+  private setSidebarAutoScroll(velocity: number): void {
+    this.autoScrollVelocity = velocity;
+
+    if (velocity === 0) {
+      this.stopSidebarAutoScroll();
+      return;
+    }
+
+    if (this.autoScrollFrame === null) {
+      this.autoScrollFrame = requestAnimationFrame(() =>
+        this.stepSidebarAutoScroll()
+      );
+    }
+  }
+
+  private stepSidebarAutoScroll(): void {
+    const container = this.sidebarNav?.nativeElement;
+
+    if (!container || this.autoScrollVelocity === 0) {
+      this.stopSidebarAutoScroll();
+      return;
+    }
+
+    const previousScrollTop = container.scrollTop;
+    container.scrollTop += this.autoScrollVelocity;
+
+    if (container.scrollTop === previousScrollTop) {
+      this.stopSidebarAutoScroll();
+      return;
+    }
+
+    this.autoScrollFrame = requestAnimationFrame(() =>
+      this.stepSidebarAutoScroll()
+    );
+  }
+
+  private getAutoScrollVelocity(distanceIntoZone: number): number {
+    const progress = Math.min(
+      Math.max(distanceIntoZone / this.autoScrollTriggerSize, 0),
+      1
+    );
+
+    return Math.max(2, Math.ceil(progress * 12));
   }
 }
