@@ -15,7 +15,7 @@ import { QuestionFormat } from '../schemas/question.schema';
  * Nested metadata DTO for question creation requests.
  */
 export class CreateQuestionMetadataDto {
-  /** LLM model identifier (e.g. 'llama3.1:latest') */
+  /** LLM model identifier (e.g. 'falcon3:latest') */
   @IsOptional()
   @IsString()
   generatedBy?: string;

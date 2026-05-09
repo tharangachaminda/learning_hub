@@ -84,9 +84,9 @@ export class QuestionIndexingService {
         `Successfully indexed question: ${question.id || 'generated-id'}`
       );
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index question: ${question.question}`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index question: ${error.message}`);
     }
@@ -146,9 +146,9 @@ export class QuestionIndexingService {
         `Successfully indexed ${questions.length} questions in batch`
       );
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index ${questions.length} questions in batch`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index questions: ${error.message}`);
     }
@@ -195,11 +195,11 @@ export class QuestionIndexingService {
 
       this.logger.log(`Successfully indexed stored question: ${prepared.id}`);
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index stored question: ${
           question._id?.toString?.() ?? 'unknown'
         }`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index question: ${error.message}`);
     }
@@ -240,12 +240,42 @@ export class QuestionIndexingService {
         `Successfully indexed ${questions.length} stored questions in batch`
       );
     } catch (error) {
-      this.logger.error(
+      this.logIndexingFailure(
         `Failed to index ${questions.length} stored questions in batch`,
-        error.stack
+        error
       );
       throw new Error(`Failed to index questions: ${error.message}`);
     }
+  }
+
+  private logIndexingFailure(context: string, error: unknown): void {
+    if (this.isOpenSearchUnavailableError(error)) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`${context} (OpenSearch unavailable): ${message}`);
+      return;
+    }
+
+    if (error instanceof Error) {
+      this.logger.error(context, error.stack);
+      return;
+    }
+
+    this.logger.error(`${context}: ${String(error)}`);
+  }
+
+  private isOpenSearchUnavailableError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('connection error') ||
+      message.includes('connection failed') ||
+      message.includes('connect econnrefused') ||
+      message.includes('index_not_found_exception') ||
+      message.includes('no living connections')
+    );
   }
 
   prepareStoredQuestion(question: QuestionDocument): PreparedQuestionDocument {

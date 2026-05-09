@@ -13,14 +13,13 @@ import { Client } from '@opensearch-project/opensearch';
 @Injectable()
 export class OpenSearchService implements OnModuleInit {
   private readonly logger = new Logger(OpenSearchService.name);
-  private client: Client;
-  private readonly host: string;
+  private client!: Client;
+  private host: string;
+  private readonly configuredHost?: string;
 
   constructor(private configService: ConfigService) {
-    this.host = this.configService.get<string>(
-      'OPENSEARCH_HOST',
-      'http://localhost:9200'
-    );
+    this.configuredHost = this.configService.get<string>('OPENSEARCH_HOST');
+    this.host = this.getCandidateHosts()[0];
   }
 
   /**
@@ -29,30 +28,48 @@ export class OpenSearchService implements OnModuleInit {
    * Creates client connection and verifies cluster health.
    */
   async onModuleInit() {
-    try {
+    let lastError: Error | undefined;
+
+    for (const host of this.getCandidateHosts()) {
       this.client = new Client({
-        node: this.host,
+        node: host,
         ssl: {
           rejectUnauthorized: false, // Development only
         },
       });
 
-      // Verify connection
-      const health = await this.checkHealth();
+      const health = await this.probeHealth(this.client);
+      if (health.error) {
+        lastError = new Error(health.error);
+        continue;
+      }
+
+      this.host = host;
       if (health.status === 'healthy') {
         this.logger.log(`OpenSearch connected successfully to ${this.host}`);
       } else {
         this.logger.warn(
-          `OpenSearch connection established but cluster unhealthy: ${health.clusterStatus}`
+          `OpenSearch connection established but cluster unhealthy at ${this.host}: ${health.clusterStatus}`
         );
       }
-    } catch (error) {
-      this.logger.error(
-        `Failed to connect to OpenSearch at ${this.host}`,
-        error
-      );
-      throw error;
+
+      return;
     }
+
+    const error =
+      lastError ||
+      new Error(
+        `Unable to connect to any configured OpenSearch host: ${this.getCandidateHosts().join(
+          ', '
+        )}`
+      );
+    this.logger.error(
+      `Failed to connect to OpenSearch using hosts: ${this.getCandidateHosts().join(
+        ', '
+      )}`,
+      error
+    );
+    throw error;
   }
 
   /**
@@ -84,8 +101,20 @@ export class OpenSearchService implements OnModuleInit {
     numberOfNodes?: number;
     error?: string;
   }> {
+    return this.probeHealth(this.getClient(), true);
+  }
+
+  private async probeHealth(
+    client: Client,
+    logErrors = false
+  ): Promise<{
+    status: 'healthy' | 'unhealthy';
+    clusterStatus?: string;
+    numberOfNodes?: number;
+    error?: string;
+  }> {
     try {
-      const response = await this.client.cluster.health();
+      const response = await client.cluster.health();
 
       return {
         status: response.body.status === 'red' ? 'unhealthy' : 'healthy',
@@ -93,12 +122,26 @@ export class OpenSearchService implements OnModuleInit {
         numberOfNodes: response.body.number_of_nodes,
       };
     } catch (error) {
-      this.logger.error('OpenSearch health check failed', error);
+      if (logErrors) {
+        this.logger.error('OpenSearch health check failed', error);
+      }
+
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
+  }
+
+  private getCandidateHosts(): string[] {
+    if (this.configuredHost?.trim()) {
+      return this.configuredHost
+        .split(',')
+        .map((host) => host.trim())
+        .filter(Boolean);
+    }
+
+    return ['http://localhost:9200', 'http://localhost:9201'];
   }
 
   /**
@@ -132,7 +175,10 @@ export class OpenSearchService implements OnModuleInit {
    *   }
    * });
    */
-  async createIndex(indexName: string, mapping: any): Promise<void> {
+  async createIndex(
+    indexName: string,
+    mapping: Record<string, unknown>
+  ): Promise<void> {
     try {
       const exists = await this.indexExists(indexName);
       if (exists) {
@@ -188,7 +234,7 @@ export class OpenSearchService implements OnModuleInit {
   async indexDocument(
     indexName: string,
     id: string,
-    document: any
+    document: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.client.index({
@@ -213,7 +259,7 @@ export class OpenSearchService implements OnModuleInit {
    */
   async bulkIndex(
     indexName: string,
-    documents: Array<{ id: string; document: any }>
+    documents: Array<{ id: string; document: Record<string, unknown> }>
   ): Promise<void> {
     try {
       const body = documents.flatMap((doc) => [
@@ -246,7 +292,11 @@ export class OpenSearchService implements OnModuleInit {
    * @param size - Number of results to return
    * @returns Search results
    */
-  async search(indexName: string, query: any, size: number = 10): Promise<any> {
+  async search(
+    indexName: string,
+    query: Record<string, unknown>,
+    size = 10
+  ): Promise<Record<string, unknown>> {
     try {
       const response = await this.client.search({
         index: indexName,

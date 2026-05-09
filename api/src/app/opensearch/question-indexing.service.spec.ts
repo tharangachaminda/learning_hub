@@ -12,6 +12,7 @@ describe('QuestionIndexingService', () => {
   let service: QuestionIndexingService;
   let embeddingService: EmbeddingService;
   let vectorIndexService: VectorIndexService;
+  let warnSpy: jest.SpyInstance;
 
   const mockEmbedding768 = new Array(768).fill(0).map((_, i) => Math.random());
 
@@ -40,6 +41,9 @@ describe('QuestionIndexingService', () => {
     service = module.get<QuestionIndexingService>(QuestionIndexingService);
     embeddingService = module.get<EmbeddingService>(EmbeddingService);
     vectorIndexService = module.get<VectorIndexService>(VectorIndexService);
+    warnSpy = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation(() => undefined);
   });
 
   it('should be defined', () => {
@@ -363,6 +367,42 @@ describe('QuestionIndexingService', () => {
           }),
         }),
       ]);
+    });
+  });
+
+  describe('indexStoredQuestion', () => {
+    it('should warn and rethrow when OpenSearch is unavailable during approval indexing', async () => {
+      const storedQuestion = {
+        _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        questionText: 'What is $12 + 5$?',
+        explanation: 'Add the ones, then the tens.',
+        answer: 17,
+        grade: 3,
+        topic: 'ADDITION',
+        category: 'number-operations',
+        metadata: {
+          difficulty: 'medium',
+        },
+      } as any;
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding768);
+      jest
+        .spyOn(vectorIndexService, 'createIndexIfNotExists')
+        .mockResolvedValue();
+      jest
+        .spyOn(vectorIndexService, 'indexQuestion')
+        .mockRejectedValue(new Error('Connection Error'));
+
+      await expect(service.indexStoredQuestion(storedQuestion)).rejects.toThrow(
+        'Failed to index question: Connection Error'
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Failed to index stored question: 507f1f77bcf86cd799439011 (OpenSearch unavailable): Connection Error'
+        )
+      );
     });
   });
 });

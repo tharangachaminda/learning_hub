@@ -247,7 +247,7 @@ export class QuestionsController {
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       stepByStepSolution: q.stepByStepSolution || [],
       metadata: {
-        generatedBy: 'llama3.1:latest',
+        generatedBy: 'falcon3:latest',
         generationTime: Date.now() - startTime,
         difficulty: dto.difficulty ?? 'medium',
         country: 'NZ',
@@ -256,19 +256,6 @@ export class QuestionsController {
 
     // Batch persist — duplicates are silently skipped
     const stored = await this.questionsService.createMany(questionDtos);
-
-    // Index newly generated questions into OpenSearch for future RAG retrieval
-    if (stored.length > 0) {
-      try {
-        await this.questionIndexingService.indexStoredQuestions(stored);
-        this.logger.log(`Indexed ${stored.length} questions into OpenSearch`);
-      } catch (indexError) {
-        // Non-blocking: questions are stored in MongoDB even if indexing fails
-        this.logger.warn(
-          `OpenSearch indexing failed (questions still saved): ${indexError}`
-        );
-      }
-    }
 
     this.logger.log(
       `Batch complete: ${stored.length}/${
@@ -293,12 +280,14 @@ export class QuestionsController {
     @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
-    return this.questionsService.reviewQuestion(
+    const question = await this.questionsService.reviewQuestion(
       id,
       dto.status,
       reviewedBy,
       dto.reviewNotes
     );
+
+    return this.syncApprovedQuestion(question, reviewedBy);
   }
 
   /**
@@ -319,7 +308,7 @@ export class QuestionsController {
     const reviewedBy = req.user?.email || req.user?.userId || 'unknown';
     const results = await Promise.allSettled(
       body.questionIds.map((id) =>
-        this.questionsService.reviewQuestion(
+        this.reviewAndSyncQuestion(
           id,
           body.status,
           reviewedBy,
@@ -535,6 +524,49 @@ IMPORTANT LaTeX rules:
 - Narrative text stays plain, only numbers and math use $...$`;
 
     return prompt;
+  }
+
+  private async reviewAndSyncQuestion(
+    id: string,
+    status: QuestionStatus,
+    reviewedBy: string,
+    reviewNotes?: string
+  ) {
+    const question = await this.questionsService.reviewQuestion(
+      id,
+      status,
+      reviewedBy,
+      reviewNotes
+    );
+
+    return this.syncApprovedQuestion(question, reviewedBy);
+  }
+
+  private async syncApprovedQuestion(
+    question: QuestionDocument,
+    reviewedBy: string
+  ): Promise<QuestionDocument> {
+    if (question.status !== QuestionStatus.APPROVED) {
+      return question;
+    }
+
+    await this.questionsService.markVectorSyncPrepared(question.id);
+
+    try {
+      await this.questionIndexingService.indexStoredQuestion(question);
+      return await this.questionsService.markVectorSyncStored(
+        question.id,
+        reviewedBy,
+        question.id
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `OpenSearch indexing failed for approved question ${question.id}: ${message}`
+      );
+
+      return this.questionsService.markVectorSyncFailed(question.id, message);
+    }
   }
 
   private parseRefinementResponse(response: string): {

@@ -130,9 +130,32 @@ export class SemanticSearchService {
       // Transform results
       return this.transformSearchResults(searchResults);
     } catch (error) {
+      if (this.isOpenSearchUnavailableError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `OpenSearch unavailable for kNN search, continuing without RAG context: ${message}`
+        );
+        return [];
+      }
+
       this.logger.error('Failed to execute kNN search', error.stack);
       throw new Error(`Failed to find similar questions: ${error.message}`);
     }
+  }
+
+  private isOpenSearchUnavailableError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('connection error') ||
+      message.includes('connection failed') ||
+      message.includes('connect econnrefused') ||
+      message.includes('index_not_found_exception') ||
+      message.includes('no living connections')
+    );
   }
 
   /**

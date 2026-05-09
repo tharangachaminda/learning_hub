@@ -46,7 +46,7 @@ describe('OllamaService', () => {
       // Mock successful Ollama response
       mockAxios.get.mockResolvedValue({
         data: {
-          models: [{ name: 'llama3.1:latest' }, { name: 'qwen3:14b' }],
+          models: [{ name: 'falcon3:latest' }, { name: 'qwen3:14b' }],
         },
       });
 
@@ -54,7 +54,7 @@ describe('OllamaService', () => {
 
       expect(result).toEqual({
         status: 'healthy',
-        models: expect.arrayContaining(['llama3.1:latest']),
+        models: expect.arrayContaining(['falcon3:latest']),
         responseTime: expect.any(Number),
       });
     });
@@ -99,7 +99,7 @@ describe('OllamaService', () => {
           topic: 'addition',
           difficulty: 'medium',
           country: 'NZ',
-          generated_by: 'llama3.1:latest',
+          generated_by: 'falcon3:latest',
           generation_time: expect.any(Number),
           validation_score: expect.any(Number),
           latexValid: expect.any(Boolean),

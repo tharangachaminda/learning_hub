@@ -6,6 +6,8 @@ import {
   QuestionDocument,
   QuestionStatus,
   QuestionFormat,
+  VectorSyncMetadata,
+  VectorSyncStatus,
 } from './schemas/question.schema';
 import {
   LessonLearned,
@@ -142,7 +144,7 @@ export interface PaginatedQuestions {
  *   answer: 8,
  *   grade: 3,
  *   topic: 'ADDITION',
- *   metadata: { generatedBy: 'llama3.1:latest', generationTime: 1200, difficulty: 'medium', country: 'NZ' },
+ *   metadata: { generatedBy: 'falcon3:latest', generationTime: 1200, difficulty: 'medium', country: 'NZ' },
  * });
  * ```
  */
@@ -188,6 +190,7 @@ export class QuestionsService {
       const doc = await this.questionModel.create({
         ...dto,
         status: QuestionStatus.PENDING,
+        vectorSync: this.buildPendingVectorSync(),
       });
       return doc;
     } catch (error) {
@@ -292,6 +295,7 @@ export class QuestionsService {
     const documents = dtos.map((dto) => ({
       ...dto,
       status: QuestionStatus.PENDING,
+      vectorSync: this.buildPendingVectorSync(),
     }));
 
     try {
@@ -689,6 +693,12 @@ export class QuestionsService {
       question.reviewNotes = reviewNotes;
     }
 
+    if (status === QuestionStatus.REJECTED) {
+      this.resetVectorSync(question);
+    } else if (!question.vectorSync) {
+      question.vectorSync = this.buildPendingVectorSync();
+    }
+
     await question.save();
     this.logger.log(`Question ${id} ${status} by ${reviewedBy}`);
 
@@ -716,6 +726,74 @@ export class QuestionsService {
       }
     }
 
+    return question;
+  }
+
+  async markVectorSyncPrepared(id: string): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    question.vectorSync = {
+      ...(question.vectorSync || this.buildPendingVectorSync()),
+      status: VectorSyncStatus.PREPARED,
+      preparedAt: new Date(),
+      storedAt: undefined,
+      storedBy: undefined,
+      documentId: undefined,
+      syncError: undefined,
+    } as VectorSyncMetadata;
+
+    await question.save();
+    return question;
+  }
+
+  async markVectorSyncStored(
+    id: string,
+    storedBy: string,
+    documentId: string,
+    options?: { contentHash?: string; embeddingModelVersion?: string }
+  ): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    question.vectorSync = {
+      ...(question.vectorSync || this.buildPendingVectorSync()),
+      status: VectorSyncStatus.STORED,
+      preparedAt: question.vectorSync?.preparedAt || new Date(),
+      storedAt: new Date(),
+      storedBy,
+      documentId,
+      syncError: undefined,
+      contentHash: options?.contentHash,
+      embeddingModelVersion: options?.embeddingModelVersion,
+    } as VectorSyncMetadata;
+
+    await question.save();
+    return question;
+  }
+
+  async markVectorSyncFailed(
+    id: string,
+    syncError: string
+  ): Promise<QuestionDocument> {
+    const question = await this.questionModel.findById(id).exec();
+    if (!question) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    question.vectorSync = {
+      ...(question.vectorSync || this.buildPendingVectorSync()),
+      status: VectorSyncStatus.FAILED,
+      syncError,
+      storedAt: undefined,
+      storedBy: undefined,
+    } as VectorSyncMetadata;
+
+    await question.save();
     return question;
   }
 
@@ -768,6 +846,7 @@ export class QuestionsService {
 
     // Reset to pending so it can be re-reviewed after refinement
     question.status = QuestionStatus.PENDING;
+    this.resetVectorSync(question);
 
     await question.save();
     this.logger.log(`Question ${id} refined by ${refinedBy}`);
@@ -901,10 +980,28 @@ export class QuestionsService {
     question.status = QuestionStatus.PENDING;
     question.reviewedBy = undefined;
     question.reviewedAt = undefined;
+    this.resetVectorSync(question);
 
     await question.save();
     this.logger.log(`Question ${id} manually edited by ${editedBy}`);
     return question;
+  }
+
+  private buildPendingVectorSync() {
+    return {
+      status: VectorSyncStatus.PENDING,
+      preparedAt: undefined,
+      storedAt: undefined,
+      storedBy: undefined,
+      documentId: undefined,
+      syncError: undefined,
+      contentHash: undefined,
+      embeddingModelVersion: undefined,
+    };
+  }
+
+  private resetVectorSync(question: QuestionDocument): void {
+    question.vectorSync = this.buildPendingVectorSync() as VectorSyncMetadata;
   }
 
   /**

@@ -7,6 +7,7 @@ import {
   QuestionDocument,
   QuestionStatus,
   QuestionFormat,
+  VectorSyncStatus,
 } from './schemas/question.schema';
 import { LessonLearned } from './schemas/lesson-learned.schema';
 
@@ -27,7 +28,7 @@ function buildQuestionDto(
     options: [],
     stepByStepSolution: ['Start with 5', 'Add 3', 'Answer is 8'],
     metadata: {
-      generatedBy: 'llama3.1:latest',
+      generatedBy: 'falcon3:latest',
       generationTime: 1200,
       difficulty: 'medium',
       country: 'NZ',
@@ -39,6 +40,7 @@ function buildQuestionDto(
 describe('QuestionsService', () => {
   let service: QuestionsService;
   let model: Model<QuestionDocument>;
+  let lessonModel: Model<LessonLearned>;
 
   const mockQuestion = {
     _id: '507f1f77bcf86cd799439011',
@@ -53,10 +55,13 @@ describe('QuestionsService', () => {
     status: QuestionStatus.PENDING,
     stepByStepSolution: ['Start with 5', 'Add 3', 'Answer is 8'],
     metadata: {
-      generatedBy: 'llama3.1:latest',
+      generatedBy: 'falcon3:latest',
       generationTime: 1200,
       difficulty: 'medium',
       country: 'NZ',
+    },
+    vectorSync: {
+      status: VectorSyncStatus.PENDING,
     },
     createdAt: new Date('2026-03-20'),
     updatedAt: new Date('2026-03-20'),
@@ -105,6 +110,9 @@ describe('QuestionsService', () => {
 
     service = module.get<QuestionsService>(QuestionsService);
     model = module.get<Model<QuestionDocument>>(getModelToken(Question.name));
+    lessonModel = module.get<Model<LessonLearned>>(
+      getModelToken(LessonLearned.name)
+    );
   });
 
   it('should be defined', () => {
@@ -124,6 +132,9 @@ describe('QuestionsService', () => {
           grade: dto.grade,
           topic: dto.topic,
           status: QuestionStatus.PENDING,
+          vectorSync: expect.objectContaining({
+            status: VectorSyncStatus.PENDING,
+          }),
         })
       );
       expect(result).toBeDefined();
@@ -139,7 +150,7 @@ describe('QuestionsService', () => {
       expect(model.create).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            generatedBy: 'llama3.1:latest',
+            generatedBy: 'falcon3:latest',
             generationTime: 1200,
             difficulty: 'medium',
             country: 'NZ',
@@ -350,6 +361,9 @@ describe('QuestionsService', () => {
       const callArgs = (model.insertMany as jest.Mock).mock.calls[0][0];
       callArgs.forEach((item: any) => {
         expect(item.status).toBe(QuestionStatus.PENDING);
+        expect(item.vectorSync).toEqual(
+          expect.objectContaining({ status: VectorSyncStatus.PENDING })
+        );
       });
     });
 
@@ -377,6 +391,190 @@ describe('QuestionsService', () => {
         expect.objectContaining({ ordered: false })
       );
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('vector sync state transitions', () => {
+    it('should mark vectorSync as prepared', async () => {
+      const question = {
+        ...mockQuestion,
+        vectorSync: {
+          status: VectorSyncStatus.PENDING,
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      const result = await service.markVectorSyncPrepared(
+        '507f1f77bcf86cd799439011'
+      );
+
+      expect(result.vectorSync).toEqual(
+        expect.objectContaining({ status: VectorSyncStatus.PREPARED })
+      );
+      expect(result.vectorSync.preparedAt).toBeInstanceOf(Date);
+      expect(question.save).toHaveBeenCalled();
+    });
+
+    it('should mark vectorSync as stored', async () => {
+      const question = {
+        ...mockQuestion,
+        vectorSync: {
+          status: VectorSyncStatus.PREPARED,
+          preparedAt: new Date('2026-05-08'),
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      const result = await service.markVectorSyncStored(
+        '507f1f77bcf86cd799439011',
+        'teacher@example.com',
+        '507f1f77bcf86cd799439011'
+      );
+
+      expect(result.vectorSync).toEqual(
+        expect.objectContaining({
+          status: VectorSyncStatus.STORED,
+          storedBy: 'teacher@example.com',
+          documentId: '507f1f77bcf86cd799439011',
+        })
+      );
+      expect(result.vectorSync.storedAt).toBeInstanceOf(Date);
+      expect(question.save).toHaveBeenCalled();
+    });
+
+    it('should mark vectorSync as failed', async () => {
+      const question = {
+        ...mockQuestion,
+        vectorSync: {
+          status: VectorSyncStatus.PREPARED,
+          preparedAt: new Date('2026-05-08'),
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      const result = await service.markVectorSyncFailed(
+        '507f1f77bcf86cd799439011',
+        'OpenSearch unavailable'
+      );
+
+      expect(result.vectorSync).toEqual(
+        expect.objectContaining({
+          status: VectorSyncStatus.FAILED,
+          syncError: 'OpenSearch unavailable',
+        })
+      );
+      expect(question.save).toHaveBeenCalled();
+    });
+
+    it('should reset vectorSync to pending when a question is rejected', async () => {
+      const question = {
+        ...mockQuestion,
+        vectorSync: {
+          status: VectorSyncStatus.STORED,
+          documentId: 'doc-1',
+          storedAt: new Date('2026-05-08'),
+          storedBy: 'admin@example.com',
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+      (lessonModel.create as jest.Mock).mockResolvedValue({});
+
+      await service.reviewQuestion(
+        '507f1f77bcf86cd799439011',
+        QuestionStatus.REJECTED,
+        'reviewer@example.com',
+        'Needs correction'
+      );
+
+      expect(question.vectorSync).toEqual(
+        expect.objectContaining({ status: VectorSyncStatus.PENDING })
+      );
+      expect(question.vectorSync.documentId).toBeUndefined();
+      expect(question.save).toHaveBeenCalled();
+    });
+
+    it('should reset vectorSync to pending when applying a refinement', async () => {
+      const question = {
+        ...mockQuestion,
+        refinementHistory: [],
+        reviewedBy: 'reviewer@example.com',
+        reviewedAt: new Date('2026-05-08'),
+        vectorSync: {
+          status: VectorSyncStatus.STORED,
+          documentId: 'doc-1',
+          storedAt: new Date('2026-05-08'),
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      await service.applyRefinement(
+        '507f1f77bcf86cd799439011',
+        {
+          questionText: 'What is $9 + 8$?',
+          answer: 17,
+          explanation: 'Add nine and eight to get seventeen.',
+        },
+        'Improve clarity',
+        'editor@example.com'
+      );
+
+      expect(question.status).toBe(QuestionStatus.PENDING);
+      expect(question.vectorSync).toEqual(
+        expect.objectContaining({ status: VectorSyncStatus.PENDING })
+      );
+      expect(question.vectorSync.documentId).toBeUndefined();
+      expect(question.save).toHaveBeenCalled();
+    });
+
+    it('should reset vectorSync to pending when updating question content', async () => {
+      const question = {
+        ...mockQuestion,
+        refinementHistory: [],
+        reviewedBy: 'reviewer@example.com',
+        reviewedAt: new Date('2026-05-08'),
+        vectorSync: {
+          status: VectorSyncStatus.STORED,
+          documentId: 'doc-1',
+          storedAt: new Date('2026-05-08'),
+        },
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      await service.updateQuestionContent(
+        '507f1f77bcf86cd799439011',
+        {
+          questionText: 'What is $15 + 4$?',
+          explanation: 'Add fifteen and four.',
+        },
+        'editor@example.com'
+      );
+
+      expect(question.status).toBe(QuestionStatus.PENDING);
+      expect(question.vectorSync).toEqual(
+        expect.objectContaining({ status: VectorSyncStatus.PENDING })
+      );
+      expect(question.vectorSync.documentId).toBeUndefined();
+      expect(question.reviewedBy).toBeUndefined();
+      expect(question.reviewedAt).toBeUndefined();
+      expect(question.save).toHaveBeenCalled();
     });
   });
 });
