@@ -238,7 +238,6 @@ export class StudentDashboardComponent implements OnInit {
   onPracticeSubject(subject: SubjectProgress): void {
     this.router.navigate(['/practice/generate'], {
       queryParams: {
-        topic: subject.subject,
         subject: 'mathematics',
       },
     });

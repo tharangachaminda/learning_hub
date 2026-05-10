@@ -21,6 +21,7 @@ import {
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { Router } from '@angular/router';
 import { StudentDashboardComponent } from './student-dashboard.component';
 import { DashboardService } from '../../services/dashboard.service';
 import { AuthService } from '../../services/auth.service';
@@ -101,6 +102,7 @@ describe('StudentDashboardComponent', () => {
   let component: StudentDashboardComponent;
   let fixture: ComponentFixture<StudentDashboardComponent>;
   let httpMock: HttpTestingController;
+  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -117,6 +119,7 @@ describe('StudentDashboardComponent', () => {
     fixture = TestBed.createComponent(StudentDashboardComponent);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
   });
 
   afterEach(() => {
@@ -275,6 +278,39 @@ describe('StudentDashboardComponent', () => {
         `/api/students/${component.studentId}/dashboard`
       );
       req.flush(createMockDashboardData());
+    });
+  });
+
+  describe('practice navigation', () => {
+    it('should pass recommendation topic through to practice generation', () => {
+      const navigateSpy = jest
+        .spyOn(router, 'navigate')
+        .mockResolvedValue(true);
+      const recommendation = createMockDashboardData().recommendations[0];
+
+      component.onStartPractice(recommendation);
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/practice/generate'], {
+        queryParams: {
+          topic: recommendation.topic,
+          subject: recommendation.subject,
+        },
+      });
+    });
+
+    it('should open practice generation from subject cards without a fake topic', () => {
+      const navigateSpy = jest
+        .spyOn(router, 'navigate')
+        .mockResolvedValue(true);
+      const subject = createMockDashboardData().subjects[0];
+
+      component.onPracticeSubject(subject);
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/practice/generate'], {
+        queryParams: {
+          subject: 'mathematics',
+        },
+      });
     });
   });
 });

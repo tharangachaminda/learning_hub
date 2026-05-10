@@ -156,6 +156,45 @@ describe('GenerationControlsComponent', () => {
       ]);
     });
 
+    it('should resolve initialTopic from a backend curriculum label', () => {
+      fixture.componentRef.setInput('curriculumGrades', [
+        {
+          grade: 3,
+          topics: [
+            {
+              key: 'WHOLE_NUMBER_OPERATIONS',
+              label: 'Whole Number Operations',
+              legacyTopicKeys: ['ADDITION'],
+            },
+            { key: 'PATTERNS', label: 'Patterns' },
+          ],
+        },
+      ]);
+      fixture.componentRef.setInput('initialTopic', 'Whole Number Operations');
+      fixture.detectChanges();
+
+      expect(component.selectedTopic()).toBe('WHOLE_NUMBER_OPERATIONS');
+    });
+
+    it('should resolve initialTopic from a legacy backend topic key', () => {
+      fixture.componentRef.setInput('curriculumGrades', [
+        {
+          grade: 3,
+          topics: [
+            {
+              key: 'WHOLE_NUMBER_OPERATIONS',
+              label: 'Whole Number Operations',
+              legacyTopicKeys: ['ADDITION'],
+            },
+          ],
+        },
+      ]);
+      fixture.componentRef.setInput('initialTopic', 'ADDITION');
+      fixture.detectChanges();
+
+      expect(component.selectedTopic()).toBe('WHOLE_NUMBER_OPERATIONS');
+    });
+
     it('should refresh topic list when grade changes', () => {
       component.onGradeChange(4);
       fixture.detectChanges();

@@ -224,11 +224,50 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
    * to the first available topic.
    */
   private applyInitialTopicOrFirst(): void {
-    const topics = this.availableTopics();
-    if (this.initialTopic && topics.includes(this.initialTopic)) {
-      this.selectedTopic.set(this.initialTopic);
-    } else {
-      this.updateTopicToFirst();
+    const resolvedTopic = this.resolveInitialTopicKey(this.initialTopic);
+    if (resolvedTopic) {
+      this.selectedTopic.set(resolvedTopic);
+      return;
     }
+
+    this.updateTopicToFirst();
+  }
+
+  private resolveInitialTopicKey(topicValue: string): string | null {
+    if (!topicValue) {
+      return null;
+    }
+
+    const normalizedTopic = topicValue.trim().toLowerCase();
+    if (!normalizedTopic) {
+      return null;
+    }
+
+    for (const grade of this.curriculumGradesState()) {
+      for (const topic of grade.topics) {
+        if (topic.key.toLowerCase() === normalizedTopic) {
+          return topic.key;
+        }
+
+        if (topic.label.toLowerCase() === normalizedTopic) {
+          return topic.key;
+        }
+
+        if (
+          topic.legacyTopicKeys?.some(
+            (legacyTopicKey) => legacyTopicKey.toLowerCase() === normalizedTopic
+          )
+        ) {
+          return topic.key;
+        }
+      }
+    }
+
+    const topics = this.availableTopics();
+    const fallbackMatch = topics.find(
+      (topic) => topic.toLowerCase() === normalizedTopic
+    );
+
+    return fallbackMatch ?? null;
   }
 }
