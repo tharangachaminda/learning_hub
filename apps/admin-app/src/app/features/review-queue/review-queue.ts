@@ -175,6 +175,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
       this.lastExplicitStatus = this.filterStatus;
     }
     this.currentPage = 1;
+    this.updateFilterQueryParams();
     this.loadQuestions();
   }
 
@@ -253,7 +254,34 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filterApprovedNotIndexed = false;
     this.lastExplicitStatus = 'pending';
     this.currentPage = 1;
+    this.updateFilterQueryParams();
     this.loadQuestions();
+  }
+
+  private updateFilterQueryParams(): void {
+    const queryParams: Record<string, string | number | boolean> = {};
+
+    if (this.filterStatus && this.filterStatus !== 'pending') {
+      queryParams['status'] = this.filterStatus;
+    }
+
+    if (this.filterGrade !== null) {
+      queryParams['grade'] = this.filterGrade;
+    }
+
+    if (this.filterTopic) {
+      queryParams['topic'] = this.filterTopic;
+    }
+
+    if (this.filterApprovedNotIndexed) {
+      queryParams['approvedNotIndexed'] = true;
+    }
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      replaceUrl: true,
+    });
   }
 
   goToPage(page: number): void {

@@ -46,7 +46,7 @@ interface AdminNavItem {
   templateUrl: './admin-shell.html',
   styleUrl: './admin-shell.scss',
 })
-export class AdminShellComponent {
+export class AdminShellComponent implements OnDestroy {
   @ViewChild('sidebarNav')
   private sidebarNav?: ElementRef<HTMLElement>;
 
