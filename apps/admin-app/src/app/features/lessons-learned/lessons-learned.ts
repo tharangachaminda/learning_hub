@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
 import {
   AuthService,
   LessonLearned,
@@ -11,7 +10,7 @@ import {
 @Component({
   selector: 'app-lessons-learned',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './lessons-learned.html',
   styleUrl: './lessons-learned.scss',
 })
@@ -41,7 +40,6 @@ export class LessonsLearnedComponent implements OnInit {
   ];
 
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.authService.getCurriculum().subscribe({
@@ -117,10 +115,5 @@ export class LessonsLearnedComponent implements OnInit {
         this.actionInProgress = null;
       },
     });
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

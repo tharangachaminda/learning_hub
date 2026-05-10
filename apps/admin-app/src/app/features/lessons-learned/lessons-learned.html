@@ -1,85 +1,82 @@
-<div class="lessons-page">
-  <header class="page-header">
-    <div class="header-left">
-      <h1>Lessons Learned</h1>
-    </div>
-    <nav class="header-nav">
-      <a routerLink="/dashboard">Dashboard</a>
-      <a routerLink="/generate">Generate</a>
-      <a routerLink="/review">Review Queue</a>
-      <button class="btn-link" (click)="logout()">Sign Out</button>
-    </nav>
-  </header>
-
-  <p class="page-desc">
-    These lessons are automatically injected into LLM prompts during question
-    generation so the AI avoids repeating past mistakes.
-  </p>
-
-  <!-- Alerts -->
-  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
-  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
-
-  <!-- Filters -->
-  <div class="filter-bar">
-    <div class="filter-group">
-      <label for="gradeFilter">Grade</label>
-      <select
-        id="gradeFilter"
-        [(ngModel)]="filterGrade"
-        (ngModelChange)="onGradeFilterChange()"
-      >
-        <option [ngValue]="null">All Grades</option>
-        <option *ngFor="let g of grades" [ngValue]="g.grade">
-          Grade {{ g.grade }}
-        </option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label for="topicFilter">Topic</label>
-      <select
-        id="topicFilter"
-        [(ngModel)]="filterTopic"
-        (ngModelChange)="onFilterChange()"
-        [disabled]="!filterGrade"
-      >
-        <option value="">All Topics</option>
-        <option *ngFor="let t of filteredTopics" [value]="t.key">
-          {{ t.label }}
-        </option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label for="catFilter">Category</label>
-      <select
-        id="catFilter"
-        [(ngModel)]="filterCategory"
-        (ngModelChange)="onFilterChange()"
-      >
-        <option value="">All Categories</option>
-        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-      </select>
-    </div>
+<div class="lessons-page admin-page">
+  <div class="admin-alert admin-alert-success" *ngIf="success">
+    {{ success }}
   </div>
+  <div class="admin-alert admin-alert-error" *ngIf="error">{{ error }}</div>
 
-  <!-- Loading -->
-  <div class="loading-state" *ngIf="isLoading">
+  <section class="filter-panel admin-panel">
+    <div class="filter-panel-header">
+      <div>
+        <p class="admin-eyebrow">Filter Set</p>
+        <h2>Lesson Filters</h2>
+      </div>
+      <span class="results-pill"
+        >{{ lessons.length }} lesson{{ lessons.length !== 1 ? 's' : '' }}</span
+      >
+    </div>
+
+    <div class="admin-filter-grid">
+      <label class="admin-field-group">
+        <span>Grade</span>
+        <select
+          class="admin-select"
+          [(ngModel)]="filterGrade"
+          (ngModelChange)="onGradeFilterChange()"
+        >
+          <option [ngValue]="null">All Grades</option>
+          <option *ngFor="let g of grades" [ngValue]="g.grade">
+            Grade {{ g.grade }}
+          </option>
+        </select>
+      </label>
+      <label class="admin-field-group">
+        <span>Topic</span>
+        <select
+          class="admin-select"
+          [(ngModel)]="filterTopic"
+          (ngModelChange)="onFilterChange()"
+          [disabled]="!filterGrade"
+        >
+          <option value="">All Topics</option>
+          <option *ngFor="let t of filteredTopics" [value]="t.key">
+            {{ t.label }}
+          </option>
+        </select>
+      </label>
+      <label class="admin-field-group">
+        <span>Category</span>
+        <select
+          class="admin-select"
+          [(ngModel)]="filterCategory"
+          (ngModelChange)="onFilterChange()"
+        >
+          <option value="">All Categories</option>
+          <option *ngFor="let cat of categories" [value]="cat">
+            {{ cat }}
+          </option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div class="loading-state admin-panel" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Loading…</p>
   </div>
 
-  <!-- Empty -->
-  <div class="empty-state" *ngIf="!isLoading && lessons.length === 0">
+  <div
+    class="empty-state admin-panel"
+    *ngIf="!isLoading && lessons.length === 0"
+  >
     <p>
       No lessons learned recorded yet. They will appear here when you record
       mistakes during question review.
     </p>
   </div>
 
-  <!-- Lessons list -->
   <div class="lessons-list" *ngIf="!isLoading && lessons.length > 0">
     <div
-      class="lesson-card"
+      class="lesson-card admin-panel"
       *ngFor="let lesson of lessons"
       [class.inactive]="!lesson.isActive"
     >
@@ -109,7 +106,7 @@
             [disabled]="actionInProgress === lesson._id"
             title="Delete"
           >
-            🗑
+            Delete
           </button>
         </div>
       </div>

@@ -1,0 +1,80 @@
+<div class="admin-shell" [class.sidebar-open]="sidebarOpen">
+  <aside class="admin-sidebar" [class.open]="sidebarOpen">
+    <div class="sidebar-brand">
+      <div class="brand-mark">LH</div>
+      <div class="brand-copy">
+        <p class="brand-kicker">Admin Portal</p>
+        <h1>LearningHub Admin</h1>
+      </div>
+    </div>
+
+    <nav
+      #sidebarNav
+      class="sidebar-nav"
+      aria-label="Admin navigation"
+      (mousemove)="handleSidebarNavPointerMove($event)"
+      (mouseleave)="stopSidebarAutoScroll()"
+    >
+      @for (item of visibleNavItems; track item.route) {
+      <a
+        [routerLink]="item.route"
+        class="nav-item"
+        [class.active]="isNavItemActive(item)"
+        (click)="closeSidebar()"
+      >
+        <fa-icon [icon]="item.icon" class="nav-icon"></fa-icon>
+        <span class="nav-copy">
+          <span class="nav-label">{{ item.label }}</span>
+          <span class="nav-description">{{ item.description }}</span>
+        </span>
+        <fa-icon [icon]="chevronIcon" class="nav-chevron"></fa-icon>
+      </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user-card">
+        <strong class="sidebar-user-name"
+          >{{ currentUser?.name || 'Admin' }}</strong
+        >
+        <span class="sidebar-user-role"
+          >{{ currentUser?.role || 'staff' }}</span
+        >
+      </div>
+      <button type="button" class="logout-button" (click)="logout()">
+        <fa-icon [icon]="logoutIcon"></fa-icon>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <div class="topbar-title-row">
+        <button
+          type="button"
+          class="menu-toggle"
+          (click)="toggleSidebar()"
+          aria-label="Toggle navigation"
+        >
+          <fa-icon [icon]="menuIcon"></fa-icon>
+        </button>
+
+        <div>
+          <h2>{{ currentTitle }}</h2>
+          <p class="topbar-description">{{ currentDescription }}</p>
+        </div>
+      </div>
+
+      @if (adminHeader.headerActions(); as headerActionsTemplate) {
+      <div class="topbar-actions">
+        <ng-container *ngTemplateOutlet="headerActionsTemplate"></ng-container>
+      </div>
+      }
+    </header>
+
+    <main class="admin-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

@@ -2,7 +2,9 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  OnDestroy,
   OnInit,
+  TemplateRef,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -19,6 +21,7 @@ import {
   GradeInfo,
   QuestionItem,
 } from '../../services/auth.service';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
 
 type DifficultyFilter = '' | 'easy' | 'medium' | 'hard';
@@ -37,7 +40,12 @@ type PdfDocument = InstanceType<typeof import('jspdf').default>;
   templateUrl: './export-questions.html',
   styleUrl: './export-questions.scss',
 })
-export class ExportQuestionsComponent implements OnInit, AfterViewInit {
+export class ExportQuestionsComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   @ViewChild('questionExportSection')
   private questionExportSection?: ElementRef<HTMLElement>;
 
@@ -50,8 +58,6 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   isGeneratingPdf = false;
   error: string | null = null;
   success: string | null = null;
-  userName = '';
-  userRole = '';
 
   filterGrade: number | null = null;
   filterTopic = '';
@@ -70,14 +76,11 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
   private exportViewReady = false;
   private hasNormalizedQueryParams = false;
 
   ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Teacher';
-    this.userRole = user?.role ?? 'teacher';
-
     const params = this.route.snapshot.queryParams;
     this.filterGrade = this.parseGradeParam(params['grade']);
     if (params['topic']) {
@@ -101,7 +104,12 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
     this.exportViewReady = true;
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   get selectedQuestions(): QuestionItem[] {
@@ -122,6 +130,20 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
 
   get canGeneratePdf(): boolean {
     return this.selectedQuestions.length > 0 && !this.isGeneratingPdf;
+  }
+
+  get generatePdfButtonLabel(): string {
+    if (this.selectedQuestions.length === 0) {
+      return 'Select questions to enable PDF generation';
+    }
+
+    if (this.isGeneratingPdf) {
+      return 'Generating PDF...';
+    }
+
+    return `Generate PDF with ${
+      this.selectedQuestions.length
+    } selected question${this.selectedQuestions.length === 1 ? '' : 's'}`;
   }
 
   get pdfQuestionFontClass(): string {
@@ -337,11 +359,6 @@ export class ExportQuestionsComponent implements OnInit, AfterViewInit {
     return (difficulty || 'medium').replace(/\b\w/g, (char) =>
       char.toUpperCase()
     );
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 
   private syncLoadedQuestionsIntoSelection(): void {

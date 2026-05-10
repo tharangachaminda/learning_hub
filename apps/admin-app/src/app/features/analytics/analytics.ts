@@ -1,6 +1,24 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowTrendUp,
+  faCalendar,
+  faChartSimple,
+  faCheck,
+  faScaleBalanced,
+  faTableCellsLarge,
+  faTriangleExclamation,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
   QuestionAnalytics,
@@ -8,6 +26,7 @@ import {
   CoverageGap,
   TopicHealth,
 } from '../../services/auth.service';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 interface HeatmapRow {
   grade: number;
@@ -57,11 +76,14 @@ const HEALTH_THRESHOLDS = {
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FontAwesomeModule],
   templateUrl: './analytics.html',
   styleUrl: './analytics.scss',
 })
-export class AnalyticsComponent implements OnInit {
+export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   analytics: QuestionAnalytics | null = null;
   isLoading = true;
   error: string | null = null;
@@ -93,11 +115,27 @@ export class AnalyticsComponent implements OnInit {
 
   /** Health thresholds for display */
   readonly thresholds = HEALTH_THRESHOLDS;
+  protected readonly depthIcon = faChartSimple;
+  protected readonly approvalIcon = faCheck;
+  protected readonly weeklyIcon = faCalendar;
+  protected readonly balanceIcon = faScaleBalanced;
+  protected readonly freshnessIcon = faArrowTrendUp;
+  protected readonly heatmapIcon = faTableCellsLarge;
+  protected readonly gapIcon = faTriangleExclamation;
 
   private readonly authService = inject(AuthService);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
     this.loadAnalytics();
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   onGradeChange(grade: number | null): void {

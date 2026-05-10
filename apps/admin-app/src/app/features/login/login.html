@@ -45,7 +45,9 @@
             (click)="showPassword = !showPassword"
             [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
           >
-            {{ showPassword ? '🙈' : '👁' }}
+            <fa-icon
+              [icon]="showPassword ? hidePasswordIcon : showPasswordIcon"
+            ></fa-icon>
           </button>
         </div>
         @if (loginForm.get('password')?.hasError('required') &&

@@ -1,25 +1,15 @@
-<div class="export-page">
-  <header class="page-header">
-    <div class="header-copy">
-      <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
-      <div>
-        <h1>Worksheet PDF Export</h1>
-        <p>
-          Build a printable worksheet from approved questions and optionally add
-          a separate answer sheet.
-        </p>
-      </div>
-    </div>
+<ng-template #headerActions>
+  <button
+    type="button"
+    class="admin-btn admin-btn-primary"
+    (click)="generatePdf()"
+    [disabled]="!canGeneratePdf"
+  >
+    {{ generatePdfButtonLabel }}
+  </button>
+</ng-template>
 
-    <nav class="header-nav">
-      <a routerLink="/review" [queryParams]="{ status: 'approved' }"
-        >Review Queue</a
-      >
-      <a routerLink="/analytics">Analytics</a>
-      <button class="btn-link" (click)="logout()">Sign Out</button>
-    </nav>
-  </header>
-
+<div class="export-page admin-page">
   <div class="alert alert-success" *ngIf="success">{{ success }}</div>
   <div class="alert alert-error" *ngIf="error">{{ error }}</div>
 
@@ -80,9 +70,6 @@
         >
           Add current page
         </button>
-        <span class="selection-summary"
-          >{{ selectedQuestions.length }} question(s) selected</span
-        >
       </div>
 
       @if (isLoading) {
@@ -133,7 +120,12 @@
           }
 
           <div class="card-actions">
-            <button class="btn btn-primary" (click)="toggleQuestion(question)">
+            <button
+              class="admin-btn"
+              [class.admin-btn-primary]="!isSelected(question._id)"
+              [class.admin-btn-danger]="isSelected(question._id)"
+              (click)="toggleQuestion(question)"
+            >
               {{ isSelected(question._id) ? 'Remove' : 'Add to worksheet' }}
             </button>
           </div>
@@ -174,33 +166,22 @@
         }
       </div>
 
-      <div class="selected-count-banner">
-        <span class="selected-count-value">{{ selectedQuestions.length }}</span>
-        <span class="selected-count-label">question(s) selected</span>
-      </div>
-
       <label class="field-group">
         <span>Worksheet title</span>
         <input [(ngModel)]="exportTitle" type="text" maxlength="80" />
       </label>
 
-      <label class="toggle-row">
-        <input type="checkbox" [(ngModel)]="includeAnswerSheet" />
-        <span>Include answer sheet on a new page</span>
-      </label>
+      <div class="export-options-row">
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="includeAnswerSheet" />
+          <span>Include answer sheet</span>
+        </label>
 
-      <label class="toggle-row">
-        <input type="checkbox" [(ngModel)]="useLargePdfFont" />
-        <span>Use large question font size (kids friendly 16pt)</span>
-      </label>
-
-      <button
-        class="btn btn-generate"
-        (click)="generatePdf()"
-        [disabled]="!canGeneratePdf"
-      >
-        {{ isGeneratingPdf ? 'Generating PDF...' : 'Generate PDF' }}
-      </button>
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="useLargePdfFont" />
+          <span>Large fonts (16pt)</span>
+        </label>
+      </div>
 
       @if (selectedQuestions.length === 0) {
       <div class="empty-selection">

@@ -63,6 +63,8 @@ export interface StaffUser {
   };
   isActive: boolean;
   createdAt: string;
+  generatedQuestions: number;
+  approvedQuestions: number;
 }
 
 export interface StaffStats {

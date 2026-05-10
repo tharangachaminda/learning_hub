@@ -1,7 +1,29 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRotateRight,
+  faArrowsRotate,
+  faCheck,
+  faCircleExclamation,
+  faFilter,
+  faLayerGroup,
+  faMagnifyingGlass,
+  faWandMagicSparkles,
+  faPenToSquare,
+  faTrash,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
   QuestionItem,
@@ -9,23 +31,42 @@ import {
   QuestionStats,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-review-queue',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, KatexRenderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    KatexRenderComponent,
+    FontAwesomeModule,
+  ],
   templateUrl: './review-queue.html',
   styleUrl: './review-queue.scss',
 })
-export class ReviewQueueComponent implements OnInit {
+export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   questions: QuestionItem[] = [];
   stats: QuestionStats | null = null;
   grades: GradeInfo[] = [];
   isLoading = true;
   error: string | null = null;
   success: string | null = null;
-  userName = '';
-  userRole = '';
+  protected readonly filterIcon = faFilter;
+  protected readonly resultsIcon = faLayerGroup;
+  protected readonly searchIcon = faMagnifyingGlass;
+  protected readonly generateIcon = faWandMagicSparkles;
+  protected readonly approveIcon = faCheck;
+  protected readonly rejectIcon = faXmark;
+  protected readonly retryIcon = faArrowRotateRight;
+  protected readonly reopenIcon = faArrowsRotate;
+  protected readonly refineIcon = faPenToSquare;
+  protected readonly deleteIcon = faTrash;
+  protected readonly warningIcon = faCircleExclamation;
 
   // Filters
   filterGrade: number | null = null;
@@ -49,12 +90,9 @@ export class ReviewQueueComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Admin';
-    this.userRole = user?.role ?? '';
-
     // Read query params to initialize filters
     const params = this.route.snapshot.queryParams;
     if (params['status'] !== undefined) {
@@ -80,6 +118,14 @@ export class ReviewQueueComponent implements OnInit {
 
     this.loadQuestions();
     this.loadStats();
+  }
+
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
   }
 
   loadQuestions(): void {
@@ -129,6 +175,7 @@ export class ReviewQueueComponent implements OnInit {
       this.lastExplicitStatus = this.filterStatus;
     }
     this.currentPage = 1;
+    this.updateFilterQueryParams();
     this.loadQuestions();
   }
 
@@ -141,6 +188,15 @@ export class ReviewQueueComponent implements OnInit {
     if (!this.filterGrade) return [];
     const grade = this.grades.find((g) => g.grade === this.filterGrade);
     return grade?.topics ?? [];
+  }
+
+  get activeFilterCount(): number {
+    return [
+      this.filterStatus !== '' && this.filterStatus !== 'pending',
+      this.filterGrade !== null,
+      this.filterTopic !== '',
+      this.filterApprovedNotIndexed,
+    ].filter(Boolean).length;
   }
 
   onApprovedNotIndexedChange(): void {
@@ -189,6 +245,43 @@ export class ReviewQueueComponent implements OnInit {
 
   get totalPages(): number {
     return Math.ceil(this.totalItems / this.pageSize);
+  }
+
+  resetFilters(): void {
+    this.filterGrade = null;
+    this.filterTopic = '';
+    this.filterStatus = 'pending';
+    this.filterApprovedNotIndexed = false;
+    this.lastExplicitStatus = 'pending';
+    this.currentPage = 1;
+    this.updateFilterQueryParams();
+    this.loadQuestions();
+  }
+
+  private updateFilterQueryParams(): void {
+    const queryParams: Record<string, string | number | boolean> = {};
+
+    if (this.filterStatus && this.filterStatus !== 'pending') {
+      queryParams['status'] = this.filterStatus;
+    }
+
+    if (this.filterGrade !== null) {
+      queryParams['grade'] = this.filterGrade;
+    }
+
+    if (this.filterTopic) {
+      queryParams['topic'] = this.filterTopic;
+    }
+
+    if (this.filterApprovedNotIndexed) {
+      queryParams['approvedNotIndexed'] = true;
+    }
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      replaceUrl: true,
+    });
   }
 
   goToPage(page: number): void {
@@ -395,10 +488,5 @@ export class ReviewQueueComponent implements OnInit {
 
   getStatusClass(status: string): string {
     return `status-${status}`;
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

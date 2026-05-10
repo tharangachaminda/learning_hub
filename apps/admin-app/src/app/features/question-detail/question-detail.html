@@ -1,32 +1,21 @@
-<div class="question-detail-page">
-  <!-- Header -->
-  <header class="page-header">
-    <div class="header-left">
-      <button class="btn btn-back" (click)="backToQueue()">
-        ← Back to Queue
-      </button>
-      <h1>Question Detail</h1>
-    </div>
-    <nav class="header-nav">
-      <a routerLink="/dashboard">Dashboard</a>
-      <a routerLink="/review">Review Queue</a>
-      <button class="btn-link" (click)="logout()">Sign Out</button>
-    </nav>
-  </header>
+<ng-template #headerActions>
+  <button class="btn btn-back" (click)="backToQueue()">Back to Queue</button>
+</ng-template>
 
-  <!-- Alerts -->
-  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
-  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+<div class="question-detail-page admin-page">
+  <div class="admin-alert admin-alert-success" *ngIf="success">
+    {{ success }}
+  </div>
+  <div class="admin-alert admin-alert-error" *ngIf="error">{{ error }}</div>
 
-  <!-- Loading -->
-  <div class="loading-state" *ngIf="isLoading">
+  <div class="loading-state admin-panel" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Loading question…</p>
   </div>
 
   <div class="detail-content" *ngIf="!isLoading && question">
     <!-- Main question card -->
-    <div class="question-card" [class.editing]="isEditing">
+    <div class="question-card admin-panel" [class.editing]="isEditing">
       <div class="card-header">
         <div class="question-badges">
           <span class="badge grade-badge">Grade {{ question.grade }}</span>
@@ -219,7 +208,7 @@
 
     <!-- Refinement History -->
     <div
-      class="section-card"
+      class="section-card admin-panel"
       *ngIf="question.refinementHistory && question.refinementHistory.length > 0"
     >
       <h2>Refinement History</h2>
@@ -256,7 +245,7 @@
     </div>
 
     <!-- Review section -->
-    <div class="section-card">
+    <div class="section-card admin-panel">
       <h2>Review</h2>
       <div class="current-status-info" *ngIf="question.status !== 'pending'">
         <span class="badge" [ngClass]="getStatusClass(question.status)"
@@ -322,7 +311,7 @@
     </div>
 
     <!-- Refine with LLM section -->
-    <div class="section-card">
+    <div class="section-card admin-panel">
       <h2>Refine with AI</h2>
       <p class="section-desc">
         Send an instruction to the LLM to refine this question. You'll see a
@@ -436,7 +425,7 @@
     </div>
 
     <!-- Lesson Learned form -->
-    <div class="section-card lesson-card" *ngIf="showLessonForm">
+    <div class="section-card lesson-card admin-panel" *ngIf="showLessonForm">
       <h2>Record Lesson Learned</h2>
       <p class="section-desc">
         Record this mistake so the AI avoids it in future question generation.

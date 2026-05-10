@@ -1,76 +1,73 @@
-<div class="analytics-container">
-  <header class="analytics-header">
-    <div class="header-left">
-      <a routerLink="/dashboard" class="back-link">&larr; Dashboard</a>
-      <h1>Question Analytics</h1>
+<ng-template #headerActions>
+  <div class="grade-filter">
+    <span class="filter-label">Grade</span>
+    <div class="grade-filter-actions">
+      <button
+        class="filter-btn"
+        [class.active]="selectedGrade === null"
+        (click)="onGradeChange(null)"
+      >
+        All
+      </button>
+      @for (g of grades; track g) {
+      <button
+        class="filter-btn"
+        [class.active]="selectedGrade === g"
+        (click)="onGradeChange(g)"
+      >
+        {{ g }}
+      </button>
+      }
     </div>
-    <div class="header-right">
-      <div class="grade-filter">
-        <span class="filter-label">Grade:</span>
-        <button
-          class="filter-btn"
-          [class.active]="selectedGrade === null"
-          (click)="onGradeChange(null)"
-        >
-          All
-        </button>
-        @for (g of grades; track g) {
-        <button
-          class="filter-btn"
-          [class.active]="selectedGrade === g"
-          (click)="onGradeChange(g)"
-        >
-          {{ g }}
-        </button>
-        }
-      </div>
-    </div>
-  </header>
+  </div>
+</ng-template>
 
-  <main class="analytics-content">
+<div class="analytics-page admin-page">
+  <section class="analytics-content">
     @if (isLoading) {
-    <div class="loading">
+    <div class="loading admin-panel">
       <div class="loading-spinner"></div>
       <p>Loading analytics...</p>
     </div>
     } @if (error) {
-    <div class="error-card">
+    <div class="error-card admin-panel">
       <p>{{ error }}</p>
-      <button (click)="loadAnalytics()">Retry</button>
+      <button class="admin-btn admin-btn-primary" (click)="loadAnalytics()">
+        Retry
+      </button>
     </div>
     } @if (analytics && !isLoading) {
 
-    <!-- Summary Cards -->
     <div class="summary-grid">
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div class="summary-value approved">
           {{ analytics.summary.totalApproved }}
         </div>
         <div class="summary-label">Approved</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div class="summary-value pending">
           {{ analytics.summary.totalPending }}
         </div>
         <div class="summary-label">Pending Review</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div class="summary-value rejected">
           {{ analytics.summary.totalRejected }}
         </div>
         <div class="summary-label">Rejected</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div class="summary-value coverage">{{ getAvgApprovalRate() }}%</div>
         <div class="summary-label">Avg Approval Rate</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div class="summary-value healthy">
           {{ getHealthyTopicCount() }}/{{ topicHealthRows.length }}
         </div>
         <div class="summary-label">Healthy Topics</div>
       </div>
-      <div class="summary-card">
+      <div class="summary-card admin-panel">
         <div
           class="summary-value indexed"
           [class]="'summary-value indexed ' + getIndexedCoverageClass(analytics.summary.totalIndexed, analytics.summary.totalApproved)"
@@ -83,12 +80,11 @@
       </div>
     </div>
 
-    <!-- Health Criteria Legend -->
-    <section class="section criteria-section">
+    <section class="section criteria-section admin-panel">
       <h2>Health Criteria</h2>
       <div class="criteria-grid">
         <div class="criteria-item">
-          <span class="criteria-icon">📊</span>
+          <fa-icon [icon]="depthIcon" class="criteria-icon"></fa-icon>
           <div>
             <strong>Difficulty Depth</strong>
             <p>
@@ -98,7 +94,7 @@
           </div>
         </div>
         <div class="criteria-item">
-          <span class="criteria-icon">✅</span>
+          <fa-icon [icon]="approvalIcon" class="criteria-icon"></fa-icon>
           <div>
             <strong>Approval Rate</strong>
             <p>
@@ -108,7 +104,7 @@
           </div>
         </div>
         <div class="criteria-item">
-          <span class="criteria-icon">📅</span>
+          <fa-icon [icon]="weeklyIcon" class="criteria-icon"></fa-icon>
           <div>
             <strong>Weekly Generation</strong>
             <p>
@@ -118,7 +114,7 @@
           </div>
         </div>
         <div class="criteria-item">
-          <span class="criteria-icon">⚖️</span>
+          <fa-icon [icon]="balanceIcon" class="criteria-icon"></fa-icon>
           <div>
             <strong>Format Balance</strong>
             <p>
@@ -128,7 +124,7 @@
           </div>
         </div>
         <div class="criteria-item">
-          <span class="criteria-icon">🕐</span>
+          <fa-icon [icon]="freshnessIcon" class="criteria-icon"></fa-icon>
           <div>
             <strong>Freshness</strong>
             <p>
@@ -139,9 +135,8 @@
       </div>
     </section>
 
-    <!-- Grade Health Overview (when All Grades selected) -->
     @if (selectedGrade === null) {
-    <section class="section">
+    <section class="section admin-panel">
       <h2>Grade Health Overview</h2>
       <div class="grade-health-grid">
         @for (g of grades; track g) {
@@ -162,12 +157,14 @@
     </section>
     }
 
-    <!-- Heatmap -->
-    <section class="section">
-      <h2>Approved Questions Heatmap</h2>
+    <section class="section admin-panel">
+      <h2>
+        <fa-icon [icon]="heatmapIcon" class="section-icon"></fa-icon>
+        Approved Questions Heatmap
+      </h2>
       <p class="section-desc">
-        Each cell shows <strong>approved</strong> questions. Thresholds: 0 (red)
-        &lt; 50 (amber) &lt; 150 (green) &lt; 150+ (dark green).
+        Each cell shows <strong>approved</strong> questions, grouped by coverage
+        threshold.
       </p>
       <div class="heatmap-wrapper">
         <table class="heatmap-table">
@@ -228,8 +225,7 @@
       </div>
     </section>
 
-    <!-- Topic Health Detail -->
-    <section class="section">
+    <section class="section admin-panel">
       <h2>
         Topic Health Detail @if (selectedGrade !== null) {
         <span class="grade-badge">Grade {{ selectedGrade }}</span>
@@ -380,8 +376,7 @@
       </div>
     </section>
 
-    <!-- Difficulty Distribution -->
-    <section class="section">
+    <section class="section admin-panel">
       <h2>Difficulty Distribution by Grade</h2>
       <div class="distribution-table">
         @for (row of difficultyRows; track row.grade) {
@@ -449,8 +444,7 @@
       </div>
     </section>
 
-    <!-- Format Distribution -->
-    <section class="section">
+    <section class="section admin-panel">
       <h2>Format Distribution by Grade</h2>
       <div class="distribution-table">
         @for (row of formatRows; track row.grade) {
@@ -491,10 +485,12 @@
       </div>
     </section>
 
-    <!-- Coverage Gaps -->
     @if (coverageGaps.length > 0) {
-    <section class="section gaps-section">
-      <h2>Coverage Gaps</h2>
+    <section class="section gaps-section admin-panel">
+      <h2>
+        <fa-icon [icon]="gapIcon" class="section-icon"></fa-icon>
+        Coverage Gaps
+      </h2>
       <p class="section-desc">
         Grade/topic combinations with fewer than 10 approved questions, sorted
         by severity.
@@ -520,5 +516,5 @@
       </div>
     </section>
     } }
-  </main>
+  </section>
 </div>

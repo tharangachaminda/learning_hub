@@ -1,4 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -13,6 +21,7 @@ import {
   StaffUser,
   StaffStats,
 } from '../../services/auth.service';
+import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
   selector: 'app-manage-users',
@@ -21,7 +30,10 @@ import {
   templateUrl: './manage-users.html',
   styleUrl: './manage-users.scss',
 })
-export class ManageUsersComponent implements OnInit {
+export class ManageUsersComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('headerActions')
+  protected headerActionsTemplate?: TemplateRef<unknown>;
+
   users: StaffUser[] = [];
   stats: StaffStats | null = null;
   isLoading = true;
@@ -35,12 +47,15 @@ export class ManageUsersComponent implements OnInit {
   inviteSuccess: string | null = null;
 
   // Filter
+  nameFilter = '';
+  emailFilter = '';
   roleFilter: 'all' | 'admin' | 'teacher' = 'all';
   statusFilter: 'all' | 'active' | 'disabled' = 'all';
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
     if (!this.authService.isAdmin()) {
@@ -82,6 +97,14 @@ export class ManageUsersComponent implements OnInit {
     this.loadData();
   }
 
+  ngAfterViewInit(): void {
+    this.adminHeader.setHeaderActions(this.headerActionsTemplate ?? null);
+  }
+
+  ngOnDestroy(): void {
+    this.adminHeader.clearHeaderActions(this.headerActionsTemplate);
+  }
+
   loadData(): void {
     this.isLoading = true;
     this.error = null;
@@ -114,6 +137,19 @@ export class ManageUsersComponent implements OnInit {
 
   get filteredUsers(): StaffUser[] {
     return this.users.filter((u) => {
+      const fullName = `${u.profile.firstName} ${u.profile.lastName}`
+        .trim()
+        .toLowerCase();
+      const email = u.email.toLowerCase();
+      const normalizedNameFilter = this.nameFilter.trim().toLowerCase();
+      const normalizedEmailFilter = this.emailFilter.trim().toLowerCase();
+
+      if (normalizedNameFilter && !fullName.includes(normalizedNameFilter)) {
+        return false;
+      }
+      if (normalizedEmailFilter && !email.includes(normalizedEmailFilter)) {
+        return false;
+      }
       if (this.roleFilter !== 'all' && u.role !== this.roleFilter) return false;
       if (this.statusFilter === 'active' && !u.isActive) return false;
       if (this.statusFilter === 'disabled' && u.isActive) return false;
@@ -189,10 +225,5 @@ export class ManageUsersComponent implements OnInit {
     return (
       (user.profile.firstName?.[0] ?? '') + (user.profile.lastName?.[0] ?? '')
     ).toUpperCase();
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }

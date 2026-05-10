@@ -2,6 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
   GradeInfo,
@@ -13,7 +18,13 @@ import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
 @Component({
   selector: 'app-generate-questions',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, KatexRenderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    KatexRenderComponent,
+    FontAwesomeModule,
+  ],
   templateUrl: './generate-questions.html',
   styleUrl: './generate-questions.scss',
 })
@@ -28,17 +39,17 @@ export class GenerateQuestionsComponent implements OnInit {
   isGenerating = false;
   error: string | null = null;
   result: BatchGenerateResponse | null = null;
-  userName = '';
-  userRole = '';
+  protected readonly generateIcon = faWandMagicSparkles;
+  protected readonly arrowIcon = faArrowRight;
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  ngOnInit(): void {
-    const user = this.authService.getUser();
-    this.userName = user?.name ?? 'Admin';
-    this.userRole = user?.role ?? '';
+  get canGenerate(): boolean {
+    return Boolean(this.selectedGrade && this.selectedTopic);
+  }
 
+  ngOnInit(): void {
     this.authService.getCurriculum().subscribe({
       next: (data) => {
         this.grades = data.grades;
@@ -59,7 +70,12 @@ export class GenerateQuestionsComponent implements OnInit {
   }
 
   generate(): void {
-    if (!this.selectedGrade || !this.selectedTopic) return;
+    if (!this.canGenerate) return;
+
+    const grade = this.selectedGrade;
+    const topic = this.selectedTopic;
+
+    if (grade === null || !topic) return;
 
     this.isGenerating = true;
     this.error = null;
@@ -67,8 +83,8 @@ export class GenerateQuestionsComponent implements OnInit {
 
     this.authService
       .batchGenerate({
-        grade: this.selectedGrade,
-        topic: this.selectedTopic,
+        grade,
+        topic,
         count: this.count,
         difficulty: this.selectedDifficulty,
       })
@@ -94,10 +110,5 @@ export class GenerateQuestionsComponent implements OnInit {
 
   navigateToReview(): void {
     this.router.navigate(['/review']);
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
   }
 }
