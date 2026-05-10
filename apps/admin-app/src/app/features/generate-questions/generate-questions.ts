@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowRight,
@@ -44,15 +44,17 @@ export class GenerateQuestionsComponent implements OnInit {
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   get canGenerate(): boolean {
-    return Boolean(this.selectedGrade && this.selectedTopic);
+    return this.selectedGrade !== null && this.selectedTopic !== '';
   }
 
   ngOnInit(): void {
     this.authService.getCurriculum().subscribe({
       next: (data) => {
         this.grades = data.grades;
+        this.applyRouteFilters();
         this.isLoadingCurriculum = false;
       },
       error: () => {
@@ -63,10 +65,36 @@ export class GenerateQuestionsComponent implements OnInit {
   }
 
   onGradeChange(): void {
-    const grade = this.grades.find((g) => g.grade === this.selectedGrade);
-    this.availableTopics = grade?.topics ?? [];
+    this.setAvailableTopicsForSelectedGrade();
     this.selectedTopic = '';
     this.result = null;
+  }
+
+  private applyRouteFilters(): void {
+    const params = this.route.snapshot.queryParams;
+    const gradeParam = params['grade'];
+    const topicParam = params['topic'];
+
+    if (gradeParam !== undefined) {
+      const parsedGrade = Number(gradeParam);
+      if (Number.isInteger(parsedGrade)) {
+        this.selectedGrade = parsedGrade;
+      }
+    }
+
+    this.setAvailableTopicsForSelectedGrade();
+
+    if (
+      typeof topicParam === 'string' &&
+      this.availableTopics.some((topic) => topic.key === topicParam)
+    ) {
+      this.selectedTopic = topicParam;
+    }
+  }
+
+  private setAvailableTopicsForSelectedGrade(): void {
+    const grade = this.grades.find((g) => g.grade === this.selectedGrade);
+    this.availableTopics = grade?.topics ?? [];
   }
 
   generate(): void {

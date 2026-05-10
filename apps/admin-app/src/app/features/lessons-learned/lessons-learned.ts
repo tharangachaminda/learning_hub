@@ -55,7 +55,7 @@ export class LessonsLearnedComponent implements OnInit {
     this.isLoading = true;
     this.error = null;
     const filters: Record<string, string | number> = {};
-    if (this.filterGrade) filters['grade'] = this.filterGrade;
+    if (this.filterGrade !== null) filters['grade'] = this.filterGrade;
     if (this.filterTopic) filters['topic'] = this.filterTopic;
     if (this.filterCategory) filters['category'] = this.filterCategory;
 
@@ -72,7 +72,7 @@ export class LessonsLearnedComponent implements OnInit {
   }
 
   get filteredTopics() {
-    if (!this.filterGrade) return [];
+    if (this.filterGrade === null) return [];
     const grade = this.grades.find((g) => g.grade === this.filterGrade);
     return grade?.topics ?? [];
   }

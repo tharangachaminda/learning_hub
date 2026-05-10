@@ -1,6 +1,6 @@
 <ng-template #headerActions>
   <div class="grade-filter">
-    <span class="filter-label">Grade</span>
+    <span class="filter-label">Year</span>
     <div class="grade-filter-actions">
       <button
         class="filter-btn"
@@ -9,7 +9,7 @@
       >
         All
       </button>
-      @for (g of grades; track g) {
+      @for (g of yearOptions; track g) {
       <button
         class="filter-btn"
         [class.active]="selectedGrade === g"
@@ -137,11 +137,11 @@
 
     @if (selectedGrade === null) {
     <section class="section admin-panel">
-      <h2>Grade Health Overview</h2>
+      <h2>Year Health Overview</h2>
       <div class="grade-health-grid">
-        @for (g of grades; track g) {
+        @for (g of yearOptions; track g) {
         <button class="grade-health-card" (click)="onGradeChange(g)">
-          <div class="grade-health-label">Grade {{ g }}</div>
+          <div class="grade-health-label">Year {{ g }}</div>
           <div
             class="grade-health-pct"
             [class.pct-good]="getGradeHealthPercent(g) >= 80"
@@ -170,7 +170,7 @@
         <table class="heatmap-table">
           <thead>
             <tr>
-              <th class="grade-header">Grade</th>
+              <th class="grade-header">Year</th>
               @for (topic of allTopics; track topic) {
               <th class="topic-header">
                 <span class="topic-label">{{ formatTopic(topic) }}</span>
@@ -187,7 +187,7 @@
                 class="heatmap-cell"
                 [class]="cell.colorClass"
                 [title]="cell.approved === -1
-                  ? 'N/A for this grade'
+                  ? 'N/A for this year'
                   : 'Approved: ' + cell.approved + ' | Indexed: ' + cell.indexed + ' | Pending: ' + cell.pending + ' | Rejected: ' + cell.rejected + ' | Total: ' + cell.total"
               >
                 @if (cell.approved === -1) {
@@ -228,7 +228,7 @@
     <section class="section admin-panel">
       <h2>
         Topic Health Detail @if (selectedGrade !== null) {
-        <span class="grade-badge">Grade {{ selectedGrade }}</span>
+        <span class="grade-badge">Year {{ selectedGrade }}</span>
         }
       </h2>
       <p class="section-desc">
@@ -241,7 +241,7 @@
           <thead>
             <tr>
               @if (selectedGrade === null) {
-              <th>Grade</th>
+              <th>Year</th>
               }
               <th>Topic</th>
               <th class="center">Approved</th>
@@ -377,11 +377,11 @@
     </section>
 
     <section class="section admin-panel">
-      <h2>Difficulty Distribution by Grade</h2>
+      <h2>Difficulty Distribution by Year</h2>
       <div class="distribution-table">
         @for (row of difficultyRows; track row.grade) {
         <div class="dist-row">
-          <span class="dist-label">Grade {{ row.grade }}</span>
+          <span class="dist-label">Year {{ row.grade }}</span>
           <div class="dist-bar-container">
             @if (row.total > 0) {
             <div
@@ -445,11 +445,11 @@
     </section>
 
     <section class="section admin-panel">
-      <h2>Format Distribution by Grade</h2>
+      <h2>Format Distribution by Year</h2>
       <div class="distribution-table">
         @for (row of formatRows; track row.grade) {
         <div class="dist-row">
-          <span class="dist-label">Grade {{ row.grade }}</span>
+          <span class="dist-label">Year {{ row.grade }}</span>
           <div class="dist-bar-container">
             @if (row.total > 0) {
             <div
@@ -492,14 +492,14 @@
         Coverage Gaps
       </h2>
       <p class="section-desc">
-        Grade/topic combinations with fewer than 10 approved questions, sorted
-        by severity.
+        Year/topic combinations with fewer than 10 approved questions, sorted by
+        severity.
       </p>
       <div class="gaps-grid">
         @for (gap of coverageGaps; track gap.grade + ':' + gap.topic) {
         <div class="gap-card" [class.critical]="gap.approved === 0">
           <div class="gap-info">
-            <span class="gap-grade">Grade {{ gap.grade }}</span>
+            <span class="gap-grade">Year {{ gap.grade }}</span>
             <span class="gap-topic">{{ formatTopic(gap.topic) }}</span>
             <span class="gap-approved" [class.zero]="gap.approved === 0">
               {{ gap.approved }} approved

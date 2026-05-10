@@ -21,6 +21,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
+  CurriculumData,
   QuestionAnalytics,
   GradeTopicCount,
   CoverageGap,
@@ -88,14 +89,15 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   isLoading = true;
   error: string | null = null;
 
-  /** Grade filter: null = all grades */
+  /** Year filter: null = all years */
   selectedGrade: number | null = null;
-  readonly grades = [3, 4, 5, 6, 7, 8];
+  yearOptions: number[] = [];
+  visibleYears: number[] = [];
 
-  /** All unique topics across all grades for heatmap columns */
+  /** All unique topics across all years for heatmap columns */
   allTopics: string[] = [];
 
-  /** Topics available per grade (for N/A detection) */
+  /** Topics available per year (for N/A detection) */
   gradeTopicsMap = new Map<number, Set<string>>();
 
   /** Heatmap rows */
@@ -113,6 +115,8 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Per-topic health data */
   topicHealthRows: TopicHealth[] = [];
 
+  private readonly topicLabels = new Map<string, string>();
+
   /** Health thresholds for display */
   readonly thresholds = HEALTH_THRESHOLDS;
   protected readonly depthIcon = faChartSimple;
@@ -127,6 +131,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly adminHeader = inject(AdminHeaderActionsService);
 
   ngOnInit(): void {
+    this.loadYearOptions();
     this.loadAnalytics();
   }
 
@@ -151,12 +156,14 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
       .getAnalytics(undefined, this.selectedGrade ?? undefined)
       .subscribe({
         next: (data) => {
-          this.analytics = data;
-          this.buildHeatmap(data);
-          this.buildDifficultyRows(data);
-          this.buildFormatRows(data);
-          this.coverageGaps = data.coverageGaps;
-          this.topicHealthRows = data.topicHealth;
+          const visibleData = this.filterAnalyticsBySelectedYear(data);
+          this.analytics = visibleData;
+          this.visibleYears = this.extractVisibleYears(visibleData);
+          this.buildHeatmap(visibleData);
+          this.buildDifficultyRows(visibleData);
+          this.buildFormatRows(visibleData);
+          this.coverageGaps = visibleData.coverageGaps;
+          this.topicHealthRows = visibleData.topicHealth;
           this.isLoading = false;
         },
         error: () => {
@@ -166,7 +173,35 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  private loadYearOptions(): void {
+    this.authService.getCurriculum().subscribe({
+      next: (data: CurriculumData) => {
+        const years = data.subjects?.[0]?.years ?? data.grades;
+        this.yearOptions = years
+          .map((entry) => entry.year ?? entry.grade)
+          .sort((left, right) => left - right);
+        this.topicLabels.clear();
+        for (const year of years) {
+          for (const topic of year.topics) {
+            this.topicLabels.set(topic.key, topic.label);
+            for (const legacyKey of topic.legacyTopicKeys ?? []) {
+              this.topicLabels.set(legacyKey, topic.label);
+            }
+          }
+        }
+      },
+      error: () => {
+        // Non-blocking — analytics can still render from the analytics payload.
+      },
+    });
+  }
+
   formatTopic(topic: string): string {
+    const label = this.topicLabels.get(topic);
+    if (label) {
+      return label;
+    }
+
     return topic
       .replace(/_/g, ' ')
       .toLowerCase()
@@ -253,6 +288,8 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private buildHeatmap(data: QuestionAnalytics): void {
+    this.gradeTopicsMap.clear();
+
     // Collect topics per grade and build unique topic set
     const topicSet = new Set<string>();
     const gradeMap = new Map<number, Map<string, GradeTopicCount>>();
@@ -274,9 +311,8 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.allTopics = Array.from(topicSet).sort();
 
-    // Build rows for grades 3–8
     this.heatmapRows = [];
-    for (let grade = 3; grade <= 8; grade++) {
+    for (const grade of this.visibleYears) {
       const gradeData = gradeMap.get(grade);
       const gradeTopics = this.gradeTopicsMap.get(grade) || new Set();
 
@@ -331,7 +367,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     >();
 
-    for (let g = 3; g <= 8; g++) {
+    for (const g of this.visibleYears) {
       gradeMap.set(g, {
         easy: 0,
         indexedEasy: 0,
@@ -381,7 +417,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
       { openEnded: number; multipleChoice: number }
     >();
 
-    for (let g = 3; g <= 8; g++) {
+    for (const g of this.visibleYears) {
       gradeMap.set(g, { openEnded: 0, multipleChoice: 0 });
     }
 
@@ -397,5 +433,41 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
       const total = counts.openEnded + counts.multipleChoice;
       this.formatRows.push({ grade, ...counts, total });
     }
+  }
+
+  private extractVisibleYears(data: QuestionAnalytics): number[] {
+    return Array.from(
+      new Set(data.gradeTopicMatrix.map((entry) => entry.grade))
+    ).sort((left, right) => left - right);
+  }
+
+  private filterAnalyticsBySelectedYear(
+    data: QuestionAnalytics
+  ): QuestionAnalytics {
+    if (this.selectedGrade === null) {
+      return data;
+    }
+
+    return {
+      ...data,
+      gradeTopicMatrix: data.gradeTopicMatrix.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+      byDifficulty: data.byDifficulty.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+      byFormat: data.byFormat.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+      coverageGaps: data.coverageGaps.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+      recentCreations: data.recentCreations.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+      topicHealth: data.topicHealth.filter(
+        (entry) => entry.grade === this.selectedGrade
+      ),
+    };
   }
 }

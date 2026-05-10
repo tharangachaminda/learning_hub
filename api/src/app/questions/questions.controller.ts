@@ -153,7 +153,7 @@ export class QuestionsController {
     @Query('grade') grade?: string
   ): Promise<QuestionAnalytics> {
     const gapThreshold = threshold ? parseInt(threshold, 10) || 10 : 10;
-    const gradeNum = grade ? parseInt(grade, 10) : undefined;
+    const gradeNum = grade !== undefined ? parseInt(grade, 10) : undefined;
     return this.questionsService.getAnalytics(
       gapThreshold,
       gradeNum !== undefined && gradeNum >= 0 && gradeNum <= 10

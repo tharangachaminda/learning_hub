@@ -11,16 +11,16 @@
       <h3>Configure Generation</h3>
       <div class="admin-filter-grid">
         <label class="admin-field-group">
-          <span>Grade</span>
+          <span>Year</span>
           <select
             class="admin-select"
             id="gradeSelect"
             [(ngModel)]="selectedGrade"
             (ngModelChange)="onGradeChange()"
           >
-            <option [ngValue]="null">Select a grade...</option>
+            <option [ngValue]="null">Select a year...</option>
             @for (g of grades; track g.grade) {
-            <option [ngValue]="g.grade">Grade {{ g.grade }}</option>
+            <option [ngValue]="g.grade">Year {{ g.grade }}</option>
             }
           </select>
         </label>
@@ -31,7 +31,7 @@
             class="admin-select"
             id="topicSelect"
             [(ngModel)]="selectedTopic"
-            [disabled]="!selectedGrade"
+            [disabled]="selectedGrade === null"
           >
             <option value="">Select a topic...</option>
             @for (t of availableTopics; track t.key) {

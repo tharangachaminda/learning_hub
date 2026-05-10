@@ -18,6 +18,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
   AuthService,
+  CurriculumData,
   GradeInfo,
   QuestionItem,
 } from '../../services/auth.service';
@@ -54,6 +55,8 @@ export class ExportQuestionsComponent
 
   questions: QuestionItem[] = [];
   grades: GradeInfo[] = [];
+  curriculumSubject = 'Mathematics';
+  curriculumVersion = '';
   isLoading = true;
   isGeneratingPdf = false;
   error: string | null = null;
@@ -94,7 +97,15 @@ export class ExportQuestionsComponent
     }
 
     this.authService.getCurriculum().subscribe({
-      next: (data) => (this.grades = data.grades),
+      next: (data: CurriculumData) => {
+        this.grades = data.grades;
+        const subject = data.subjects?.[0];
+        if (subject?.subject) {
+          this.curriculumSubject =
+            subject.subject.charAt(0).toUpperCase() + subject.subject.slice(1);
+        }
+        this.curriculumVersion = subject?.version ?? '';
+      },
       error: () => {
         this.error = 'Failed to load curriculum filters.';
       },
@@ -119,7 +130,7 @@ export class ExportQuestionsComponent
   }
 
   get filteredTopics() {
-    if (!this.filterGrade) return [];
+    if (this.filterGrade === null) return [];
     const grade = this.grades.find((item) => item.grade === this.filterGrade);
     return grade?.topics ?? [];
   }
@@ -153,7 +164,13 @@ export class ExportQuestionsComponent
   }
 
   get pdfSubjectLabel(): string {
-    return 'Mathematics';
+    return this.curriculumSubject;
+  }
+
+  get pdfCurriculumFooter(): string {
+    return this.curriculumVersion
+      ? `${this.curriculumSubject} curriculum • ${this.curriculumVersion}`
+      : `${this.curriculumSubject} curriculum`;
   }
 
   get pdfGradeSummary(): string {
@@ -162,14 +179,14 @@ export class ExportQuestionsComponent
     ).sort((left, right) => left - right);
 
     if (uniqueGrades.length === 0) {
-      return 'Year/Grade: -';
+      return 'Year: -';
     }
 
     if (uniqueGrades.length === 1) {
-      return `Year/Grade: ${uniqueGrades[0]}`;
+      return `Year: ${uniqueGrades[0]}`;
     }
 
-    return `Year/Grade: ${uniqueGrades.join(', ')}`;
+    return `Year: ${uniqueGrades.join(', ')}`;
   }
 
   loadQuestions(): void {
@@ -392,7 +409,7 @@ export class ExportQuestionsComponent
     }
 
     const grade = Number(value);
-    return Number.isInteger(grade) && grade > 0 ? grade : null;
+    return Number.isInteger(grade) && grade >= 0 ? grade : null;
   }
 
   private parseDifficultyParam(value: unknown): DifficultyFilter {
@@ -435,10 +452,11 @@ export class ExportQuestionsComponent
     });
 
     const margin = 10;
+    const footerReservedHeight = 12;
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - margin * 2;
-    const contentHeight = pageHeight - margin * 2;
+    const contentHeight = pageHeight - margin - footerReservedHeight;
     const mmPerCanvasPixel = contentWidth / canvas.width;
     const pageCanvasHeight = Math.max(
       1,
@@ -491,9 +509,31 @@ export class ExportQuestionsComponent
         sliceHeightMm
       );
 
+      this.addPdfFooter(pdf, pageWidth, pageHeight, margin);
+
       offsetY += sliceHeight;
       isFirstPage = false;
     }
+  }
+
+  private addPdfFooter(
+    pdf: PdfDocument,
+    pageWidth: number,
+    pageHeight: number,
+    margin: number
+  ): void {
+    const footerTop = pageHeight - 9;
+    const footerBaseline = pageHeight - 5;
+
+    pdf.setDrawColor(203, 213, 225);
+    pdf.setLineWidth(0.2);
+    pdf.line(margin, footerTop, pageWidth - margin, footerTop);
+
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(this.pdfCurriculumFooter, pageWidth - margin, footerBaseline, {
+      align: 'right',
+    });
   }
 
   private async waitForExportView(): Promise<void> {

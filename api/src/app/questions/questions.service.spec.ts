@@ -203,10 +203,21 @@ describe('QuestionsService', () => {
         exec: jest.fn().mockResolvedValue(1),
       });
 
-      const result = await service.findAll({ topic: 'ADDITION' });
+      await service.findAll({ topic: 'ADDITION' });
 
       expect(model.find).toHaveBeenCalledWith(
-        expect.objectContaining({ topic: 'ADDITION' })
+        expect.objectContaining({
+          $or: expect.arrayContaining([
+            expect.objectContaining({
+              topic: expect.objectContaining({
+                $in: expect.arrayContaining(['ADDITION']),
+              }),
+            }),
+            expect.objectContaining({
+              'metadata.resolvedTopicKey': 'WHOLE_NUMBER_OPERATIONS',
+            }),
+          ]),
+        })
       );
     });
 
@@ -265,7 +276,7 @@ describe('QuestionsService', () => {
         exec: jest.fn().mockResolvedValue(0),
       });
 
-      const result = await service.findAll({
+      await service.findAll({
         grade: 5,
         topic: 'FRACTION_OPERATIONS',
         status: QuestionStatus.APPROVED,
@@ -275,9 +286,15 @@ describe('QuestionsService', () => {
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
           grade: 5,
-          topic: 'FRACTION_OPERATIONS',
           status: QuestionStatus.APPROVED,
           format: QuestionFormat.OPEN_ENDED,
+          $or: expect.arrayContaining([
+            expect.objectContaining({
+              topic: expect.objectContaining({
+                $in: expect.arrayContaining(['FRACTION_OPERATIONS']),
+              }),
+            }),
+          ]),
         })
       );
     });
@@ -356,15 +373,17 @@ describe('QuestionsService', () => {
 
       const result = await service.getAnalytics(10, 3);
       const additionEntry = result.gradeTopicMatrix.find(
-        (entry) => entry.grade === 3 && entry.topic === 'ADDITION'
+        (entry) =>
+          entry.grade === 3 && entry.topic === 'WHOLE_NUMBER_OPERATIONS'
       );
       const additionHealth = result.topicHealth.find(
-        (entry) => entry.grade === 3 && entry.topic === 'ADDITION'
+        (entry) =>
+          entry.grade === 3 && entry.topic === 'WHOLE_NUMBER_OPERATIONS'
       );
       const easyDifficulty = result.byDifficulty.find(
         (entry) =>
           entry.grade === 3 &&
-          entry.topic === 'ADDITION' &&
+          entry.topic === 'WHOLE_NUMBER_OPERATIONS' &&
           entry.difficulty === 'easy'
       );
 
