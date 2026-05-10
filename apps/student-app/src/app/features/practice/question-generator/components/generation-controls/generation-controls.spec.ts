@@ -42,33 +42,51 @@ describe('GenerationControlsComponent', () => {
   });
 
   // ────────────────────────────────────────────────────
-  // AC#2: Grade Dropdown
+  // AC#2: Year Dropdown
   // ────────────────────────────────────────────────────
-  describe('Grade Dropdown (AC#2)', () => {
-    it('should render a grade dropdown', () => {
+  describe('Year Dropdown (AC#2)', () => {
+    it('should render a year dropdown', () => {
       const select = fixture.nativeElement.querySelector(
         '[data-testid="grade-select"]'
       );
       expect(select).toBeTruthy();
     });
 
-    it('should pre-fill from profile grade (3)', () => {
+    it('should pre-fill from profile year (3)', () => {
       expect(component.selectedGrade()).toBe(3);
     });
 
-    it('should have options for grades 3 through 8', () => {
+    it('should have options for years 3 through 8 when using fallback curriculum', () => {
       const select: HTMLSelectElement = fixture.nativeElement.querySelector(
         '[data-testid="grade-select"]'
       );
       const options = Array.from(select.options);
       expect(options).toHaveLength(6);
       expect(options.map((o) => o.text.trim())).toEqual([
-        'Grade 3',
-        'Grade 4',
-        'Grade 5',
-        'Grade 6',
-        'Grade 7',
-        'Grade 8',
+        'Year 3',
+        'Year 4',
+        'Year 5',
+        'Year 6',
+        'Year 7',
+        'Year 8',
+      ]);
+    });
+
+    it('should prefer backend curriculum years when provided', () => {
+      fixture.componentRef.setInput('curriculumGrades', [
+        { grade: 0, topics: [{ key: 'COUNTING', label: 'Counting' }] },
+        { grade: 1, topics: [{ key: 'ADDITION', label: 'Addition' }] },
+      ]);
+      fixture.detectChanges();
+
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector(
+        '[data-testid="grade-select"]'
+      );
+      const options = Array.from(select.options);
+
+      expect(options.map((option) => option.text.trim())).toEqual([
+        'Year 0',
+        'Year 1',
       ]);
     });
 
@@ -111,6 +129,31 @@ describe('GenerationControlsComponent', () => {
       const optionTexts = Array.from(select.options).map((o) => o.text.trim());
       expect(optionTexts[0]).toBe(QUESTION_TYPE_DISPLAY_NAMES['ADDITION']);
       expect(optionTexts[1]).toBe(QUESTION_TYPE_DISPLAY_NAMES['SUBTRACTION']);
+    });
+
+    it('should prefer backend curriculum topic labels when provided', () => {
+      fixture.componentRef.setInput('curriculumGrades', [
+        {
+          grade: 3,
+          topics: [
+            {
+              key: 'WHOLE_NUMBER_OPERATIONS',
+              label: 'Whole Number Operations',
+            },
+            { key: 'PATTERNS', label: 'Patterns' },
+          ],
+        },
+      ]);
+      fixture.detectChanges();
+
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector(
+        '[data-testid="topic-select"]'
+      );
+
+      expect(Array.from(select.options).map((o) => o.text.trim())).toEqual([
+        'Whole Number Operations',
+        'Patterns',
+      ]);
     });
 
     it('should refresh topic list when grade changes', () => {

@@ -755,7 +755,7 @@ describe('Registration', () => {
       ).toBeTruthy();
     });
 
-    it('should display grade level selector with options 1-12', () => {
+    it('should display year level selector with options 0-10', () => {
       const compiled = fixture.nativeElement;
       const gradeSelect = compiled.querySelector(
         '[data-testid="grade-select"]'
@@ -763,7 +763,10 @@ describe('Registration', () => {
       expect(gradeSelect).toBeTruthy();
 
       const options = gradeSelect.querySelectorAll('option');
-      expect(options.length).toBeGreaterThanOrEqual(12);
+      expect(options.length).toBe(12);
+      expect(options[0].textContent.trim()).toBe('Select your year');
+      expect(options[1].textContent.trim()).toBe('Year 0');
+      expect(options[options.length - 1].textContent.trim()).toBe('Year 10');
     });
 
     it('should display learning goals checkboxes', () => {

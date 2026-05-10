@@ -23,6 +23,7 @@ import {
   QUESTION_TYPE_DISPLAY_NAMES,
   SUPPORTED_GRADES,
 } from '../../models/curriculum.data';
+import { CurriculumGradeInfo } from '../../../../../services/auth.service';
 
 /**
  * Presentation component for the AI Question Generator controls (Phase 1).
@@ -69,12 +70,24 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   /** Optional topic key from URL to pre-select (e.g. 'ADDITION'). */
   @Input() initialTopic = '';
 
+  /** Optional curriculum data loaded from the backend. */
+  @Input() curriculumGrades: CurriculumGradeInfo[] = [];
+
   /** Emits generation parameters when Generate is clicked. */
   @Output() generate = new EventEmitter<GenerationParams>();
 
-  /** Curriculum data references. */
-  readonly supportedGrades = SUPPORTED_GRADES;
-  readonly displayNames = QUESTION_TYPE_DISPLAY_NAMES;
+  private readonly curriculumGradesState = signal<CurriculumGradeInfo[]>([]);
+
+  /** Fallback curriculum references used before backend data loads. */
+  readonly fallbackGrades = SUPPORTED_GRADES;
+  readonly fallbackDisplayNames = QUESTION_TYPE_DISPLAY_NAMES;
+
+  /** Years shown in the selector, preferring backend curriculum data. */
+  readonly supportedGrades = computed(() =>
+    this.curriculumGradesState().length > 0
+      ? this.curriculumGradesState().map((grade) => grade.grade)
+      : this.fallbackGrades
+  );
 
   /** Selected values. */
   selectedGrade = signal<number>(3);
@@ -84,19 +97,31 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   /** Topics filtered by selected grade. */
   availableTopics = computed(() => {
     const grade = this.selectedGrade();
-    const topics = GRADE_TOPICS[grade]?.['mathematics'] ?? [];
-    return topics;
+    const curriculumGrade = this.curriculumGradesState().find(
+      (entry) => entry.grade === grade
+    );
+
+    if (curriculumGrade) {
+      return curriculumGrade.topics.map((topic) => topic.key);
+    }
+
+    return GRADE_TOPICS[grade]?.['mathematics'] ?? [];
   });
 
   /** Currently selected topic key. */
   selectedTopic = signal<string>('');
 
   ngOnInit(): void {
+    this.curriculumGradesState.set(this.curriculumGrades);
     this.selectedGrade.set(this.grade);
     this.applyInitialTopicOrFirst();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['curriculumGrades']) {
+      this.curriculumGradesState.set(this.curriculumGrades);
+      this.applyInitialTopicOrFirst();
+    }
     if (changes['grade'] && !changes['grade'].firstChange) {
       this.selectedGrade.set(this.grade);
       this.updateTopicToFirst();
@@ -166,7 +191,14 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
    * @returns Human-readable display name
    */
   getTopicDisplayName(topicKey: string): string {
-    return this.displayNames[topicKey] ?? topicKey;
+    for (const grade of this.curriculumGradesState()) {
+      const topic = grade.topics.find((entry) => entry.key === topicKey);
+      if (topic) {
+        return topic.label;
+      }
+    }
+
+    return this.fallbackDisplayNames[topicKey] ?? topicKey;
   }
 
   /**

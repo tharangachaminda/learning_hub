@@ -26,6 +26,25 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+export interface CurriculumTopicInfo {
+  key: string;
+  label: string;
+  legacyTopicKeys?: string[];
+}
+
+export interface CurriculumGradeInfo {
+  grade: number;
+  topics: CurriculumTopicInfo[];
+}
+
+export interface CurriculumData {
+  grades: CurriculumGradeInfo[];
+  subjects?: Array<{
+    subject: string;
+    version: string;
+  }>;
+}
+
 /**
  * Request payload for student login.
  *
@@ -66,6 +85,7 @@ const AUTH_USER_KEY = 'auth_user';
 })
 export class AuthService {
   private readonly apiUrl = '/api/auth/student';
+  private readonly curriculumUrl = '/api/questions/curriculum';
 
   constructor(private http: HttpClient) {}
 
@@ -92,6 +112,13 @@ export class AuthService {
         this.storeUser(response.user, request.rememberMe);
       })
     );
+  }
+
+  /**
+   * Load curriculum metadata used by student-facing year/topic selectors.
+   */
+  getCurriculum(): Observable<CurriculumData> {
+    return this.http.get<CurriculumData>(this.curriculumUrl);
   }
 
   /**

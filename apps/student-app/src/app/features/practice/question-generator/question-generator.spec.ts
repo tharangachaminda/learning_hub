@@ -23,6 +23,7 @@ import { StudentProfileService } from './services/student-profile.service';
 import { GenerationParams } from './models/generation-params.model';
 import { GeneratedQuestion } from './models/question.model';
 import { AuthService } from '../../../services/auth.service';
+import { of } from 'rxjs';
 
 describe('QuestionGeneratorComponent', () => {
   let component: QuestionGeneratorComponent;
@@ -30,6 +31,7 @@ describe('QuestionGeneratorComponent', () => {
   let httpMock: HttpTestingController;
   const mockAuthService = {
     getUserId: jest.fn(() => null),
+    getCurriculum: jest.fn(() => of({ grades: [] })),
   };
 
   function createPracticeApiResponse(questions: GeneratedQuestion[]) {

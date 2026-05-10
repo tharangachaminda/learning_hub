@@ -12,7 +12,12 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { AuthService, LoginRequest, LoginResponse } from './auth.service';
+import {
+  AuthService,
+  LoginRequest,
+  LoginResponse,
+  CurriculumData,
+} from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -32,6 +37,16 @@ describe('AuthService', () => {
       name: 'Test Student',
       role: 'student',
     },
+  };
+
+  const mockCurriculumResponse: CurriculumData = {
+    grades: [
+      {
+        grade: 0,
+        topics: [{ key: 'COUNTING', label: 'Counting' }],
+      },
+    ],
+    subjects: [{ subject: 'mathematics', version: 'nz-maths-2025-seed-v1' }],
   };
 
   beforeEach(() => {
@@ -163,6 +178,18 @@ describe('AuthService', () => {
 
       expect(localStorage.getItem('auth_token')).toBeNull();
       expect(sessionStorage.getItem('auth_token')).toBeNull();
+    });
+  });
+
+  describe('getCurriculum', () => {
+    it('should GET curriculum data from /api/questions/curriculum', () => {
+      service.getCurriculum().subscribe((response) => {
+        expect(response).toEqual(mockCurriculumResponse);
+      });
+
+      const req = httpMock.expectOne('/api/questions/curriculum');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockCurriculumResponse);
     });
   });
 
