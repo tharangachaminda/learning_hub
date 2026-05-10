@@ -3,6 +3,12 @@ import {
   getCurriculumLevel,
   getLearningObjectivesByStrand,
 } from './curriculum-knowledge.types';
+import {
+  getMathematicsTopicCriteria,
+  getMathematicsYearPlan,
+  MATHEMATICS_CURRICULUM,
+} from './mathematics-curriculum.criteria';
+import { CurriculumTopicDefinition } from './curriculum-criteria.types';
 
 /**
  * Curriculum-aware prompt template for AI question generation
@@ -46,6 +52,12 @@ export interface CurriculumPromptTemplate {
 
   /** Example questions from curriculum */
   exampleQuestions: string[];
+
+  /** Resolved year-specific curriculum topic criteria, if available */
+  topicCriteria: CurriculumTopicDefinition | null;
+
+  /** Version of the curriculum criteria artifact used to build the prompt */
+  criteriaVersion: string | null;
 }
 
 /**
@@ -103,11 +115,18 @@ export class CurriculumPromptEngine {
   generateCurriculumPrompt(
     request: CurriculumPromptRequest
   ): CurriculumPromptTemplate {
+    const yearPlan = getMathematicsYearPlan(request.grade);
+    const topicCriteria = getMathematicsTopicCriteria(
+      request.grade,
+      request.topic
+    );
+
     // Map grade to curriculum level
     const curriculumLevel = this.mapGradeToLevel(request.grade);
 
     // Map topic to curriculum strand
-    const curriculumStrand = this.mapTopicToStrand(request.topic);
+    const curriculumStrand =
+      topicCriteria?.strand ?? this.mapTopicToStrand(request.topic);
 
     // Get curriculum level data
     const levelData = getCurriculumLevel(curriculumLevel);
@@ -123,16 +142,24 @@ export class CurriculumPromptEngine {
       levelData,
       curriculumStrand,
       learningObjectives,
-      request.topic
+      request.topic,
+      request,
+      topicCriteria,
+      yearPlan?.focusSummary
     );
 
     // Extract teaching methodologies
-    const teachingMethodology =
-      this.extractTeachingMethodologies(learningObjectives);
+    const teachingMethodology = this.extractTeachingMethodologies(
+      learningObjectives,
+      topicCriteria
+    );
 
     // Extract assessment guidance
-    const assessmentGuidance =
-      this.extractAssessmentGuidance(learningObjectives);
+    const assessmentGuidance = this.extractAssessmentGuidance(
+      learningObjectives,
+      request,
+      topicCriteria
+    );
 
     // Extract example questions
     const exampleQuestions = this.extractExampleQuestions(learningObjectives);
@@ -142,7 +169,9 @@ export class CurriculumPromptEngine {
       curriculumLevel,
       curriculumStrand,
       learningObjectives,
-      request
+      request,
+      topicCriteria,
+      yearPlan?.focusSummary
     );
 
     return {
@@ -154,6 +183,8 @@ export class CurriculumPromptEngine {
       teachingMethodology,
       assessmentGuidance,
       exampleQuestions,
+      topicCriteria,
+      criteriaVersion: topicCriteria ? MATHEMATICS_CURRICULUM.version : null,
     };
   }
 
@@ -212,6 +243,7 @@ export class CurriculumPromptEngine {
     // Measurement strand topics
     if (
       topicUpper.includes('MEASUREMENT') ||
+      topicUpper.includes('TIME') ||
       topicUpper.includes('LENGTH') ||
       topicUpper.includes('WEIGHT')
     ) {
@@ -244,7 +276,10 @@ export class CurriculumPromptEngine {
     levelData: any,
     strandName: string,
     objectives: LearningObjective[],
-    topic: string
+    topic: string,
+    request: CurriculumPromptRequest,
+    topicCriteria: CurriculumTopicDefinition | null,
+    yearFocusSummary?: string
   ): string {
     const objectiveDescriptions = objectives
       .map((obj) => `${obj.id}: ${obj.description}`)
@@ -255,10 +290,31 @@ export class CurriculumPromptEngine {
       .filter((keyword, index, self) => self.indexOf(keyword) === index)
       .join(', ');
 
+    const difficultyCriteria = topicCriteria?.criteria[request.difficulty];
+    const criteriaBlock = topicCriteria
+      ? [
+          `Resolved Curriculum Topic: ${topicCriteria.label} (${topicCriteria.key})`,
+          `Topic Overview: ${topicCriteria.overview}`,
+          `Year Focus: ${yearFocusSummary || 'Not specified'}`,
+          `Required Skills: ${
+            difficultyCriteria?.requiredSkills.join(', ') || 'Not specified'
+          }`,
+          `Allowed Question Forms: ${
+            difficultyCriteria?.allowedQuestionForms.join(', ') ||
+            'Not specified'
+          }`,
+          `Representations: ${
+            difficultyCriteria?.representations.join(', ') || 'Not specified'
+          }`,
+          `Criteria Version: ${MATHEMATICS_CURRICULUM.version}`,
+        ].join('\n')
+      : 'Resolved Curriculum Topic: Not available';
+
     return `
 NZ Mathematics Curriculum - Level ${levelData.level}
 Strand: ${strandName}
 Topic: ${topic}
+Difficulty: ${request.difficulty}
 
 Learning Objectives:
 ${objectiveDescriptions}
@@ -266,6 +322,8 @@ ${objectiveDescriptions}
 Key Mathematical Concepts: ${keywords}
 
 Year Groups: ${levelData.yearGroups.join(', ')}
+
+${criteriaBlock}
 `.trim();
   }
 
@@ -276,17 +334,28 @@ Year Groups: ${levelData.yearGroups.join(', ')}
    * @returns Formatted teaching methodology guidance
    */
   private extractTeachingMethodologies(
-    objectives: LearningObjective[]
+    objectives: LearningObjective[],
+    topicCriteria: CurriculumTopicDefinition | null
   ): string {
     const methods = objectives
       .flatMap((obj) => obj.teachingMethods)
       .filter((method, index, self) => self.indexOf(method) === index);
 
+    const representations = topicCriteria
+      ? topicCriteria.criteria.medium.representations.join(', ')
+      : '';
+
     if (methods.length === 0) {
-      return 'Use concrete materials and visual representations';
+      return topicCriteria
+        ? `Use curriculum-aligned representations: ${representations}`
+        : 'Use concrete materials and visual representations';
     }
 
-    return `Teaching Approaches: ${methods.join(', ')}`;
+    return topicCriteria
+      ? `Teaching Approaches: ${methods.join(
+          ', '
+        )}. Preferred representations: ${representations}`
+      : `Teaching Approaches: ${methods.join(', ')}`;
   }
 
   /**
@@ -295,16 +364,26 @@ Year Groups: ${levelData.yearGroups.join(', ')}
    * @param objectives - Learning objectives
    * @returns Formatted assessment guidance
    */
-  private extractAssessmentGuidance(objectives: LearningObjective[]): string {
+  private extractAssessmentGuidance(
+    objectives: LearningObjective[],
+    request: CurriculumPromptRequest,
+    topicCriteria: CurriculumTopicDefinition | null
+  ): string {
     const criteria = objectives
       .flatMap((obj) => obj.assessmentCriteria)
       .filter((criterion, index, self) => self.indexOf(criterion) === index);
 
-    if (criteria.length === 0) {
+    const topicCriteriaItems =
+      topicCriteria?.criteria[request.difficulty].assessmentCriteria ?? [];
+    const mergedCriteria = [...criteria, ...topicCriteriaItems].filter(
+      (criterion, index, self) => self.indexOf(criterion) === index
+    );
+
+    if (mergedCriteria.length === 0) {
       return 'Assess student understanding and accuracy';
     }
 
-    return `Assessment Focus: ${criteria.join(', ')}`;
+    return `Assessment Focus: ${mergedCriteria.join(', ')}`;
   }
 
   /**
@@ -331,7 +410,9 @@ Year Groups: ${levelData.yearGroups.join(', ')}
     level: number,
     strand: string,
     objectives: LearningObjective[],
-    request: CurriculumPromptRequest
+    request: CurriculumPromptRequest,
+    topicCriteria: CurriculumTopicDefinition | null,
+    yearFocusSummary?: string
   ): string {
     const objectiveDescriptions = objectives
       .map((obj) => obj.description)
@@ -342,6 +423,30 @@ Year Groups: ${levelData.yearGroups.join(', ')}
       .filter((method, index, self) => self.indexOf(method) === index)
       .join(', ');
 
+    const resolvedCriteria = topicCriteria?.criteria[request.difficulty];
+    const criteriaGuidance = topicCriteria
+      ? `
+CURRICULUM CRITERIA ARTIFACT:
+- Criteria Version: ${MATHEMATICS_CURRICULUM.version}
+- Resolved Topic: ${topicCriteria.label} (${topicCriteria.key})
+- Topic Overview: ${topicCriteria.overview}
+- Year Focus: ${yearFocusSummary || 'Not specified'}
+- Required Skills: ${
+          resolvedCriteria?.requiredSkills.join(', ') || 'Not specified'
+        }
+- Allowed Question Forms: ${
+          resolvedCriteria?.allowedQuestionForms.join(', ') || 'Not specified'
+        }
+- Preferred Representations: ${
+          resolvedCriteria?.representations.join(', ') || 'Not specified'
+        }
+- Constraints: ${resolvedCriteria?.constraints.join(' | ') || 'Not specified'}
+- Assessment Checks: ${
+          resolvedCriteria?.assessmentCriteria.join(', ') || 'Not specified'
+        }
+`
+      : '';
+
     return `You are an expert New Zealand mathematics educator specializing in Curriculum Level ${level}.
 
 CURRICULUM CONTEXT:
@@ -350,6 +455,7 @@ CURRICULUM CONTEXT:
 - Learning Objectives: ${objectiveDescriptions}
 - Teaching Approaches: ${teachingMethods}
 - Target Students: Year ${request.grade} (Level ${level})
+${criteriaGuidance}
 
 DIFFICULTY LEVEL: ${request.difficulty.toUpperCase()}
 ${this.buildDifficultyGuidance(request)}
@@ -366,6 +472,7 @@ QUESTION REQUIREMENTS:
       objectives[0]?.assessmentCriteria.join(', ') || 'accuracy'
     }
 8. Match the ${request.difficulty.toUpperCase()} difficulty level described above
+9. If curriculum criteria are provided, obey the required skills, allowed question forms, and constraints exactly
 
 STRICT TOPIC ENFORCEMENT:
 ${this.buildTopicEnforcement(request.topic)}
@@ -378,10 +485,10 @@ PROHIBITED QUESTION PATTERNS:
 - Do NOT generate questions that just name the operation without providing numbers to work with.
 
 MANDATORY LATEX FORMATTING:
-Use $...$ ONLY around mathematical expressions and operators — NOT around regular words or sentences.
-- Wrap math expressions: $5 + 3$, $12 \\times 4$, $\\frac{3}{4}$
+Use $...$ ONLY around mathematical expressions and operators — NOT around plain narrative text.
+- Wrap math expressions: $5 + 3$, $12 \\times 4$, $18 \\div 3$, $\\frac{3}{4}$, $\\sqrt{16}$
 - Wrap standalone numbers in questions: $12$ apples, $25$ birds
-- Do NOT wrap regular text, words, or sentences in $...$
+- Do NOT wrap plain prose or non-mathematical text in $...$
 - Do NOT use $$...$$ (double dollar) — always use single $...$
 - Do NOT use \\text{} inside math — write plain text outside of $ delimiters
 - CORRECT: "What is $5 + 3$?" | "There are $12$ apples"
@@ -389,7 +496,7 @@ Use $...$ ONLY around mathematical expressions and operators — NOT around regu
 - WRONG: "$25 dollars - 12 dollars = ?$" (do not put words inside math)
 - WRONG: "$$25 - 12 = ?$$" (do not use double dollar)
 - WRONG: "$25 \\text{dollar} - 12 = ?$" (do not use \\text inside math)
-- For the explanation field: write plain text with NO LaTeX. Just explain in simple sentences.
+- For the explanation field: write plain text with NO LaTeX. Just explain in simple prose.
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:

@@ -78,15 +78,29 @@ export interface StaffStats {
 export interface GradeTopic {
   key: string;
   label: string;
+  strand?: string;
+  overview?: string;
+  legacyTopicKeys?: string[];
 }
 
 export interface GradeInfo {
   grade: number;
+  year?: number;
+  subject?: string;
+  phase?: string;
+  focusSummary?: string;
   topics: GradeTopic[];
+}
+
+export interface SubjectCurriculumInfo {
+  subject: string;
+  version: string;
+  years: GradeInfo[];
 }
 
 export interface CurriculumData {
   grades: GradeInfo[];
+  subjects?: SubjectCurriculumInfo[];
 }
 
 export interface QuestionItem {
@@ -106,6 +120,13 @@ export interface QuestionItem {
     generationTime: number;
     difficulty: string;
     country: string;
+    subject?: string;
+    curriculumVersion?: string;
+    resolvedTopicKey?: string;
+    resolvedTopicLabel?: string;
+    curriculumStrand?: string;
+    curriculumPhase?: string;
+    sourceTopicKey?: string;
     fallbackUsed?: boolean;
     validationScore?: number;
   };
@@ -146,6 +167,7 @@ export interface PaginatedQuestions {
 
 export interface BatchGenerateRequest {
   grade: number;
+  subject?: string;
   topic: string;
   count?: number;
   format?: string;

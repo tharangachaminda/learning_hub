@@ -99,6 +99,24 @@ export class VectorIndexService implements OnModuleInit {
             curriculum_strand: {
               type: 'keyword',
             },
+            subject: {
+              type: 'keyword',
+            },
+            curriculum_version: {
+              type: 'keyword',
+            },
+            resolved_topic_key: {
+              type: 'keyword',
+            },
+            resolved_topic_label: {
+              type: 'keyword',
+            },
+            curriculum_phase: {
+              type: 'keyword',
+            },
+            source_topic_key: {
+              type: 'keyword',
+            },
           },
         },
       },
@@ -229,6 +247,12 @@ export class VectorIndexService implements OnModuleInit {
       difficulty_score?: number;
       category?: string;
       curriculum_strand?: string;
+      subject?: string;
+      curriculum_version?: string;
+      resolved_topic_key?: string;
+      resolved_topic_label?: string;
+      curriculum_phase?: string;
+      source_topic_key?: string;
     }
   ): Promise<void> {
     const document = {

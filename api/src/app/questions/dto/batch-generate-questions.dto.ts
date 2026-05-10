@@ -23,11 +23,16 @@ import { QuestionFormat } from '../schemas/question.schema';
  * ```
  */
 export class BatchGenerateQuestionsDto {
-  /** Grade level for generation (3–8) */
+  /** Grade/year level for generation (0–10) */
   @IsNumber()
-  @Min(3)
-  @Max(8)
+  @Min(0)
+  @Max(10)
   grade: number;
+
+  /** Curriculum subject key. Mathematics is the currently supported subject. */
+  @IsOptional()
+  @IsString()
+  subject?: string;
 
   /** Curriculum topic key (e.g. 'MULTIPLICATION') */
   @IsString()

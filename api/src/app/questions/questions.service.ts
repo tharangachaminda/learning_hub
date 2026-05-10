@@ -109,8 +109,10 @@ export interface PracticeQuestionsResult {
  * Filter criteria for querying persisted questions.
  */
 export interface QuestionFilters {
-  /** Grade level (3–8) */
+  /** Grade/year level (0–10) */
   grade?: number;
+  /** Subject key stored in metadata */
+  subject?: string;
   /** Curriculum topic key (e.g. 'ADDITION', 'FRACTION_OPERATIONS') */
   topic?: string;
   /** Review workflow status */
@@ -241,6 +243,9 @@ export class QuestionsService {
     const query: Record<string, unknown> = {};
 
     if (filters.grade !== undefined) query.grade = filters.grade;
+    if (filters.subject !== undefined) {
+      query['metadata.subject'] = filters.subject;
+    }
     if (filters.topic !== undefined) query.topic = filters.topic;
     if (filters.approvedNotIndexed) {
       query.status = QuestionStatus.APPROVED;

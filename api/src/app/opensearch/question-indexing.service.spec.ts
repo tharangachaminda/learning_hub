@@ -89,6 +89,12 @@ describe('QuestionIndexingService', () => {
           difficulty_score: expect.any(Number),
           category: 'math',
           curriculum_strand: 'number',
+          subject: 'mathematics',
+          curriculum_version: 'nz-maths-2025-seed-v1',
+          resolved_topic_key: 'WHOLE_NUMBER_OPERATIONS',
+          resolved_topic_label: 'Whole Number Operations',
+          curriculum_phase: 'Phase 1',
+          source_topic_key: 'ADDITION',
         }
       );
     });
@@ -204,11 +210,19 @@ describe('QuestionIndexingService', () => {
           id: 'q-001',
           questionText: 'What is 5 + 3?',
           explanation: '',
+          metadata: expect.objectContaining({
+            subject: 'mathematics',
+            resolved_topic_key: 'WHOLE_NUMBER_OPERATIONS',
+          }),
         }),
         expect.objectContaining({
           id: 'q-002',
           questionText: 'Calculate 10 - 4',
           explanation: '',
+          metadata: expect.objectContaining({
+            subject: 'mathematics',
+            resolved_topic_key: 'WHOLE_NUMBER_OPERATIONS',
+          }),
         }),
       ]);
     });
@@ -336,6 +350,13 @@ describe('QuestionIndexingService', () => {
         category: 'number-operations',
         metadata: {
           difficulty: 'medium',
+          subject: 'mathematics',
+          curriculumVersion: 'nz-maths-2025-seed-v1',
+          resolvedTopicKey: 'WHOLE_NUMBER_OPERATIONS',
+          resolvedTopicLabel: 'Whole Number Operations',
+          curriculumStrand: 'Number',
+          curriculumPhase: 'Phase 1',
+          sourceTopicKey: 'ADDITION',
         },
       } as any;
 
@@ -363,7 +384,13 @@ describe('QuestionIndexingService', () => {
             operation: 'ADDITION',
             difficulty: 'medium',
             category: 'number-operations',
-            curriculum_strand: 'number-operations',
+            curriculum_strand: 'number',
+            subject: 'mathematics',
+            curriculum_version: 'nz-maths-2025-seed-v1',
+            resolved_topic_key: 'WHOLE_NUMBER_OPERATIONS',
+            resolved_topic_label: 'Whole Number Operations',
+            curriculum_phase: 'Phase 1',
+            source_topic_key: 'ADDITION',
           }),
         }),
       ]);
@@ -382,6 +409,8 @@ describe('QuestionIndexingService', () => {
         category: 'number-operations',
         metadata: {
           difficulty: 'medium',
+          subject: 'mathematics',
+          curriculumVersion: 'nz-maths-2025-seed-v1',
         },
       } as any;
 

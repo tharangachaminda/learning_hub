@@ -6,6 +6,11 @@ import {
   DifficultyLevel,
 } from '../math-questions/entities/math-question.entity';
 import { QuestionDocument } from '../questions/schemas/question.schema';
+import {
+  getMathematicsTopicCriteria,
+  getMathematicsYearPlan,
+  MATHEMATICS_CURRICULUM,
+} from '../ai/mathematics-curriculum.criteria';
 
 interface PreparedQuestionDocument {
   id: string;
@@ -21,6 +26,12 @@ interface PreparedQuestionDocument {
     difficulty_score: number;
     category: string;
     curriculum_strand: string;
+    subject: string;
+    curriculum_version?: string;
+    resolved_topic_key?: string;
+    resolved_topic_label?: string;
+    curriculum_phase?: string;
+    source_topic_key?: string;
   };
 }
 
@@ -282,6 +293,12 @@ export class QuestionIndexingService {
     const explanation = question.explanation?.trim() || '';
     const difficulty = question.metadata?.difficulty || 'medium';
     const category = question.category || 'math';
+    const sourceTopicKey = question.metadata?.sourceTopicKey || question.topic;
+    const topicCriteria = getMathematicsTopicCriteria(
+      question.grade,
+      sourceTopicKey
+    );
+    const yearPlan = getMathematicsYearPlan(question.grade);
 
     return {
       id: question._id.toString(),
@@ -299,7 +316,20 @@ export class QuestionIndexingService {
         difficulty,
         difficulty_score: this.calculateQuestionDifficultyScore(difficulty),
         category,
-        curriculum_strand: category,
+        curriculum_strand:
+          question.metadata?.curriculumStrand?.toLowerCase() ||
+          topicCriteria?.strand.toLowerCase() ||
+          category,
+        subject: question.metadata?.subject || MATHEMATICS_CURRICULUM.subject,
+        curriculum_version:
+          question.metadata?.curriculumVersion ||
+          MATHEMATICS_CURRICULUM.version,
+        resolved_topic_key:
+          question.metadata?.resolvedTopicKey || topicCriteria?.key,
+        resolved_topic_label:
+          question.metadata?.resolvedTopicLabel || topicCriteria?.label,
+        curriculum_phase: question.metadata?.curriculumPhase || yearPlan?.phase,
+        source_topic_key: sourceTopicKey,
       },
     };
   }
@@ -322,16 +352,35 @@ export class QuestionIndexingService {
     generation_timestamp: Date;
     category: string;
     curriculum_strand: string;
+    subject: string;
+    curriculum_version?: string;
+    resolved_topic_key?: string;
+    resolved_topic_label?: string;
+    curriculum_phase?: string;
+    source_topic_key?: string;
   } {
+    const grade = this.extractGrade(question.difficulty);
+    const topicCriteria = getMathematicsTopicCriteria(
+      grade,
+      question.operation
+    );
+    const yearPlan = getMathematicsYearPlan(grade);
+
     return {
-      grade: this.extractGrade(question.difficulty),
+      grade,
       topic: question.operation,
       operation: question.operation,
       difficulty: question.difficulty,
       difficulty_score: this.calculateDifficultyScore(question.difficulty),
       generation_timestamp: question.createdAt,
       category: 'math',
-      curriculum_strand: 'number',
+      curriculum_strand: topicCriteria?.strand.toLowerCase() || 'number',
+      subject: MATHEMATICS_CURRICULUM.subject,
+      curriculum_version: MATHEMATICS_CURRICULUM.version,
+      resolved_topic_key: topicCriteria?.key,
+      resolved_topic_label: topicCriteria?.label,
+      curriculum_phase: yearPlan?.phase,
+      source_topic_key: question.operation,
     };
   }
 
@@ -358,6 +407,12 @@ export class QuestionIndexingService {
         difficulty_score: metadata.difficulty_score,
         category: metadata.category,
         curriculum_strand: metadata.curriculum_strand,
+        subject: metadata.subject,
+        curriculum_version: metadata.curriculum_version,
+        resolved_topic_key: metadata.resolved_topic_key,
+        resolved_topic_label: metadata.resolved_topic_label,
+        curriculum_phase: metadata.curriculum_phase,
+        source_topic_key: metadata.source_topic_key,
       },
     };
   }

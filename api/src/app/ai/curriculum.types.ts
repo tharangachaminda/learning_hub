@@ -356,3 +356,9 @@ export function getCurriculumContext(
     complexityLevel,
   };
 }
+
+export {
+  MATHEMATICS_CURRICULUM,
+  getMathematicsTopicCriteria,
+  getMathematicsYearPlan,
+} from './mathematics-curriculum.criteria';

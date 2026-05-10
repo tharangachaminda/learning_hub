@@ -77,6 +77,12 @@ describe('VectorIndexService', () => {
       expect(metadata.difficulty).toEqual({ type: 'keyword' });
       expect(metadata.difficulty_score).toEqual({ type: 'float' });
       expect(metadata.generation_timestamp).toEqual({ type: 'date' });
+      expect(metadata.subject).toEqual({ type: 'keyword' });
+      expect(metadata.curriculum_version).toEqual({ type: 'keyword' });
+      expect(metadata.resolved_topic_key).toEqual({ type: 'keyword' });
+      expect(metadata.resolved_topic_label).toEqual({ type: 'keyword' });
+      expect(metadata.curriculum_phase).toEqual({ type: 'keyword' });
+      expect(metadata.source_topic_key).toEqual({ type: 'keyword' });
     });
   });
 
