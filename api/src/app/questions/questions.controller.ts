@@ -205,10 +205,12 @@ export class QuestionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'teacher')
   async batchGenerate(
-    @Body() dto: BatchGenerateQuestionsDto
+    @Body() dto: BatchGenerateQuestionsDto,
+    @Request() req: { user?: { email?: string; userId?: string } }
   ): Promise<{ stored: number; questions: QuestionDocument[] }> {
     const count = dto.count ?? 10;
     const difficulty = this.gradeToDifficulty(dto.grade);
+    const generatedByUser = req.user?.email || req.user?.userId || 'unknown';
 
     this.logger.log(
       `Batch generating ${count} questions: grade=${dto.grade} topic=${dto.topic}`
@@ -247,6 +249,7 @@ export class QuestionsController {
       category: this.topicToCategory(dto.topic),
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       stepByStepSolution: q.stepByStepSolution || [],
+      generatedByUser,
       metadata: {
         generatedBy: 'falcon3:latest',
         generationTime: Date.now() - startTime,

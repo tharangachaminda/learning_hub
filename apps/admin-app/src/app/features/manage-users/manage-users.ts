@@ -47,6 +47,8 @@ export class ManageUsersComponent implements OnInit, AfterViewInit, OnDestroy {
   inviteSuccess: string | null = null;
 
   // Filter
+  nameFilter = '';
+  emailFilter = '';
   roleFilter: 'all' | 'admin' | 'teacher' = 'all';
   statusFilter: 'all' | 'active' | 'disabled' = 'all';
 
@@ -135,6 +137,19 @@ export class ManageUsersComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get filteredUsers(): StaffUser[] {
     return this.users.filter((u) => {
+      const fullName = `${u.profile.firstName} ${u.profile.lastName}`
+        .trim()
+        .toLowerCase();
+      const email = u.email.toLowerCase();
+      const normalizedNameFilter = this.nameFilter.trim().toLowerCase();
+      const normalizedEmailFilter = this.emailFilter.trim().toLowerCase();
+
+      if (normalizedNameFilter && !fullName.includes(normalizedNameFilter)) {
+        return false;
+      }
+      if (normalizedEmailFilter && !email.includes(normalizedEmailFilter)) {
+        return false;
+      }
       if (this.roleFilter !== 'all' && u.role !== this.roleFilter) return false;
       if (this.statusFilter === 'active' && !u.isActive) return false;
       if (this.statusFilter === 'disabled' && u.isActive) return false;

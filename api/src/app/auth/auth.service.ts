@@ -12,6 +12,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from './schemas/user.schema';
+import {
+  Question,
+  QuestionDocument,
+  QuestionStatus,
+} from '../questions/schemas/question.schema';
 import { RegisterStudentDto } from './dto/register-student.dto';
 import { LoginStudentDto } from './dto/login-student.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
@@ -30,6 +35,8 @@ export class AuthService {
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(Question.name)
+    private readonly questionModel: Model<QuestionDocument>,
     private readonly jwtService: JwtService
   ) {}
 
@@ -224,6 +231,47 @@ export class AuthService {
       .sort({ createdAt: -1 })
       .exec();
 
+    const [generatedCounts, approvedCounts] = await Promise.all([
+      this.questionModel
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              generatedByUser: { $exists: true, $nin: [null, '', 'unknown'] },
+            },
+          },
+          {
+            $group: {
+              _id: '$generatedByUser',
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .exec(),
+      this.questionModel
+        .aggregate<{ _id: string; count: number }>([
+          {
+            $match: {
+              status: QuestionStatus.APPROVED,
+              reviewedBy: { $exists: true, $nin: [null, '', 'unknown'] },
+            },
+          },
+          {
+            $group: {
+              _id: '$reviewedBy',
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .exec(),
+    ]);
+
+    const generatedCountByUser = new Map(
+      generatedCounts.map((entry) => [entry._id, entry.count])
+    );
+    const approvedCountByUser = new Map(
+      approvedCounts.map((entry) => [entry._id, entry.count])
+    );
+
     return users.map((u) => ({
       id: u._id.toString(),
       email: u.email,
@@ -231,6 +279,8 @@ export class AuthService {
       profile: u.profile,
       isActive: u.isActive !== false,
       createdAt: (u as any).createdAt,
+      generatedQuestions: generatedCountByUser.get(u.email) ?? 0,
+      approvedQuestions: approvedCountByUser.get(u.email) ?? 0,
     }));
   }
 

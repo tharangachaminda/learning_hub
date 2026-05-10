@@ -257,6 +257,10 @@ export class Question {
   @Prop({ type: QuestionMetadata })
   metadata: QuestionMetadata;
 
+  /** Identifier of the staff user who generated the question */
+  @Prop({ type: String })
+  generatedByUser: string;
+
   /** Identifier of the reviewer who approved/rejected the question */
   @Prop({ type: String })
   reviewedBy: string;
@@ -296,6 +300,8 @@ QuestionSchema.index({ questionText: 1, grade: 1, topic: 1 }, { unique: true });
 QuestionSchema.index({ grade: 1 });
 QuestionSchema.index({ topic: 1 });
 QuestionSchema.index({ status: 1 });
+QuestionSchema.index({ generatedByUser: 1 });
+QuestionSchema.index({ reviewedBy: 1 });
 QuestionSchema.index({ format: 1 });
 QuestionSchema.index({ 'metadata.difficulty': 1 });
 QuestionSchema.index({ 'vectorSync.status': 1 });

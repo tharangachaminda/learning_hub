@@ -10,12 +10,14 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { User } from './schemas/user.schema';
+import { Question, QuestionStatus } from '../questions/schemas/question.schema';
 
 jest.mock('bcryptjs');
 
 describe('AuthService', () => {
   let service: AuthService;
   let userModel: any;
+  let questionModel: any;
   let jwtService: JwtService;
 
   const mockAdminUser = {
@@ -60,6 +62,9 @@ describe('AuthService', () => {
     userModel.findOne = jest.fn();
     userModel.findById = jest.fn();
     userModel.find = jest.fn();
+    questionModel = {
+      aggregate: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +72,10 @@ describe('AuthService', () => {
         {
           provide: getModelToken(User.name),
           useValue: userModel,
+        },
+        {
+          provide: getModelToken(Question.name),
+          useValue: questionModel,
         },
         {
           provide: JwtService,
@@ -232,7 +241,7 @@ describe('AuthService', () => {
   });
 
   describe('getStaffUsers', () => {
-    it('should return list of admin/teacher users without passwords', async () => {
+    it('should return list of admin/teacher users with generated and approved counts', async () => {
       const staffUsers = [
         {
           _id: { toString: () => 'admin-id-123' },
@@ -259,15 +268,59 @@ describe('AuthService', () => {
           }),
         }),
       });
+      questionModel.aggregate
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([
+            { _id: 'admin@learninghub.local', count: 12 },
+            { _id: 'teacher@school.nz', count: 7 },
+          ]),
+        })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([
+            { _id: 'admin@learninghub.local', count: 3 },
+            { _id: 'teacher@school.nz', count: 9 },
+          ]),
+        });
 
       const result = await service.getStaffUsers();
 
       expect(result).toHaveLength(2);
       expect(result[0].email).toBe('admin@learninghub.local');
+      expect(result[0].generatedQuestions).toBe(12);
+      expect(result[0].approvedQuestions).toBe(3);
       expect(result[1].role).toBe('teacher');
+      expect(result[1].generatedQuestions).toBe(7);
+      expect(result[1].approvedQuestions).toBe(9);
       expect(userModel.find).toHaveBeenCalledWith({
         role: { $in: ['admin', 'teacher'] },
       });
+      expect(questionModel.aggregate).toHaveBeenNthCalledWith(1, [
+        {
+          $match: {
+            generatedByUser: { $exists: true, $nin: [null, '', 'unknown'] },
+          },
+        },
+        {
+          $group: {
+            _id: '$generatedByUser',
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+      expect(questionModel.aggregate).toHaveBeenNthCalledWith(2, [
+        {
+          $match: {
+            status: QuestionStatus.APPROVED,
+            reviewedBy: { $exists: true, $nin: [null, '', 'unknown'] },
+          },
+        },
+        {
+          $group: {
+            _id: '$reviewedBy',
+            count: { $sum: 1 },
+          },
+        },
+      ]);
     });
   });
 
