@@ -49,9 +49,10 @@ function createMockDashboardData(): DashboardData {
     recommendations: [
       {
         id: 'rec-1',
-        topic: 'Fractions',
-        subject: 'math',
-        reason: 'You struggled with fractions last session',
+        topic: 'Whole Number Operations',
+        subject: 'mathematics',
+        reason:
+          'Your current mastery in Whole Number Operations is 60%. Another short practice round can strengthen it.',
         difficulty: 'medium',
         estimatedMinutes: 10,
       },
@@ -59,8 +60,8 @@ function createMockDashboardData(): DashboardData {
     recentActivity: [
       {
         id: 'session-1',
-        subject: 'math',
-        topic: 'Addition',
+        subject: 'mathematics',
+        topic: 'Whole Number Operations',
         score: 80,
         questionsAnswered: 10,
         correctAnswers: 8,
@@ -83,8 +84,8 @@ function createMockDashboardData(): DashboardData {
     ],
     subjects: [
       {
-        subject: 'math',
-        displayName: 'Mathematics',
+        subject: 'WHOLE_NUMBER_OPERATIONS',
+        displayName: 'Whole Number Operations',
         icon: '🔢',
         masteryPercentage: 65,
         questionsAnswered: 120,
@@ -153,16 +154,16 @@ describe('DashboardService', () => {
       const mockRecs: TopicRecommendation[] = [
         {
           id: 'rec-1',
-          topic: 'Fractions',
-          subject: 'math',
+          topic: 'Whole Number Operations',
+          subject: 'mathematics',
           reason: 'Needs practice',
           difficulty: 'medium',
           estimatedMinutes: 10,
         },
         {
           id: 'rec-2',
-          topic: 'Multiplication',
-          subject: 'math',
+          topic: 'Patterns and Relationships',
+          subject: 'mathematics',
           reason: 'Ready to advance',
           difficulty: 'hard',
           estimatedMinutes: 15,
@@ -192,8 +193,8 @@ describe('DashboardService', () => {
       const studentId = 'student-1';
       const mockProgress: SubjectProgress[] = [
         {
-          subject: 'math',
-          displayName: 'Mathematics',
+          subject: 'WHOLE_NUMBER_OPERATIONS',
+          displayName: 'Whole Number Operations',
           icon: '🔢',
           masteryPercentage: 65,
           questionsAnswered: 120,

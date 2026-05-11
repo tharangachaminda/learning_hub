@@ -41,7 +41,7 @@
     data-testid="welcome-banner"
     appearance="brand"
     [title]="getGreeting() + ', ' + dashboardData.student.firstName"
-    description="Your dashboard, achievements, and performance are connected in one place."
+    [description]="curriculumDescription"
     [actions]="heroActions"
   >
   </app-page-hero>

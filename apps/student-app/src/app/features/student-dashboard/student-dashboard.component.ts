@@ -94,6 +94,16 @@ export class StudentDashboardComponent implements OnInit {
   /** Error message to display when API call fails. Null when no error. */
   error: string | null = null;
 
+  get curriculumDescription(): string {
+    const grade = this.dashboardData?.student.grade;
+
+    if (grade === undefined) {
+      return 'Your dashboard, practice, and performance all follow the latest mathematics curriculum topics.';
+    }
+
+    return `Your dashboard, practice, and performance all follow your Year ${grade} mathematics curriculum topics.`;
+  }
+
   constructor(
     private readonly dashboardService: DashboardService,
     private readonly authService: AuthService,
@@ -179,7 +189,7 @@ export class StudentDashboardComponent implements OnInit {
       {
         label: 'Average Mastery',
         value: `${this.averageMastery}%`,
-        detail: `${this.dashboardData.subjects.length} active subjects`,
+        detail: `${this.dashboardData.subjects.length} active topics`,
       },
     ];
   }
@@ -238,6 +248,7 @@ export class StudentDashboardComponent implements OnInit {
   onPracticeSubject(subject: SubjectProgress): void {
     this.router.navigate(['/practice/generate'], {
       queryParams: {
+        topic: subject.subject,
         subject: 'mathematics',
       },
     });

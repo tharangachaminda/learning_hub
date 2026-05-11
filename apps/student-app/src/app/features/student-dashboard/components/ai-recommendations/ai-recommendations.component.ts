@@ -28,6 +28,10 @@ import {
   faLightbulb,
 } from '@fortawesome/free-solid-svg-icons';
 import { TopicRecommendation } from '../../../../models/dashboard.model';
+import {
+  formatCurriculumSubjectLabel,
+  formatCurriculumTopicLabel,
+} from '../../../../shared/curriculum-topic-labels';
 
 @Component({
   selector: 'app-ai-recommendations',
@@ -58,5 +62,13 @@ export class AiRecommendationsComponent {
    */
   onPracticeClick(recommendation: TopicRecommendation): void {
     this.startPractice.emit(recommendation);
+  }
+
+  formatTopic(topic: string): string {
+    return formatCurriculumTopicLabel(topic);
+  }
+
+  formatSubject(subject: string): string {
+    return formatCurriculumSubjectLabel(subject);
   }
 }

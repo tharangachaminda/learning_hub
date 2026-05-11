@@ -40,6 +40,16 @@ export class StudentPerformanceComponent implements OnInit {
   loading = true;
   error: string | null = null;
 
+  get performanceDescription(): string {
+    const userGrade = this.authService.getUser()?.profile?.grade;
+
+    if (userGrade === undefined) {
+      return 'Review your latest mathematics curriculum topics, weekly trend, and practice consistency.';
+    }
+
+    return `Review your Year ${userGrade} mathematics curriculum topics, weekly trend, and practice consistency.`;
+  }
+
   constructor(
     private readonly authService: AuthService,
     private readonly performanceService: PerformanceService

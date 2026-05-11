@@ -1,9 +1,9 @@
 /**
- * Frontend curriculum data for AI Question Generator controls.
+ * Frontend display metadata used by the AI Question Generator.
  *
- * Mirrors the data from `api/src/app/ai/curriculum.types.ts` for
- * frontend consumption. Provides grade-topic mappings, question
- * categories, and display names needed by the generation controls.
+ * Runtime grade and topic options now come from the backend curriculum
+ * endpoint. This file only keeps UI category metadata and fallback topic
+ * labels for canonical and legacy topic keys.
  */
 
 /**
@@ -29,96 +29,6 @@ export interface CategoryInfo {
   /** Emoji for visual flair on category card */
   emoji: string;
 }
-
-/** Supported grade levels for the AI Question Generator. */
-export const SUPPORTED_GRADES: number[] = [3, 4, 5, 6, 7, 8];
-
-/**
- * Grade-based topic mappings for Mathematics (Grades 3–8).
- * Each grade contains a `mathematics` key with an array of topic keys.
- *
- * @example
- * ```typescript
- * const grade3Topics = GRADE_TOPICS[3].mathematics;
- * // ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION', 'PATTERN_RECOGNITION']
- * ```
- */
-export const GRADE_TOPICS: Record<number, Record<string, string[]>> = {
-  3: {
-    mathematics: [
-      'ADDITION',
-      'SUBTRACTION',
-      'MULTIPLICATION',
-      'DIVISION',
-      'PATTERN_RECOGNITION',
-    ],
-  },
-  4: {
-    mathematics: [
-      'ADDITION',
-      'SUBTRACTION',
-      'MULTIPLICATION',
-      'DIVISION',
-      'DECIMAL_BASICS',
-      'FRACTION_BASICS',
-      'PLACE_VALUE',
-      'PATTERN_RECOGNITION',
-      'SHAPE_PROPERTIES',
-      'TIME_MEASUREMENT',
-    ],
-  },
-  5: {
-    mathematics: [
-      'ADVANCED_ARITHMETIC',
-      'ALGEBRAIC_THINKING',
-      'DECIMAL_OPERATIONS',
-      'FRACTION_OPERATIONS',
-      'RATIO_PROPORTION',
-    ],
-  },
-  6: {
-    mathematics: [
-      'LARGE_NUMBER_OPERATIONS',
-      'ADVANCED_FRACTIONS_DECIMALS',
-      'ALGEBRAIC_EQUATIONS',
-      'ADVANCED_PATTERNS',
-      'AREA_VOLUME_CALCULATIONS',
-      'COORDINATE_GEOMETRY',
-      'TRANSFORMATIONS_SYMMETRY',
-      'MEASUREMENT_MASTERY',
-      'DATA_ANALYSIS',
-      'PROBABILITY_BASICS',
-      'ADVANCED_PROBLEM_SOLVING',
-      'MATHEMATICAL_REASONING',
-      'REAL_WORLD_APPLICATIONS',
-    ],
-  },
-  7: {
-    mathematics: [
-      'ADVANCED_NUMBER_OPERATIONS',
-      'FRACTION_DECIMAL_MASTERY',
-      'ALGEBRAIC_FOUNDATIONS',
-      'GEOMETRY_SPATIAL_REASONING',
-      'MULTI_UNIT_CONVERSIONS',
-      'DATA_ANALYSIS_PROBABILITY',
-    ],
-  },
-  8: {
-    mathematics: [
-      'PRIME_COMPOSITE_NUMBERS',
-      'NEGATIVE_NUMBERS',
-      'FRACTION_DECIMAL_PERCENTAGE',
-      'NUMBER_PATTERNS',
-      'LINEAR_EQUATIONS',
-      'ALGEBRAIC_MANIPULATION',
-      'PERIMETER_AREA_VOLUME',
-      'UNIT_CONVERSIONS',
-      'SPEED_CALCULATIONS',
-      'RATIOS_PROPORTIONS',
-      'FINANCIAL_LITERACY',
-    ],
-  },
-};
 
 /**
  * Question category definitions with display metadata for category cards.
@@ -162,16 +72,28 @@ export const QUESTION_CATEGORIES: Record<string, CategoryInfo> = {
 
 /**
  * Human-readable display names for question type keys.
- * Used to populate the Topic dropdown with friendly labels.
+ *
+ * Backend curriculum labels are preferred at runtime. This map is only a
+ * fallback for older records, tests, and any UI surface that still only has
+ * a stored topic key.
  *
  * @example
  * ```typescript
- * const displayName = QUESTION_TYPE_DISPLAY_NAMES['ADDITION'];
- * // 'Addition'
+ * const displayName = QUESTION_TYPE_DISPLAY_NAMES['WHOLE_NUMBER_OPERATIONS'];
+ * // 'Whole Number Operations'
  * ```
  */
 export const QUESTION_TYPE_DISPLAY_NAMES: Record<string, string> = {
-  // Grade 3–4: Number Operations
+  // Canonical backend curriculum topic labels.
+  WHOLE_NUMBER_OPERATIONS: 'Whole Number Operations',
+  FRACTIONS_DECIMALS_PERCENTAGES: 'Fractions, Decimals & Percentages',
+  ALGEBRA_AND_PATTERNS: 'Algebra and Patterns',
+  MEASUREMENT_AND_GEOMETRY: 'Measurement and Geometry',
+  STATISTICS_AND_PROBABILITY: 'Statistics and Probability',
+  RATIO_AND_PROPORTION: 'Ratio and Proportion',
+  PROBLEM_SOLVING: 'Problem Solving',
+
+  // Legacy practice topic display names retained for older question records.
   ADDITION: 'Addition',
   SUBTRACTION: 'Subtraction',
   MULTIPLICATION: 'Multiplication',
@@ -181,20 +103,20 @@ export const QUESTION_TYPE_DISPLAY_NAMES: Record<string, string> = {
   FRACTION_BASICS: 'Fractions (Basic)',
   FRACTION_OPERATIONS: 'Fraction Operations',
 
-  // Grade 4: Additional topics
+  // Older grade-specific labels still referenced by existing questions.
   PLACE_VALUE: 'Place Value',
   SHAPE_PROPERTIES: 'Shape Properties',
   TIME_MEASUREMENT: 'Time Measurement',
 
-  // Grade 3–4: Patterns
+  // Legacy pattern labels.
   PATTERN_RECOGNITION: 'Pattern Recognition',
 
-  // Grade 5: Advanced
+  // Legacy upper-primary labels.
   ADVANCED_ARITHMETIC: 'Advanced Arithmetic',
   ALGEBRAIC_THINKING: 'Algebraic Thinking',
   RATIO_PROPORTION: 'Ratio & Proportion',
 
-  // Grade 6: Extended topics
+  // Legacy intermediate labels.
   LARGE_NUMBER_OPERATIONS: 'Large Number Operations',
   ADVANCED_FRACTIONS_DECIMALS: 'Advanced Fractions & Decimals',
   ALGEBRAIC_EQUATIONS: 'Algebraic Equations',
@@ -209,7 +131,7 @@ export const QUESTION_TYPE_DISPLAY_NAMES: Record<string, string> = {
   MATHEMATICAL_REASONING: 'Mathematical Reasoning',
   REAL_WORLD_APPLICATIONS: 'Real World Applications',
 
-  // Grade 7
+  // Legacy Year 7 labels.
   ADVANCED_NUMBER_OPERATIONS: 'Advanced Number Operations',
   FRACTION_DECIMAL_MASTERY: 'Fraction & Decimal Mastery',
   ALGEBRAIC_FOUNDATIONS: 'Algebraic Foundations',
@@ -217,7 +139,7 @@ export const QUESTION_TYPE_DISPLAY_NAMES: Record<string, string> = {
   MULTI_UNIT_CONVERSIONS: 'Multi-Unit Conversions',
   DATA_ANALYSIS_PROBABILITY: 'Data Analysis & Probability',
 
-  // Grade 8
+  // Legacy Year 8 labels.
   PRIME_COMPOSITE_NUMBERS: 'Prime & Composite Numbers',
   NEGATIVE_NUMBERS: 'Negative Numbers',
   FRACTION_DECIMAL_PERCENTAGE: 'Fractions, Decimals & Percentages',

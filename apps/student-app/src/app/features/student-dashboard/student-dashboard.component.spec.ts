@@ -53,9 +53,10 @@ function createMockDashboardData(): DashboardData {
     recommendations: [
       {
         id: 'rec-1',
-        topic: 'Fractions',
-        subject: 'math',
-        reason: 'You struggled with fractions last session',
+        topic: 'Whole Number Operations',
+        subject: 'mathematics',
+        reason:
+          'Your current mastery in Whole Number Operations is 60%. Another short practice round can strengthen it.',
         difficulty: 'medium',
         estimatedMinutes: 10,
       },
@@ -63,8 +64,8 @@ function createMockDashboardData(): DashboardData {
     recentActivity: [
       {
         id: 'session-1',
-        subject: 'math',
-        topic: 'Addition',
+        subject: 'mathematics',
+        topic: 'Whole Number Operations',
         score: 80,
         questionsAnswered: 10,
         correctAnswers: 8,
@@ -87,8 +88,8 @@ function createMockDashboardData(): DashboardData {
     ],
     subjects: [
       {
-        subject: 'math',
-        displayName: 'Mathematics',
+        subject: 'WHOLE_NUMBER_OPERATIONS',
+        displayName: 'Whole Number Operations',
         icon: '🔢',
         masteryPercentage: 65,
         questionsAnswered: 120,
@@ -308,6 +309,7 @@ describe('StudentDashboardComponent', () => {
 
       expect(navigateSpy).toHaveBeenCalledWith(['/practice/generate'], {
         queryParams: {
+          topic: subject.subject,
           subject: 'mathematics',
         },
       });

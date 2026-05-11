@@ -1,53 +1,16 @@
 /**
  * Test Suite: Frontend Curriculum Data
  *
- * Validates that curriculum data constants are correctly structured
- * for populating generation controls (grade/topic dropdowns, category cards).
+ * Validates that frontend display metadata remains available for
+ * topic labels, category cards, and legacy question records.
  */
 import {
-  GRADE_TOPICS,
   QUESTION_CATEGORIES,
   QUESTION_TYPE_DISPLAY_NAMES,
-  SUPPORTED_GRADES,
   CategoryInfo,
 } from './curriculum.data';
 
 describe('Curriculum Data', () => {
-  describe('SUPPORTED_GRADES', () => {
-    it('should contain grades 3 through 8', () => {
-      expect(SUPPORTED_GRADES).toEqual([3, 4, 5, 6, 7, 8]);
-    });
-  });
-
-  describe('GRADE_TOPICS', () => {
-    it('should have entries for all supported grades (3-8)', () => {
-      for (const grade of SUPPORTED_GRADES) {
-        expect(GRADE_TOPICS[grade]).toBeDefined();
-        expect(GRADE_TOPICS[grade].mathematics.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('should have grade 3 topics including basic operations', () => {
-      const grade3Topics = GRADE_TOPICS[3].mathematics;
-      expect(grade3Topics).toContain('ADDITION');
-      expect(grade3Topics).toContain('SUBTRACTION');
-      expect(grade3Topics).toContain('MULTIPLICATION');
-      expect(grade3Topics).toContain('DIVISION');
-    });
-
-    it('should have grade 4 topics including decimals and fractions', () => {
-      const grade4Topics = GRADE_TOPICS[4].mathematics;
-      expect(grade4Topics).toContain('DECIMAL_BASICS');
-      expect(grade4Topics).toContain('FRACTION_BASICS');
-    });
-
-    it('should only contain mathematics subject key per grade', () => {
-      for (const grade of SUPPORTED_GRADES) {
-        expect(Object.keys(GRADE_TOPICS[grade])).toEqual(['mathematics']);
-      }
-    });
-  });
-
   describe('QUESTION_CATEGORIES', () => {
     it('should have exactly 4 categories', () => {
       expect(Object.keys(QUESTION_CATEGORIES)).toHaveLength(4);
@@ -100,13 +63,26 @@ describe('Curriculum Data', () => {
       expect(QUESTION_TYPE_DISPLAY_NAMES['DIVISION']).toBe('Division');
     });
 
-    it('should have display names for all topics across all grades', () => {
-      for (const grade of SUPPORTED_GRADES) {
-        const topics = GRADE_TOPICS[grade].mathematics;
-        for (const topic of topics) {
-          expect(QUESTION_TYPE_DISPLAY_NAMES[topic]).toBeDefined();
-        }
-      }
+    it('should include labels for canonical backend curriculum topics', () => {
+      expect(QUESTION_TYPE_DISPLAY_NAMES['WHOLE_NUMBER_OPERATIONS']).toBe(
+        'Whole Number Operations'
+      );
+      expect(
+        QUESTION_TYPE_DISPLAY_NAMES['FRACTIONS_DECIMALS_PERCENTAGES']
+      ).toBe('Fractions, Decimals & Percentages');
+      expect(QUESTION_TYPE_DISPLAY_NAMES['ALGEBRA_AND_PATTERNS']).toBe(
+        'Algebra and Patterns'
+      );
+    });
+
+    it('should retain labels for legacy topic keys still found in existing data', () => {
+      expect(QUESTION_TYPE_DISPLAY_NAMES['ADDITION']).toBe('Addition');
+      expect(QUESTION_TYPE_DISPLAY_NAMES['ALGEBRAIC_EQUATIONS']).toBe(
+        'Algebraic Equations'
+      );
+      expect(QUESTION_TYPE_DISPLAY_NAMES['FINANCIAL_LITERACY']).toBe(
+        'Financial Literacy'
+      );
     });
   });
 });

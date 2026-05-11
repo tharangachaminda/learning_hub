@@ -12,7 +12,12 @@
   } @for (rec of recommendations; track rec.id) {
   <div data-testid="recommendation-card" class="recommendation-card">
     <div class="card-header">
-      <h4 class="topic-name">{{ rec.topic }}</h4>
+      <div>
+        <p class="topic-name">{{ formatTopic(rec.topic) }}</p>
+        <span class="estimated-time"
+          >{{ formatSubject(rec.subject) }} curriculum topic</span
+        >
+      </div>
       <span class="difficulty-badge" [class]="'badge-' + rec.difficulty">
         {{ rec.difficulty }}
       </span>
@@ -27,7 +32,7 @@
         data-testid="practice-btn"
         class="practice-btn"
         (click)="onPracticeClick(rec)"
-        [attr.aria-label]="'Start practicing ' + rec.topic"
+        [attr.aria-label]="'Start practicing ' + formatTopic(rec.topic)"
       >
         Practice Now
         <fa-icon [icon]="actionIcon"></fa-icon>

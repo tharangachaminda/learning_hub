@@ -17,8 +17,8 @@ describe('RecentActivityComponent', () => {
   const mockSessions: PracticeSession[] = [
     {
       id: 'session-1',
-      subject: 'math',
-      topic: 'Addition',
+      subject: 'mathematics',
+      topic: 'WHOLE_NUMBER_OPERATIONS',
       score: 80,
       questionsAnswered: 10,
       correctAnswers: 8,
@@ -27,8 +27,8 @@ describe('RecentActivityComponent', () => {
     },
     {
       id: 'session-2',
-      subject: 'math',
-      topic: 'Subtraction',
+      subject: 'mathematics',
+      topic: 'ALGEBRA_AND_PATTERNS',
       score: 90,
       questionsAnswered: 10,
       correctAnswers: 9,
@@ -37,8 +37,8 @@ describe('RecentActivityComponent', () => {
     },
     {
       id: 'session-3',
-      subject: 'math',
-      topic: 'Multiplication',
+      subject: 'mathematics',
+      topic: 'MEASUREMENT_AND_GEOMETRY',
       score: 70,
       questionsAnswered: 10,
       correctAnswers: 7,
@@ -72,9 +72,10 @@ describe('RecentActivityComponent', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const content = compiled.textContent ?? '';
-      expect(content).toContain('Addition');
-      expect(content).toContain('Subtraction');
-      expect(content).toContain('Multiplication');
+      expect(content).toContain('Whole Number Operations');
+      expect(content).toContain('Algebra and Patterns');
+      expect(content).toContain('Measurement and Geometry');
+      expect(content).toContain('Mathematics');
     });
 
     it('should display scores for each session', () => {

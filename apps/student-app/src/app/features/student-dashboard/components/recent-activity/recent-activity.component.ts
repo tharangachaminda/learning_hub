@@ -24,6 +24,10 @@ import {
   faSquarePollVertical,
 } from '@fortawesome/free-solid-svg-icons';
 import { PracticeSession } from '../../../../models/dashboard.model';
+import {
+  formatCurriculumSubjectLabel,
+  formatCurriculumTopicLabel,
+} from '../../../../shared/curriculum-topic-labels';
 
 @Component({
   selector: 'app-recent-activity',
@@ -39,4 +43,12 @@ export class RecentActivityComponent {
 
   /** List of recent practice sessions to display. */
   @Input() recentActivity: PracticeSession[] = [];
+
+  formatTopic(topic: string): string {
+    return formatCurriculumTopicLabel(topic);
+  }
+
+  formatSubject(subject: string): string {
+    return formatCurriculumSubjectLabel(subject);
+  }
 }

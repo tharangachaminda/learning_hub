@@ -10,6 +10,7 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faLightbulb, faPenRuler } from '@fortawesome/free-solid-svg-icons';
 import { GeneratedQuestion } from '../../models/question.model';
 import { KatexRenderComponent } from '../katex-render/katex-render';
+import { formatCurriculumTopicLabel } from '../../../../../shared/curriculum-topic-labels';
 
 /**
  * Presentation component that renders a single AI-generated question card.
@@ -126,10 +127,6 @@ export class QuestionCardComponent {
   }
 
   formatTopic(topic: string): string {
-    return topic
-      .split('_')
-      .join(' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+    return formatCurriculumTopicLabel(topic);
   }
 }

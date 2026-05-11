@@ -19,16 +19,16 @@ describe('AiRecommendationsComponent', () => {
   const mockRecommendations: TopicRecommendation[] = [
     {
       id: 'rec-1',
-      topic: 'Fractions',
-      subject: 'math',
+      topic: 'FRACTIONS_DECIMALS_PERCENTAGES',
+      subject: 'mathematics',
       reason: 'You struggled with fractions last session',
       difficulty: 'medium',
       estimatedMinutes: 10,
     },
     {
       id: 'rec-2',
-      topic: 'Multiplication',
-      subject: 'math',
+      topic: 'WHOLE_NUMBER_OPERATIONS',
+      subject: 'mathematics',
       reason: 'Ready to advance',
       difficulty: 'hard',
       estimatedMinutes: 15,
@@ -60,8 +60,8 @@ describe('AiRecommendationsComponent', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const content = compiled.textContent ?? '';
-      expect(content).toContain('Fractions');
-      expect(content).toContain('Multiplication');
+      expect(content).toContain('Fractions, Decimals & Percentages');
+      expect(content).toContain('Whole Number Operations');
     });
 
     it('should display reason for each recommendation', () => {
