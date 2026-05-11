@@ -112,7 +112,7 @@ export class QuestionsController {
    */
   @Get('curriculum')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'teacher')
+  @Roles('admin', 'teacher', 'student')
   getCurriculum() {
     const years = MATHEMATICS_CURRICULUM.years.map((yearPlan) => ({
       grade: yearPlan.year,

@@ -209,6 +209,7 @@ export class QuestionGeneratorComponent implements OnInit {
    */
   ngOnInit(): void {
     this.checkServiceHealth();
+    this.profileService.loadProfile();
     this.loadCurriculum();
     const topic = this.route.snapshot.queryParamMap.get('topic');
     if (topic) {
@@ -248,11 +249,8 @@ export class QuestionGeneratorComponent implements OnInit {
     this.emptyState.set(false);
     this.generationParams.set(params);
 
-    const difficultyParam = `grade_${params.grade}`;
-    const typeParam = params.topic.toLowerCase();
-
     this.generatorService
-      .generateQuestions(difficultyParam, params.count, typeParam)
+      .generateQuestions(params.grade, params.count, params.topic)
       .subscribe({
         next: (rawQuestions) => {
           const questions = this.mapApiResponse(rawQuestions, params);

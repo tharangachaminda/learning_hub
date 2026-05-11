@@ -31,6 +31,22 @@ describe('QuestionGeneratorComponent', () => {
   let httpMock: HttpTestingController;
   const mockAuthService = {
     getUserId: jest.fn(() => null),
+    getUser: jest.fn(() => ({
+      id: 'student-001',
+      email: 'student@example.com',
+      name: 'Test Student',
+      role: 'student',
+      profile: { grade: 3 },
+    })),
+    getProfile: jest.fn(() =>
+      of({
+        id: 'student-001',
+        email: 'student@example.com',
+        role: 'student',
+        profile: { grade: 3 },
+      })
+    ),
+    isAuthenticated: jest.fn(() => true),
     getCurriculum: jest.fn(() => of({ grades: [] })),
   };
 

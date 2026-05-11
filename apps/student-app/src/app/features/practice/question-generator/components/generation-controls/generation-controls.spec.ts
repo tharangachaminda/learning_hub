@@ -13,10 +13,7 @@ import {
 } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { GenerationControlsComponent } from './generation-controls';
-import {
-  GRADE_TOPICS,
-  QUESTION_TYPE_DISPLAY_NAMES,
-} from '../../models/curriculum.data';
+import { QUESTION_TYPE_DISPLAY_NAMES } from '../../models/curriculum.data';
 import { GenerationParams } from '../../models/generation-params.model';
 
 describe('GenerationControlsComponent', () => {
@@ -34,6 +31,44 @@ describe('GenerationControlsComponent', () => {
     component.country = 'NZ';
     component.isGenerating = false;
     component.serviceHealthy = true;
+    component.curriculumGrades = [
+      {
+        grade: 3,
+        topics: [
+          {
+            key: 'WHOLE_NUMBER_OPERATIONS',
+            label: 'Whole Number Operations',
+            legacyTopicKeys: ['ADDITION', 'SUBTRACTION'],
+          },
+          {
+            key: 'PATTERNS_AND_RELATIONSHIPS',
+            label: 'Patterns and Relationships',
+          },
+        ],
+      },
+      {
+        grade: 4,
+        topics: [
+          {
+            key: 'WHOLE_NUMBER_OPERATIONS',
+            label: 'Whole Number Operations',
+          },
+          {
+            key: 'FRACTIONS_DECIMALS_PERCENTAGES',
+            label: 'Fractions, Decimals and Percentages',
+          },
+        ],
+      },
+      {
+        grade: 5,
+        topics: [
+          {
+            key: 'ADVANCED_ARITHMETIC_AND_NUMBER_SENSE',
+            label: 'Advanced Arithmetic and Number Sense',
+          },
+        ],
+      },
+    ];
     fixture.detectChanges();
   });
 
@@ -56,19 +91,16 @@ describe('GenerationControlsComponent', () => {
       expect(component.selectedGrade()).toBe(3);
     });
 
-    it('should have options for years 3 through 8 when using fallback curriculum', () => {
+    it('should render only years from backend curriculum data', () => {
       const select: HTMLSelectElement = fixture.nativeElement.querySelector(
         '[data-testid="grade-select"]'
       );
       const options = Array.from(select.options);
-      expect(options).toHaveLength(6);
+      expect(options).toHaveLength(3);
       expect(options.map((o) => o.text.trim())).toEqual([
         'Year 3',
         'Year 4',
         'Year 5',
-        'Year 6',
-        'Year 7',
-        'Year 8',
       ]);
     });
 
@@ -90,6 +122,17 @@ describe('GenerationControlsComponent', () => {
       ]);
     });
 
+    it('should render no years until backend curriculum is available', () => {
+      fixture.componentRef.setInput('curriculumGrades', []);
+      fixture.detectChanges();
+
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector(
+        '[data-testid="grade-select"]'
+      );
+
+      expect(Array.from(select.options)).toHaveLength(0);
+    });
+
     it('should update selectedGrade when grade changes', () => {
       component.onGradeChange(5);
       expect(component.selectedGrade()).toBe(5);
@@ -97,7 +140,7 @@ describe('GenerationControlsComponent', () => {
 
     it('should reset topic to first available when grade changes', () => {
       component.onGradeChange(5);
-      const expectedFirst = GRADE_TOPICS[5].mathematics[0];
+      const expectedFirst = 'ADVANCED_ARITHMETIC_AND_NUMBER_SENSE';
       expect(component.selectedTopic()).toBe(expectedFirst);
     });
   });
@@ -115,11 +158,14 @@ describe('GenerationControlsComponent', () => {
 
     it('should show topics for the selected grade', () => {
       const topics = component.availableTopics();
-      expect(topics).toEqual(GRADE_TOPICS[3].mathematics);
+      expect(topics).toEqual([
+        'WHOLE_NUMBER_OPERATIONS',
+        'PATTERNS_AND_RELATIONSHIPS',
+      ]);
     });
 
     it('should auto-select the first topic', () => {
-      expect(component.selectedTopic()).toBe('ADDITION');
+      expect(component.selectedTopic()).toBe('WHOLE_NUMBER_OPERATIONS');
     });
 
     it('should show user-friendly display names', () => {
@@ -127,8 +173,8 @@ describe('GenerationControlsComponent', () => {
         '[data-testid="topic-select"]'
       );
       const optionTexts = Array.from(select.options).map((o) => o.text.trim());
-      expect(optionTexts[0]).toBe(QUESTION_TYPE_DISPLAY_NAMES['ADDITION']);
-      expect(optionTexts[1]).toBe(QUESTION_TYPE_DISPLAY_NAMES['SUBTRACTION']);
+      expect(optionTexts[0]).toBe('Whole Number Operations');
+      expect(optionTexts[1]).toBe('Patterns and Relationships');
     });
 
     it('should prefer backend curriculum topic labels when provided', () => {
@@ -154,6 +200,14 @@ describe('GenerationControlsComponent', () => {
         'Whole Number Operations',
         'Patterns',
       ]);
+    });
+
+    it('should render no topics until backend curriculum is available', () => {
+      fixture.componentRef.setInput('curriculumGrades', []);
+      fixture.detectChanges();
+
+      expect(component.availableTopics()).toEqual([]);
+      expect(component.selectedTopic()).toBe('');
     });
 
     it('should resolve initialTopic from a backend curriculum label', () => {
@@ -199,7 +253,10 @@ describe('GenerationControlsComponent', () => {
       component.onGradeChange(4);
       fixture.detectChanges();
       const topics = component.availableTopics();
-      expect(topics).toEqual(GRADE_TOPICS[4].mathematics);
+      expect(topics).toEqual([
+        'WHOLE_NUMBER_OPERATIONS',
+        'FRACTIONS_DECIMALS_PERCENTAGES',
+      ]);
     });
 
     it('should update selected topic when user selects a different topic', () => {
@@ -361,7 +418,7 @@ describe('GenerationControlsComponent', () => {
 
       expect(generateSpy).toHaveBeenCalledWith({
         grade: 3,
-        topic: 'ADDITION',
+        topic: 'WHOLE_NUMBER_OPERATIONS',
         difficulty: 'easy',
         count: 10,
         country: 'NZ',

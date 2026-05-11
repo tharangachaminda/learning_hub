@@ -36,6 +36,22 @@ describe('AuthService', () => {
       email: 'student@example.com',
       name: 'Test Student',
       role: 'student',
+      profile: {
+        firstName: 'Test',
+        lastName: 'Student',
+        grade: 5,
+      },
+    },
+  };
+
+  const mockProfileResponse = {
+    id: 'student-001',
+    email: 'student@example.com',
+    role: 'student',
+    profile: {
+      firstName: 'Test',
+      lastName: 'Student',
+      grade: 4,
     },
   };
 
@@ -123,6 +139,9 @@ describe('AuthService', () => {
         'mock-jwt-token-abc123'
       );
       expect(localStorage.getItem('auth_token')).toBeNull();
+      expect(JSON.parse(sessionStorage.getItem('auth_user') ?? '{}')).toEqual(
+        mockLoginResponse.user
+      );
     });
 
     /**
@@ -190,6 +209,40 @@ describe('AuthService', () => {
       const req = httpMock.expectOne('/api/questions/curriculum');
       expect(req.request.method).toBe('GET');
       req.flush(mockCurriculumResponse);
+    });
+  });
+
+  describe('getProfile', () => {
+    it('should GET the authenticated profile and merge it into stored user data', () => {
+      sessionStorage.setItem(
+        'auth_user',
+        JSON.stringify({
+          id: 'student-001',
+          email: 'student@example.com',
+          name: 'Test Student',
+          role: 'student',
+        })
+      );
+
+      service.getProfile().subscribe((response) => {
+        expect(response).toEqual(mockProfileResponse);
+      });
+
+      const req = httpMock.expectOne('/api/auth/me');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockProfileResponse);
+
+      expect(service.getUser()).toEqual({
+        id: 'student-001',
+        email: 'student@example.com',
+        name: 'Test Student',
+        role: 'student',
+        profile: {
+          firstName: 'Test',
+          lastName: 'Student',
+          grade: 4,
+        },
+      });
     });
   });
 

@@ -18,11 +18,7 @@ import {
   faSliders,
 } from '@fortawesome/free-solid-svg-icons';
 import { GenerationParams } from '../../models/generation-params.model';
-import {
-  GRADE_TOPICS,
-  QUESTION_TYPE_DISPLAY_NAMES,
-  SUPPORTED_GRADES,
-} from '../../models/curriculum.data';
+import { QUESTION_TYPE_DISPLAY_NAMES } from '../../models/curriculum.data';
 import { CurriculumGradeInfo } from '../../../../../services/auth.service';
 
 /**
@@ -78,15 +74,11 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
 
   private readonly curriculumGradesState = signal<CurriculumGradeInfo[]>([]);
 
-  /** Fallback curriculum references used before backend data loads. */
-  readonly fallbackGrades = SUPPORTED_GRADES;
   readonly fallbackDisplayNames = QUESTION_TYPE_DISPLAY_NAMES;
 
-  /** Years shown in the selector, preferring backend curriculum data. */
+  /** Years shown in the selector. Backend curriculum is the source of truth. */
   readonly supportedGrades = computed(() =>
-    this.curriculumGradesState().length > 0
-      ? this.curriculumGradesState().map((grade) => grade.grade)
-      : this.fallbackGrades
+    this.curriculumGradesState().map((grade) => grade.grade)
   );
 
   /** Selected values. */
@@ -105,7 +97,7 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
       return curriculumGrade.topics.map((topic) => topic.key);
     }
 
-    return GRADE_TOPICS[grade]?.['mathematics'] ?? [];
+    return [];
   });
 
   /** Currently selected topic key. */

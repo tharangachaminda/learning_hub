@@ -26,9 +26,9 @@
 export type AnswerType = 'multiple-choice' | 'open-ended';
 
 export interface GenerationParams {
-  /** Student grade level (3–8) */
+  /** Student year level (0–10) */
   grade: number;
-  /** Topic key from GRADE_TOPICS (e.g. 'ADDITION') */
+  /** Canonical curriculum topic key from the backend curriculum metadata */
   topic: string;
   /** Difficulty level: easy, medium, or hard */
   difficulty: 'easy' | 'medium' | 'hard';
