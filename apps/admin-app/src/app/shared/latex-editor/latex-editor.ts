@@ -232,14 +232,14 @@ export class LatexEditorComponent implements AfterViewInit, OnDestroy {
       {
         key: 'Mod-b',
         run: (view) => {
-          this.wrapSelection(view, '\textbf{', '}');
+          this.wrapSelection(view, '\\textbf{', '}');
           return true;
         },
       },
       {
         key: 'Mod-i',
         run: (view) => {
-          this.wrapSelection(view, '\textit{', '}');
+          this.wrapSelection(view, '\\textit{', '}');
           return true;
         },
       },

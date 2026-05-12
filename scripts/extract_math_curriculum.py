@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Extract a curriculum PDF into reviewable markdown.
+
+This is a one-off maintenance script used during curriculum extraction work.
+If you need to rerun it, install the external dependency first:
+
+    python3 -m pip install pypdf
+"""
 
 from __future__ import annotations
 
@@ -6,7 +13,13 @@ import argparse
 import re
 from pathlib import Path
 
-from pypdf import PdfReader
+try:
+    from pypdf import PdfReader  # pyright: ignore[reportMissingImports]
+except ImportError as exc:  # pragma: no cover - runtime guard for local tooling
+    raise SystemExit(
+        'Missing dependency: pypdf. Install it with "python3 -m pip install pypdf" '
+        'before running scripts/extract_math_curriculum.py.'
+    ) from exc
 
 
 def normalize_text(text: str) -> str:

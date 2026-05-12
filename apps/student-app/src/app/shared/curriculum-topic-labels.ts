@@ -7,6 +7,14 @@ export function formatCurriculumTopicLabel(topicValue: string): string {
     return '';
   }
 
+  if (
+    trimmedTopic.includes(' ') &&
+    !trimmedTopic.includes('_') &&
+    trimmedTopic !== trimmedTopic.toUpperCase()
+  ) {
+    return trimmedTopic;
+  }
+
   return (
     QUESTION_TYPE_DISPLAY_NAMES[trimmedTopic] ??
     trimmedTopic

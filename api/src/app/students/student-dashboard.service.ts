@@ -181,8 +181,8 @@ export class StudentDashboardService {
     const subjects = await this.getProgressSummary(studentId, profile.grade);
 
     const prioritized = [...subjects].sort((left, right) => {
-      const leftPractised = left.questionsAnswered > 0 ? 0 : 1;
-      const rightPractised = right.questionsAnswered > 0 ? 0 : 1;
+      const leftPractised = left.questionsAnswered > 0 ? 1 : 0;
+      const rightPractised = right.questionsAnswered > 0 ? 1 : 0;
 
       if (leftPractised !== rightPractised) {
         return leftPractised - rightPractised;
