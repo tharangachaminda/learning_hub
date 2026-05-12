@@ -16,10 +16,12 @@
   <div data-testid="activity-entry" class="activity-entry">
     <div class="entry-icon"><fa-icon [icon]="sessionIcon"></fa-icon></div>
     <div class="entry-details">
-      <h4 class="entry-topic">{{ session.topic }}</h4>
+      <h4 class="entry-topic">{{ formatTopic(session.topic) }}</h4>
       <p class="entry-meta">
-        {{ session.correctAnswers }}/{{ session.questionsAnswered }} correct ·
-        {{ session.durationMinutes }} min
+        {{ formatSubject(session.subject) }} · {{ session.correctAnswers }}/{{
+          session.questionsAnswered
+        }}
+        correct · {{ session.durationMinutes }} min
       </p>
     </div>
     <div

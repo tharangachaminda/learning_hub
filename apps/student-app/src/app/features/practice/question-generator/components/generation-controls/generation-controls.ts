@@ -18,11 +18,8 @@ import {
   faSliders,
 } from '@fortawesome/free-solid-svg-icons';
 import { GenerationParams } from '../../models/generation-params.model';
-import {
-  GRADE_TOPICS,
-  QUESTION_TYPE_DISPLAY_NAMES,
-  SUPPORTED_GRADES,
-} from '../../models/curriculum.data';
+import { QUESTION_TYPE_DISPLAY_NAMES } from '../../models/curriculum.data';
+import { CurriculumGradeInfo } from '../../../../../services/auth.service';
 
 /**
  * Presentation component for the AI Question Generator controls (Phase 1).
@@ -69,12 +66,20 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   /** Optional topic key from URL to pre-select (e.g. 'ADDITION'). */
   @Input() initialTopic = '';
 
+  /** Optional curriculum data loaded from the backend. */
+  @Input() curriculumGrades: CurriculumGradeInfo[] = [];
+
   /** Emits generation parameters when Generate is clicked. */
   @Output() generate = new EventEmitter<GenerationParams>();
 
-  /** Curriculum data references. */
-  readonly supportedGrades = SUPPORTED_GRADES;
-  readonly displayNames = QUESTION_TYPE_DISPLAY_NAMES;
+  private readonly curriculumGradesState = signal<CurriculumGradeInfo[]>([]);
+
+  readonly fallbackDisplayNames = QUESTION_TYPE_DISPLAY_NAMES;
+
+  /** Years shown in the selector. Backend curriculum is the source of truth. */
+  readonly supportedGrades = computed(() =>
+    this.curriculumGradesState().map((grade) => grade.grade)
+  );
 
   /** Selected values. */
   selectedGrade = signal<number>(3);
@@ -84,19 +89,31 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
   /** Topics filtered by selected grade. */
   availableTopics = computed(() => {
     const grade = this.selectedGrade();
-    const topics = GRADE_TOPICS[grade]?.['mathematics'] ?? [];
-    return topics;
+    const curriculumGrade = this.curriculumGradesState().find(
+      (entry) => entry.grade === grade
+    );
+
+    if (curriculumGrade) {
+      return curriculumGrade.topics.map((topic) => topic.key);
+    }
+
+    return [];
   });
 
   /** Currently selected topic key. */
   selectedTopic = signal<string>('');
 
   ngOnInit(): void {
+    this.curriculumGradesState.set(this.curriculumGrades);
     this.selectedGrade.set(this.grade);
     this.applyInitialTopicOrFirst();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['curriculumGrades']) {
+      this.curriculumGradesState.set(this.curriculumGrades);
+      this.applyInitialTopicOrFirst();
+    }
     if (changes['grade'] && !changes['grade'].firstChange) {
       this.selectedGrade.set(this.grade);
       this.updateTopicToFirst();
@@ -166,7 +183,14 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
    * @returns Human-readable display name
    */
   getTopicDisplayName(topicKey: string): string {
-    return this.displayNames[topicKey] ?? topicKey;
+    for (const grade of this.curriculumGradesState()) {
+      const topic = grade.topics.find((entry) => entry.key === topicKey);
+      if (topic) {
+        return topic.label;
+      }
+    }
+
+    return this.fallbackDisplayNames[topicKey] ?? topicKey;
   }
 
   /**
@@ -192,11 +216,50 @@ export class GenerationControlsComponent implements OnInit, OnChanges {
    * to the first available topic.
    */
   private applyInitialTopicOrFirst(): void {
-    const topics = this.availableTopics();
-    if (this.initialTopic && topics.includes(this.initialTopic)) {
-      this.selectedTopic.set(this.initialTopic);
-    } else {
-      this.updateTopicToFirst();
+    const resolvedTopic = this.resolveInitialTopicKey(this.initialTopic);
+    if (resolvedTopic) {
+      this.selectedTopic.set(resolvedTopic);
+      return;
     }
+
+    this.updateTopicToFirst();
+  }
+
+  private resolveInitialTopicKey(topicValue: string): string | null {
+    if (!topicValue) {
+      return null;
+    }
+
+    const normalizedTopic = topicValue.trim().toLowerCase();
+    if (!normalizedTopic) {
+      return null;
+    }
+
+    for (const grade of this.curriculumGradesState()) {
+      for (const topic of grade.topics) {
+        if (topic.key.toLowerCase() === normalizedTopic) {
+          return topic.key;
+        }
+
+        if (topic.label.toLowerCase() === normalizedTopic) {
+          return topic.key;
+        }
+
+        if (
+          topic.legacyTopicKeys?.some(
+            (legacyTopicKey) => legacyTopicKey.toLowerCase() === normalizedTopic
+          )
+        ) {
+          return topic.key;
+        }
+      }
+    }
+
+    const topics = this.availableTopics();
+    const fallbackMatch = topics.find(
+      (topic) => topic.toLowerCase() === normalizedTopic
+    );
+
+    return fallbackMatch ?? null;
   }
 }

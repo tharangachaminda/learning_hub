@@ -76,9 +76,8 @@ describe('SubjectCardsComponent', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const content = compiled.textContent ?? '';
-      expect(content).toContain('🔢');
-      expect(content).toContain('📖');
+      const iconContainers = compiled.querySelectorAll('.card-icon');
+      expect(iconContainers.length).toBe(2);
     });
 
     it('should display mastery percentage with progress bar', () => {

@@ -13,7 +13,10 @@ import {
   LessonLearned,
   LessonLearnedDocument,
 } from './schemas/lesson-learned.schema';
-import { GRADE_TOPICS } from '../ai/curriculum.types';
+import {
+  getMathematicsTopicCriteria,
+  MATHEMATICS_CURRICULUM,
+} from '../ai/mathematics-curriculum.criteria';
 
 export interface GradeTopicCount {
   grade: number;
@@ -105,12 +108,19 @@ export interface PracticeQuestionsResult {
   hasMore: boolean;
 }
 
+type MongoWriteError = {
+  code?: number;
+  insertedDocs?: QuestionDocument[];
+};
+
 /**
  * Filter criteria for querying persisted questions.
  */
 export interface QuestionFilters {
-  /** Grade level (3–8) */
+  /** Grade/year level (0–10) */
   grade?: number;
+  /** Subject key stored in metadata */
+  subject?: string;
   /** Curriculum topic key (e.g. 'ADDITION', 'FRACTION_OPERATIONS') */
   topic?: string;
   /** Review workflow status */
@@ -201,8 +211,9 @@ export class QuestionsService {
       });
       return doc;
     } catch (error) {
+      const mongoError = error as MongoWriteError;
       // MongoDB duplicate key error code
-      if ((error as any).code === 11000) {
+      if (mongoError.code === 11000) {
         this.logger.warn(
           `Duplicate question detected: "${dto.questionText}" grade=${dto.grade} topic=${dto.topic}`
         );
@@ -241,7 +252,12 @@ export class QuestionsService {
     const query: Record<string, unknown> = {};
 
     if (filters.grade !== undefined) query.grade = filters.grade;
-    if (filters.topic !== undefined) query.topic = filters.topic;
+    if (filters.subject !== undefined) {
+      query['metadata.subject'] = filters.subject;
+    }
+    if (filters.topic !== undefined) {
+      Object.assign(query, this.buildTopicQuery(filters.topic, filters.grade));
+    }
     if (filters.approvedNotIndexed) {
       query.status = QuestionStatus.APPROVED;
       query['vectorSync.status'] = { $ne: VectorSyncStatus.STORED };
@@ -316,15 +332,14 @@ export class QuestionsService {
       });
       return result as QuestionDocument[];
     } catch (error) {
+      const mongoError = error as MongoWriteError;
       // With ordered: false, MongoDB throws a BulkWriteError but still
       // inserts non-duplicate documents. Extract the successful ones.
-      if ((error as any).code === 11000 && (error as any).insertedDocs) {
+      if (mongoError.code === 11000 && mongoError.insertedDocs) {
         this.logger.warn(
-          `Batch insert: some duplicates skipped. ${
-            (error as any).insertedDocs.length
-          } documents inserted.`
+          `Batch insert: some duplicates skipped. ${mongoError.insertedDocs.length} documents inserted.`
         );
-        return (error as any).insertedDocs as QuestionDocument[];
+        return mongoError.insertedDocs;
       }
       throw error;
     }
@@ -357,7 +372,7 @@ export class QuestionsService {
     grade?: number
   ): Promise<QuestionAnalytics> {
     const gradeMatch: Record<string, unknown> = {};
-    if (grade) gradeMatch.grade = grade;
+    if (grade !== undefined) gradeMatch.grade = grade;
 
     // Aggregate counts by grade, topic, status
     const statusAgg = await this.questionModel.aggregate<{
@@ -484,18 +499,20 @@ export class QuestionsService {
       },
     ]);
 
-    // Build the grade×topic matrix from expected combos
+    // Build the grade×topic matrix from the curriculum artifact so analytics
+    // stays aligned with canonical topic keys and Years 0-10 coverage.
     const matrixMap = new Map<string, GradeTopicCount>();
-    const targetGrades = grade
-      ? { [grade]: GRADE_TOPICS[grade] }
-      : GRADE_TOPICS;
-    for (const [gradeStr, subjects] of Object.entries(targetGrades)) {
-      const g = Number(gradeStr);
-      const topics = subjects?.['mathematics'] || [];
-      for (const topic of topics) {
-        matrixMap.set(`${g}:${topic}`, {
-          grade: g,
-          topic,
+    const targetYears =
+      grade !== undefined
+        ? MATHEMATICS_CURRICULUM.years.filter(
+            (yearPlan) => yearPlan.year === grade
+          )
+        : MATHEMATICS_CURRICULUM.years;
+    for (const yearPlan of targetYears) {
+      for (const topic of yearPlan.topics) {
+        matrixMap.set(`${yearPlan.year}:${topic.key}`, {
+          grade: yearPlan.year,
+          topic: topic.key,
           approved: 0,
           pending: 0,
           rejected: 0,
@@ -507,7 +524,11 @@ export class QuestionsService {
 
     // Fill in actual counts from aggregation
     for (const row of statusAgg) {
-      const key = `${row._id.grade}:${row._id.topic}`;
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const key = `${row._id.grade}:${normalizedTopic}`;
       const entry = matrixMap.get(key);
       if (entry) {
         const status = row._id.status;
@@ -519,7 +540,11 @@ export class QuestionsService {
     }
 
     for (const row of indexedAgg) {
-      const key = `${row._id.grade}:${row._id.topic}`;
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const key = `${row._id.grade}:${normalizedTopic}`;
       const entry = matrixMap.get(key);
       if (entry) {
         entry.indexed = row.count;
@@ -553,10 +578,19 @@ export class QuestionsService {
     const difficultyMap = new Map<string, DifficultyCount>();
     for (const row of difficultyAgg) {
       const difficulty = row._id.difficulty || 'unknown';
-      const key = `${row._id.grade}:${row._id.topic}:${difficulty}`;
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const key = `${row._id.grade}:${normalizedTopic}:${difficulty}`;
+      const existing = difficultyMap.get(key);
+      if (existing) {
+        existing.count += row.count;
+        continue;
+      }
       difficultyMap.set(key, {
         grade: row._id.grade,
-        topic: row._id.topic,
+        topic: normalizedTopic,
         difficulty,
         count: row.count,
         indexed: 0,
@@ -565,14 +599,18 @@ export class QuestionsService {
 
     for (const row of indexedDifficultyAgg) {
       const difficulty = row._id.difficulty || 'unknown';
-      const key = `${row._id.grade}:${row._id.topic}:${difficulty}`;
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const key = `${row._id.grade}:${normalizedTopic}:${difficulty}`;
       const existing = difficultyMap.get(key);
       if (existing) {
-        existing.indexed = row.count;
+        existing.indexed += row.count;
       } else {
         difficultyMap.set(key, {
           grade: row._id.grade,
-          topic: row._id.topic,
+          topic: normalizedTopic,
           difficulty,
           count: 0,
           indexed: row.count,
@@ -582,50 +620,91 @@ export class QuestionsService {
 
     const byDifficulty: DifficultyCount[] = Array.from(difficultyMap.values());
 
-    const byFormat: FormatCount[] = formatAgg.map((row) => ({
-      grade: row._id.grade,
-      topic: row._id.topic,
-      format: row._id.format || 'open-ended',
-      count: row.count,
-    }));
+    const formatMap = new Map<string, FormatCount>();
+    for (const row of formatAgg) {
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const format = row._id.format || 'open-ended';
+      const key = `${row._id.grade}:${normalizedTopic}:${format}`;
+      const existing = formatMap.get(key);
+      if (existing) {
+        existing.count += row.count;
+        continue;
+      }
+      formatMap.set(key, {
+        grade: row._id.grade,
+        topic: normalizedTopic,
+        format,
+        count: row.count,
+      });
+    }
 
-    const recentCreations: RecentCreation[] = recentAgg.map((row) => ({
-      grade: row._id.grade,
-      topic: row._id.topic,
-      difficulty: row._id.difficulty || 'unknown',
-      count: row.count,
-    }));
+    const byFormat: FormatCount[] = Array.from(formatMap.values());
+
+    const recentCreationMap = new Map<string, RecentCreation>();
+    for (const row of recentAgg) {
+      const normalizedTopic = this.resolveAnalyticsTopic(
+        row._id.grade,
+        row._id.topic
+      );
+      const difficulty = row._id.difficulty || 'unknown';
+      const key = `${row._id.grade}:${normalizedTopic}:${difficulty}`;
+      const existing = recentCreationMap.get(key);
+      if (existing) {
+        existing.count += row.count;
+        continue;
+      }
+      recentCreationMap.set(key, {
+        grade: row._id.grade,
+        topic: normalizedTopic,
+        difficulty,
+        count: row.count,
+      });
+    }
+
+    const recentCreations: RecentCreation[] = Array.from(
+      recentCreationMap.values()
+    );
 
     // Build per-topic health assessment
     const topicHealth: TopicHealth[] = [];
     for (const entry of gradeTopicMatrix) {
-      const key = `${entry.grade}:${entry.topic}`;
-
       // Difficulty depth (approved only)
       const depth = { easy: 0, medium: 0, hard: 0 };
       const indexedDepth = { easy: 0, medium: 0, hard: 0 };
       for (const d of difficultyAgg) {
-        if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
+        if (
+          d._id.grade === entry.grade &&
+          this.resolveAnalyticsTopic(d._id.grade, d._id.topic) === entry.topic
+        ) {
           const lvl = (d._id.difficulty || '').toLowerCase();
-          if (lvl === 'easy') depth.easy = d.count;
-          else if (lvl === 'medium') depth.medium = d.count;
-          else if (lvl === 'hard') depth.hard = d.count;
+          if (lvl === 'easy') depth.easy += d.count;
+          else if (lvl === 'medium') depth.medium += d.count;
+          else if (lvl === 'hard') depth.hard += d.count;
         }
       }
 
       for (const d of indexedDifficultyAgg) {
-        if (d._id.grade === entry.grade && d._id.topic === entry.topic) {
+        if (
+          d._id.grade === entry.grade &&
+          this.resolveAnalyticsTopic(d._id.grade, d._id.topic) === entry.topic
+        ) {
           const lvl = (d._id.difficulty || '').toLowerCase();
-          if (lvl === 'easy') indexedDepth.easy = d.count;
-          else if (lvl === 'medium') indexedDepth.medium = d.count;
-          else if (lvl === 'hard') indexedDepth.hard = d.count;
+          if (lvl === 'easy') indexedDepth.easy += d.count;
+          else if (lvl === 'medium') indexedDepth.medium += d.count;
+          else if (lvl === 'hard') indexedDepth.hard += d.count;
         }
       }
 
       // Format balance
       const formats = { openEnded: 0, multipleChoice: 0 };
       for (const f of formatAgg) {
-        if (f._id.grade === entry.grade && f._id.topic === entry.topic) {
+        if (
+          f._id.grade === entry.grade &&
+          this.resolveAnalyticsTopic(f._id.grade, f._id.topic) === entry.topic
+        ) {
           if (f._id.format === 'multiple-choice')
             formats.multipleChoice += f.count;
           else formats.openEnded += f.count;
@@ -635,17 +714,22 @@ export class QuestionsService {
       // Weekly creations
       const weekly = { easy: 0, medium: 0, hard: 0 };
       for (const r of recentAgg) {
-        if (r._id.grade === entry.grade && r._id.topic === entry.topic) {
+        if (
+          r._id.grade === entry.grade &&
+          this.resolveAnalyticsTopic(r._id.grade, r._id.topic) === entry.topic
+        ) {
           const lvl = (r._id.difficulty || '').toLowerCase();
-          if (lvl === 'easy') weekly.easy = r.count;
-          else if (lvl === 'medium') weekly.medium = r.count;
-          else if (lvl === 'hard') weekly.hard = r.count;
+          if (lvl === 'easy') weekly.easy += r.count;
+          else if (lvl === 'medium') weekly.medium += r.count;
+          else if (lvl === 'hard') weekly.hard += r.count;
         }
       }
 
       // Last created
       const lastEntry = lastCreatedAgg.find(
-        (l) => l._id.grade === entry.grade && l._id.topic === entry.topic
+        (l) =>
+          l._id.grade === entry.grade &&
+          this.resolveAnalyticsTopic(l._id.grade, l._id.topic) === entry.topic
       );
 
       // Compute issues
@@ -731,7 +815,7 @@ export class QuestionsService {
     const matchStage: Record<string, unknown> = {
       status: QuestionStatus.APPROVED,
       grade,
-      topic,
+      ...this.buildTopicQuery(topic, grade),
     };
     if (difficulty) {
       matchStage['metadata.difficulty'] = difficulty;
@@ -742,14 +826,14 @@ export class QuestionsService {
 
     let questions: QuestionDocument[] = [];
     if (sampleSize > 0) {
-      questions = await this.questionModel.aggregate([
+      questions = await this.questionModel.aggregate<QuestionDocument>([
         { $match: matchStage },
         { $sample: { size: sampleSize } },
       ]);
     }
 
     // Map to student-safe response (exclude internal review fields)
-    const mapped = questions.map((q: any) => ({
+    const mapped = questions.map((q) => ({
       _id: (q._id || '').toString(),
       questionText: q.questionText,
       answer: q.answer,
@@ -769,6 +853,59 @@ export class QuestionsService {
       requested: count,
       hasMore: total > count,
     };
+  }
+
+  private buildTopicQuery(
+    requestedTopic: string,
+    grade?: number
+  ): Record<string, unknown> {
+    const canonicalTopicKeys = this.resolveTopicKeys(requestedTopic, grade);
+    if (
+      canonicalTopicKeys.length === 1 &&
+      canonicalTopicKeys[0] === requestedTopic
+    ) {
+      return { topic: requestedTopic };
+    }
+
+    return {
+      $or: [
+        { topic: { $in: canonicalTopicKeys } },
+        { 'metadata.resolvedTopicKey': canonicalTopicKeys[0] },
+        { 'metadata.sourceTopicKey': { $in: canonicalTopicKeys } },
+      ],
+    };
+  }
+
+  private resolveTopicKeys(requestedTopic: string, grade?: number): string[] {
+    const matchingTopics =
+      grade !== undefined
+        ? [getMathematicsTopicCriteria(grade, requestedTopic)].filter(
+            (topic): topic is NonNullable<typeof topic> => topic !== null
+          )
+        : MATHEMATICS_CURRICULUM.years.flatMap((yearPlan) =>
+            yearPlan.topics.filter(
+              (topic) =>
+                topic.key === requestedTopic ||
+                topic.legacyTopicKeys?.includes(requestedTopic) === true
+            )
+          );
+
+    if (matchingTopics.length === 0) {
+      return [requestedTopic];
+    }
+
+    return Array.from(
+      new Set(
+        matchingTopics.flatMap((topic) => [
+          topic.key,
+          ...(topic.legacyTopicKeys ?? []),
+        ])
+      )
+    );
+  }
+
+  private resolveAnalyticsTopic(grade: number, topic: string): string {
+    return getMathematicsTopicCriteria(grade, topic)?.key ?? topic;
   }
 
   /**

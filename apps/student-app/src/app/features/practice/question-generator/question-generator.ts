@@ -33,7 +33,10 @@ import {
 import { generateDistractors } from './utils/distractor-generator';
 import { scoreAnswers } from './utils/scoring';
 import { SubmitSummaryComponent } from './components/submit-summary/submit-summary';
-import { AuthService } from '../../../services/auth.service';
+import {
+  AuthService,
+  CurriculumGradeInfo,
+} from '../../../services/auth.service';
 import { AchievementService } from '../../../services/achievement.service';
 import {
   RecordQuestionAttemptRequest,
@@ -194,6 +197,9 @@ export class QuestionGeneratorComponent implements OnInit {
   /** Student profile grade (pre-filled for controls). */
   profileGrade = computed(() => this.profileService.getGrade());
 
+  /** Curriculum years/topics used by the practice controls. */
+  curriculumGrades = signal<CurriculumGradeInfo[]>([]);
+
   /** Student profile country (hidden, sent in API). */
   profileCountry = computed(() => this.profileService.getCountry());
 
@@ -203,10 +209,23 @@ export class QuestionGeneratorComponent implements OnInit {
    */
   ngOnInit(): void {
     this.checkServiceHealth();
+    this.profileService.loadProfile();
+    this.loadCurriculum();
     const topic = this.route.snapshot.queryParamMap.get('topic');
     if (topic) {
       this.initialTopic.set(topic);
     }
+  }
+
+  private loadCurriculum(): void {
+    this.authService.getCurriculum().subscribe({
+      next: (data) => {
+        this.curriculumGrades.set(data.grades ?? []);
+      },
+      error: () => {
+        this.curriculumGrades.set([]);
+      },
+    });
   }
 
   /**
@@ -230,11 +249,8 @@ export class QuestionGeneratorComponent implements OnInit {
     this.emptyState.set(false);
     this.generationParams.set(params);
 
-    const difficultyParam = `grade_${params.grade}`;
-    const typeParam = params.topic.toLowerCase();
-
     this.generatorService
-      .generateQuestions(difficultyParam, params.count, typeParam)
+      .generateQuestions(params.grade, params.count, params.topic)
       .subscribe({
         next: (rawQuestions) => {
           const questions = this.mapApiResponse(rawQuestions, params);

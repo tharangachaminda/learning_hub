@@ -47,6 +47,26 @@ describe('QuestionCardComponent', () => {
   });
 
   describe('Question Counter (AC-2)', () => {
+    it('should display canonical curriculum topic labels in the metadata chips', () => {
+      const canonicalQuestion = {
+        ...mockQuestion,
+        metadata: {
+          ...mockQuestion.metadata,
+          topic: 'FRACTIONS_DECIMALS_PERCENTAGES',
+        },
+      };
+
+      fixture.componentRef.setInput('question', canonicalQuestion);
+      fixture.componentRef.setInput('questionNumber', 1);
+      fixture.componentRef.setInput('totalQuestions', 10);
+      fixture.detectChanges();
+
+      const meta = fixture.nativeElement.querySelector(
+        '[data-testid="question-meta"]'
+      ) as HTMLElement;
+      expect(meta.textContent).toContain('Fractions, Decimals & Percentages');
+    });
+
     it('should display "📝 Question X of N" header', () => {
       fixture.componentRef.setInput('question', mockQuestion);
       fixture.componentRef.setInput('questionNumber', 3);

@@ -1,9 +1,7 @@
 /**
  * Test Suite: QuestionGeneratorService
  *
- * Validates HTTP integration with the math-questions API endpoints:
- * - Health check: GET /api/math-questions/health
- * - Generate: GET /api/math-questions/generate?difficulty=...&count=...&topic=...
+ * Validates HTTP integration with the practice question endpoints.
  */
 import { TestBed } from '@angular/core/testing';
 import {
@@ -109,14 +107,14 @@ describe('QuestionGeneratorService', () => {
 
   describe('generateQuestions', () => {
     it('should call GET /api/questions/practice with correct query params', () => {
-      service.generateQuestions('grade_3', 10, 'addition').subscribe();
+      service.generateQuestions(3, 10, 'WHOLE_NUMBER_OPERATIONS').subscribe();
 
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/questions/practice' &&
           r.params.get('grade') === '3' &&
           r.params.get('count') === '10' &&
-          r.params.get('topic') === 'ADDITION'
+          r.params.get('topic') === 'WHOLE_NUMBER_OPERATIONS'
       );
       expect(req.request.method).toBe('GET');
       req.flush(createPracticeApiResponse([mockQuestion]));
@@ -129,7 +127,7 @@ describe('QuestionGeneratorService', () => {
       ];
 
       service
-        .generateQuestions('grade_3', 10, 'addition')
+        .generateQuestions(3, 10, 'WHOLE_NUMBER_OPERATIONS')
         .subscribe((questions) => {
           expect(questions).toHaveLength(2);
           expect(questions[0].question).toBe('What is 5 + 3?');
@@ -143,7 +141,7 @@ describe('QuestionGeneratorService', () => {
     });
 
     it('should handle API error on generate', () => {
-      service.generateQuestions('grade_3', 10, 'addition').subscribe({
+      service.generateQuestions(3, 10, 'WHOLE_NUMBER_OPERATIONS').subscribe({
         error: (err) => {
           expect(err).toBeTruthy();
         },
@@ -160,7 +158,7 @@ describe('QuestionGeneratorService', () => {
 
     it('should handle empty response (0 questions)', () => {
       service
-        .generateQuestions('grade_3', 10, 'addition')
+        .generateQuestions(3, 10, 'WHOLE_NUMBER_OPERATIONS')
         .subscribe((questions) => {
           expect(questions).toEqual([]);
         });

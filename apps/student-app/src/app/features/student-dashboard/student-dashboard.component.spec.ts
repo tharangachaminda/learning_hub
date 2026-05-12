@@ -21,6 +21,7 @@ import {
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { Router } from '@angular/router';
 import { StudentDashboardComponent } from './student-dashboard.component';
 import { DashboardService } from '../../services/dashboard.service';
 import { AuthService } from '../../services/auth.service';
@@ -52,9 +53,10 @@ function createMockDashboardData(): DashboardData {
     recommendations: [
       {
         id: 'rec-1',
-        topic: 'Fractions',
-        subject: 'math',
-        reason: 'You struggled with fractions last session',
+        topic: 'Whole Number Operations',
+        subject: 'mathematics',
+        reason:
+          'Your current mastery in Whole Number Operations is 60%. Another short practice round can strengthen it.',
         difficulty: 'medium',
         estimatedMinutes: 10,
       },
@@ -62,8 +64,8 @@ function createMockDashboardData(): DashboardData {
     recentActivity: [
       {
         id: 'session-1',
-        subject: 'math',
-        topic: 'Addition',
+        subject: 'mathematics',
+        topic: 'Whole Number Operations',
         score: 80,
         questionsAnswered: 10,
         correctAnswers: 8,
@@ -86,8 +88,8 @@ function createMockDashboardData(): DashboardData {
     ],
     subjects: [
       {
-        subject: 'math',
-        displayName: 'Mathematics',
+        subject: 'WHOLE_NUMBER_OPERATIONS',
+        displayName: 'Whole Number Operations',
         icon: '🔢',
         masteryPercentage: 65,
         questionsAnswered: 120,
@@ -101,6 +103,7 @@ describe('StudentDashboardComponent', () => {
   let component: StudentDashboardComponent;
   let fixture: ComponentFixture<StudentDashboardComponent>;
   let httpMock: HttpTestingController;
+  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -117,6 +120,7 @@ describe('StudentDashboardComponent', () => {
     fixture = TestBed.createComponent(StudentDashboardComponent);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
   });
 
   afterEach(() => {
@@ -275,6 +279,40 @@ describe('StudentDashboardComponent', () => {
         `/api/students/${component.studentId}/dashboard`
       );
       req.flush(createMockDashboardData());
+    });
+  });
+
+  describe('practice navigation', () => {
+    it('should pass recommendation topic through to practice generation', () => {
+      const navigateSpy = jest
+        .spyOn(router, 'navigate')
+        .mockResolvedValue(true);
+      const recommendation = createMockDashboardData().recommendations[0];
+
+      component.onStartPractice(recommendation);
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/practice/generate'], {
+        queryParams: {
+          topic: recommendation.topic,
+          subject: recommendation.subject,
+        },
+      });
+    });
+
+    it('should open practice generation from subject cards without a fake topic', () => {
+      const navigateSpy = jest
+        .spyOn(router, 'navigate')
+        .mockResolvedValue(true);
+      const subject = createMockDashboardData().subjects[0];
+
+      component.onPracticeSubject(subject);
+
+      expect(navigateSpy).toHaveBeenCalledWith(['/practice/generate'], {
+        queryParams: {
+          topic: subject.subject,
+          subject: 'mathematics',
+        },
+      });
     });
   });
 });

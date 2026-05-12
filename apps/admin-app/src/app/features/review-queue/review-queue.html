@@ -70,15 +70,15 @@
       </label>
 
       <label class="admin-field-group">
-        <span>Grade</span>
+        <span>Year</span>
         <select
           class="admin-select"
           [(ngModel)]="filterGrade"
           (ngModelChange)="onGradeFilterChange()"
         >
-          <option [ngValue]="null">All grades</option>
+          <option [ngValue]="null">All years</option>
           <option *ngFor="let g of grades" [ngValue]="g.grade">
-            Grade {{ g.grade }}
+            Year {{ g.grade }}
           </option>
         </select>
       </label>
@@ -89,7 +89,7 @@
           class="admin-select"
           [(ngModel)]="filterTopic"
           (ngModelChange)="onFilterChange()"
-          [disabled]="!filterGrade"
+          [disabled]="filterGrade === null"
         >
           <option value="">All topics</option>
           <option *ngFor="let t of filteredTopics" [value]="t.key">
@@ -195,7 +195,7 @@
             </th>
             <th class="col-question">Question</th>
             <th class="col-answer">Answer</th>
-            <th class="col-grade">Grade</th>
+            <th class="col-grade">Year</th>
             <th class="col-topic">Topic</th>
             <th class="col-difficulty">Difficulty</th>
             <th class="col-status">Status</th>
@@ -229,7 +229,7 @@
               <strong><app-katex-render [content]="'' + q.answer" /></strong>
             </td>
             <td class="col-grade">{{ q.grade }}</td>
-            <td class="col-topic">{{ topicLabel(q.topic) }}</td>
+            <td class="col-topic">{{ topicLabel(q) }}</td>
             <td class="col-difficulty">
               <span
                 class="difficulty-badge"

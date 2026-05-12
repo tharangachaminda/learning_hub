@@ -210,6 +210,20 @@ describe('QuestionsController', () => {
     });
   });
 
+  describe('GET /questions/curriculum', () => {
+    it('should return subject-aware curriculum data while preserving grades compatibility', () => {
+      const result = controller.getCurriculum();
+
+      expect(result.subjects).toBeDefined();
+      expect(result.subjects[0].subject).toBe('mathematics');
+      expect(result.subjects[0].years[0].grade).toBe(0);
+      expect(
+        result.subjects[0].years[result.subjects[0].years.length - 1].grade
+      ).toBe(10);
+      expect(result.grades[0].topics.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('POST /questions/batch-generate (AC-006)', () => {
     it('should generate questions and store them', async () => {
       const dto = { grade: 4, topic: 'MULTIPLICATION', count: 10 };
@@ -235,7 +249,9 @@ describe('QuestionsController', () => {
       }));
       questionsService.createMany.mockResolvedValue(savedQuestions as any);
 
-      const result = await controller.batchGenerate(dto);
+      const result = await controller.batchGenerate(dto, {
+        user: { email: 'teacher@example.com' },
+      });
 
       expect(mathGenerator.generateQuestions).toHaveBeenCalled();
       expect(questionsService.createMany).toHaveBeenCalled();
@@ -249,7 +265,9 @@ describe('QuestionsController', () => {
     it('should default count to 10 when not specified', async () => {
       const dto = { grade: 3, topic: 'ADDITION' };
 
-      await controller.batchGenerate(dto);
+      await controller.batchGenerate(dto, {
+        user: { email: 'teacher@example.com' },
+      });
 
       expect(mathGenerator.generateQuestions).toHaveBeenCalledWith(
         expect.anything(),
@@ -295,7 +313,9 @@ describe('QuestionsController', () => {
         },
       ] as any);
 
-      const result = await controller.batchGenerate(dto);
+      const result = await controller.batchGenerate(dto, {
+        user: { email: 'teacher@example.com' },
+      });
 
       // Verify createMany was called with all questions
       const createManyArgs = questionsService.createMany.mock.calls[0][0];
@@ -321,7 +341,9 @@ describe('QuestionsController', () => {
       ] as any);
       questionsService.createMany.mockResolvedValue([mockQuestion] as any);
 
-      await controller.batchGenerate(dto);
+      await controller.batchGenerate(dto, {
+        user: { email: 'teacher@example.com' },
+      });
 
       const createManyArgs = questionsService.createMany.mock.calls[0][0];
       expect(createManyArgs[0].metadata.difficulty).toBe('hard');
@@ -330,10 +352,25 @@ describe('QuestionsController', () => {
     it('should default difficulty to medium when not specified', async () => {
       const dto = { grade: 3, topic: 'ADDITION', count: 1 };
 
-      await controller.batchGenerate(dto);
+      await controller.batchGenerate(dto, {
+        user: { email: 'teacher@example.com' },
+      });
 
       const createManyArgs = questionsService.createMany.mock.calls[0][0];
       expect(createManyArgs[0].metadata.difficulty).toBe('medium');
+      expect(createManyArgs[0].metadata.subject).toBe('mathematics');
+      expect(createManyArgs[0].metadata.curriculumVersion).toBe(
+        'nz-maths-2025-seed-v1'
+      );
+    });
+
+    it('should reject unsupported topics for a year', async () => {
+      await expect(
+        controller.batchGenerate(
+          { grade: 0, topic: 'LINEAR_EQUATIONS', count: 1 },
+          { user: { email: 'teacher@example.com' } }
+        )
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -479,7 +516,9 @@ describe('QuestionsController', () => {
       ).rejects.toThrow(BadRequestException);
 
       expect(questionsService.markVectorSyncPrepared).not.toHaveBeenCalled();
-      expect(questionIndexingService.indexStoredQuestion).not.toHaveBeenCalled();
+      expect(
+        questionIndexingService.indexStoredQuestion
+      ).not.toHaveBeenCalled();
     });
   });
 });

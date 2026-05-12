@@ -99,7 +99,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
       this.filterStatus = params['status'] || '';
       this.lastExplicitStatus = this.filterStatus;
     }
-    if (params['grade']) {
+    if (params['grade'] !== undefined) {
       this.filterGrade = +params['grade'];
     }
     if (params['topic']) {
@@ -139,7 +139,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
       page: this.currentPage,
       limit: this.pageSize,
     };
-    if (this.filterGrade) filters['grade'] = this.filterGrade;
+    if (this.filterGrade !== null) filters['grade'] = this.filterGrade;
     if (this.filterTopic) filters['topic'] = this.filterTopic;
     if (this.filterStatus) filters['status'] = this.filterStatus;
     if (this.filterApprovedNotIndexed) {
@@ -185,7 +185,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get filteredTopics() {
-    if (!this.filterGrade) return [];
+    if (this.filterGrade === null) return [];
     const grade = this.grades.find((g) => g.grade === this.filterGrade);
     return grade?.topics ?? [];
   }
@@ -478,7 +478,12 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  topicLabel(topic: string): string {
+  topicLabel(question: QuestionItem): string {
+    if (question.metadata?.resolvedTopicLabel) {
+      return question.metadata.resolvedTopicLabel;
+    }
+
+    const topic = question.metadata?.resolvedTopicKey || question.topic;
     for (const g of this.grades) {
       const found = g.topics.find((t) => t.key === topic);
       if (found) return found.label;

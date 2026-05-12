@@ -18,6 +18,7 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../auth/schemas/user.schema';
 import { ProgressTrackingService } from '../progress/services/progress-tracking.service';
 import { AchievementService } from '../progress/services/achievement.service';
+import { getMathematicsYearPlan } from '../ai/mathematics-curriculum.criteria';
 
 /* ------------------------------------------------------------------ */
 /*  Response shapes – mirroring frontend models/dashboard.model.ts    */
@@ -106,229 +107,7 @@ export class StudentDashboardService {
   /** Default daily goal in minutes. */
   private readonly DEFAULT_DAILY_GOAL_MINUTES = 30;
 
-  /**
-   * Grade-based subject definitions.
-   *
-   * Maps student grade to the topics available in the curriculum.
-   * Mirrors GRADE_TOPICS from the frontend curriculum.data.ts.
-   */
-  private readonly GRADE_SUBJECTS: Record<
-    number,
-    Array<{ subject: string; displayName: string; icon: string }>
-  > = {
-    3: [
-      { subject: 'ADDITION', displayName: 'Addition', icon: '➕' },
-      { subject: 'SUBTRACTION', displayName: 'Subtraction', icon: '➖' },
-      { subject: 'MULTIPLICATION', displayName: 'Multiplication', icon: '✖️' },
-      { subject: 'DIVISION', displayName: 'Division', icon: '➗' },
-      {
-        subject: 'PATTERN_RECOGNITION',
-        displayName: 'Pattern Recognition',
-        icon: '🔮',
-      },
-    ],
-    4: [
-      { subject: 'ADDITION', displayName: 'Addition', icon: '➕' },
-      { subject: 'SUBTRACTION', displayName: 'Subtraction', icon: '➖' },
-      { subject: 'MULTIPLICATION', displayName: 'Multiplication', icon: '✖️' },
-      { subject: 'DIVISION', displayName: 'Division', icon: '➗' },
-      { subject: 'DECIMAL_BASICS', displayName: 'Decimals', icon: '🔢' },
-      { subject: 'FRACTION_BASICS', displayName: 'Fractions', icon: '🍕' },
-      { subject: 'PLACE_VALUE', displayName: 'Place Value', icon: '🔟' },
-      {
-        subject: 'PATTERN_RECOGNITION',
-        displayName: 'Pattern Recognition',
-        icon: '🔮',
-      },
-      {
-        subject: 'SHAPE_PROPERTIES',
-        displayName: 'Shape Properties',
-        icon: '📐',
-      },
-      {
-        subject: 'TIME_MEASUREMENT',
-        displayName: 'Time Measurement',
-        icon: '⏰',
-      },
-    ],
-    5: [
-      {
-        subject: 'ADVANCED_ARITHMETIC',
-        displayName: 'Advanced Arithmetic',
-        icon: '🧮',
-      },
-      {
-        subject: 'ALGEBRAIC_THINKING',
-        displayName: 'Algebraic Thinking',
-        icon: '🔤',
-      },
-      {
-        subject: 'DECIMAL_OPERATIONS',
-        displayName: 'Decimal Operations',
-        icon: '🔢',
-      },
-      {
-        subject: 'FRACTION_OPERATIONS',
-        displayName: 'Fraction Operations',
-        icon: '🍕',
-      },
-      {
-        subject: 'RATIO_PROPORTION',
-        displayName: 'Ratio & Proportion',
-        icon: '⚖️',
-      },
-    ],
-    6: [
-      {
-        subject: 'LARGE_NUMBER_OPERATIONS',
-        displayName: 'Large Numbers',
-        icon: '🔢',
-      },
-      {
-        subject: 'ADVANCED_FRACTIONS_DECIMALS',
-        displayName: 'Advanced Fractions & Decimals',
-        icon: '🍕',
-      },
-      {
-        subject: 'ALGEBRAIC_EQUATIONS',
-        displayName: 'Algebraic Equations',
-        icon: '🔤',
-      },
-      {
-        subject: 'AREA_VOLUME_CALCULATIONS',
-        displayName: 'Area & Volume',
-        icon: '📐',
-      },
-      {
-        subject: 'COORDINATE_GEOMETRY',
-        displayName: 'Coordinate Geometry',
-        icon: '📍',
-      },
-      { subject: 'DATA_ANALYSIS', displayName: 'Data Analysis', icon: '📊' },
-      { subject: 'PROBABILITY_BASICS', displayName: 'Probability', icon: '🎲' },
-    ],
-    7: [
-      {
-        subject: 'ADVANCED_NUMBER_OPERATIONS',
-        displayName: 'Advanced Number Operations',
-        icon: '🧮',
-      },
-      {
-        subject: 'FRACTION_DECIMAL_MASTERY',
-        displayName: 'Fraction & Decimal Mastery',
-        icon: '🍕',
-      },
-      {
-        subject: 'ALGEBRAIC_FOUNDATIONS',
-        displayName: 'Algebraic Foundations',
-        icon: '🔤',
-      },
-      {
-        subject: 'GEOMETRY_SPATIAL_REASONING',
-        displayName: 'Geometry & Spatial Reasoning',
-        icon: '📐',
-      },
-      {
-        subject: 'MULTI_UNIT_CONVERSIONS',
-        displayName: 'Unit Conversions',
-        icon: '📏',
-      },
-      {
-        subject: 'DATA_ANALYSIS_PROBABILITY',
-        displayName: 'Data & Probability',
-        icon: '📊',
-      },
-    ],
-    8: [
-      {
-        subject: 'PRIME_COMPOSITE_NUMBERS',
-        displayName: 'Prime & Composite Numbers',
-        icon: '🔢',
-      },
-      {
-        subject: 'NEGATIVE_NUMBERS',
-        displayName: 'Negative Numbers',
-        icon: '➖',
-      },
-      {
-        subject: 'FRACTION_DECIMAL_PERCENTAGE',
-        displayName: 'Fractions, Decimals & %',
-        icon: '🍕',
-      },
-      {
-        subject: 'LINEAR_EQUATIONS',
-        displayName: 'Linear Equations',
-        icon: '📈',
-      },
-      {
-        subject: 'PERIMETER_AREA_VOLUME',
-        displayName: 'Perimeter, Area & Volume',
-        icon: '📐',
-      },
-      {
-        subject: 'RATIOS_PROPORTIONS',
-        displayName: 'Ratios & Proportions',
-        icon: '⚖️',
-      },
-      {
-        subject: 'FINANCIAL_LITERACY',
-        displayName: 'Financial Literacy',
-        icon: '💰',
-      },
-    ],
-  };
-
-  /** Fallback subjects for grades not explicitly mapped. */
-  private readonly FALLBACK_SUBJECTS: Array<{
-    subject: string;
-    displayName: string;
-    icon: string;
-  }> = [
-    { subject: 'ADDITION', displayName: 'Addition', icon: '➕' },
-    { subject: 'SUBTRACTION', displayName: 'Subtraction', icon: '➖' },
-    { subject: 'MULTIPLICATION', displayName: 'Multiplication', icon: '✖️' },
-    { subject: 'DIVISION', displayName: 'Division', icon: '➗' },
-  ];
-
-  /**
-   * Get subjects appropriate for a given grade level.
-   *
-   * @param grade - Student grade (3-8)
-   * @returns Array of subject definitions for the grade
-   */
-  private getSubjectsForGrade(
-    grade: number
-  ): Array<{ subject: string; displayName: string; icon: string }> {
-    return this.GRADE_SUBJECTS[grade] ?? this.FALLBACK_SUBJECTS;
-  }
-
-  /** Static recommendations (placeholder until AI engine is wired). */
-  private readonly SEED_RECOMMENDATIONS: TopicRecommendationDto[] = [
-    {
-      id: 'rec-1',
-      topic: 'Fractions',
-      subject: 'math',
-      reason: 'Strengthen your fraction skills with some fun practice!',
-      difficulty: 'medium',
-      estimatedMinutes: 10,
-    },
-    {
-      id: 'rec-2',
-      topic: 'Multiplication',
-      subject: 'math',
-      reason: 'Master your times tables to level up!',
-      difficulty: 'easy',
-      estimatedMinutes: 8,
-    },
-    {
-      id: 'rec-3',
-      topic: 'Word Problems',
-      subject: 'math',
-      reason: 'Practice applying math to real-world scenarios.',
-      difficulty: 'hard',
-      estimatedMinutes: 15,
-    },
-  ];
+  private readonly DEFAULT_GRADE = 3;
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
@@ -368,7 +147,10 @@ export class StudentDashboardService {
     };
 
     const recommendations = await this.getRecommendations(studentId);
-    const recentActivity = this.buildRecentActivity(dailyProgress);
+    const recentActivity = this.buildRecentActivity(
+      dailyProgress,
+      profile.grade
+    );
     const achievements = await this.getRecentAchievements(studentId);
     const subjects = await this.getProgressSummary(studentId, profile.grade);
 
@@ -386,17 +168,44 @@ export class StudentDashboardService {
   /**
    * Return topic recommendations for a student.
    *
-   * Currently returns seed data; will be replaced by an AI recommendation
-   * engine in a future story.
+   * Builds recommendations from the student's current grade curriculum and
+   * latest tracked progress so the dashboard reflects current mastery gaps.
    *
-   * @param studentId - Student identifier (unused for now)
+   * @param studentId - Student identifier
    * @returns Array of TopicRecommendationDto
    */
   async getRecommendations(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     studentId: string
   ): Promise<TopicRecommendationDto[]> {
-    return this.SEED_RECOMMENDATIONS;
+    const profile = await this.getStudentProfile(studentId);
+    const subjects = await this.getProgressSummary(studentId, profile.grade);
+
+    const prioritized = [...subjects].sort((left, right) => {
+      const leftPractised = left.questionsAnswered > 0 ? 1 : 0;
+      const rightPractised = right.questionsAnswered > 0 ? 1 : 0;
+
+      if (leftPractised !== rightPractised) {
+        return leftPractised - rightPractised;
+      }
+
+      if (left.masteryPercentage !== right.masteryPercentage) {
+        return left.masteryPercentage - right.masteryPercentage;
+      }
+
+      return left.questionsAnswered - right.questionsAnswered;
+    });
+
+    return prioritized.slice(0, 3).map((subject, index) => ({
+      id: `rec-${subject.subject.toLowerCase()}`,
+      topic: subject.displayName,
+      subject: 'mathematics',
+      reason:
+        subject.questionsAnswered > 0
+          ? `Your current mastery in ${subject.displayName} is ${subject.masteryPercentage}%. Another short practice round can strengthen it.`
+          : `You have not practised ${subject.displayName} recently. A quick session will keep this topic fresh.`,
+      difficulty: this.getRecommendationDifficulty(subject),
+      estimatedMinutes: 8 + index * 2,
+    }));
   }
 
   /**
@@ -411,8 +220,10 @@ export class StudentDashboardService {
    */
   async getProgressSummary(
     studentId: string,
-    grade = 3
+    grade?: number
   ): Promise<SubjectProgressDto[]> {
+    const resolvedGrade =
+      grade ?? (await this.getStudentProfile(studentId)).grade;
     const dailyProgress = await this.progressService.calculateDailyProgress(
       studentId,
       new Date()
@@ -420,27 +231,57 @@ export class StudentDashboardService {
 
     const topicMap = new Map<
       string,
-      { questionsAnswered: number; correct: number }
+      {
+        questionsAnswered: number;
+        correct: number;
+        displayName: string;
+        icon: string;
+      }
     >();
 
     for (const tp of dailyProgress.topicBreakdown) {
-      const existing = topicMap.get(tp.topicName) ?? {
+      const resolvedTopic = this.resolveCurriculumTopic(
+        resolvedGrade,
+        tp.topicName
+      );
+      const topicKey = resolvedTopic?.key ?? tp.topicName;
+      const existing = topicMap.get(topicKey) ?? {
         questionsAnswered: 0,
         correct: 0,
+        displayName: resolvedTopic?.label ?? tp.topicName,
+        icon: this.getTopicIcon(
+          resolvedTopic?.strand,
+          resolvedTopic?.label ?? tp.topicName
+        ),
       };
       existing.questionsAnswered += tp.questionsAttempted;
       existing.correct += tp.correctAnswers;
-      topicMap.set(tp.topicName, existing);
+      topicMap.set(topicKey, existing);
     }
 
-    const gradeSubjects = this.getSubjectsForGrade(grade);
+    const gradeSubjects = this.getSubjectsForGrade(resolvedGrade);
 
-    return gradeSubjects.map((s) => {
-      const data = topicMap.get(s.subject);
+    if (gradeSubjects.length === 0) {
+      return Array.from(topicMap.entries()).map(([topicKey, data]) => ({
+        subject: topicKey,
+        displayName: data.displayName,
+        icon: data.icon,
+        masteryPercentage:
+          data.questionsAnswered > 0
+            ? Math.round((data.correct / data.questionsAnswered) * 100)
+            : 0,
+        questionsAnswered: data.questionsAnswered,
+        lastPracticed:
+          data.questionsAnswered > 0 ? new Date().toISOString() : undefined,
+      }));
+    }
+
+    return gradeSubjects.map((subject) => {
+      const data = topicMap.get(subject.subject);
       return {
-        subject: s.subject,
-        displayName: s.displayName,
-        icon: s.icon,
+        subject: subject.subject,
+        displayName: subject.displayName,
+        icon: subject.icon,
         masteryPercentage: data
           ? Math.round((data.correct / data.questionsAnswered) * 100)
           : 0,
@@ -501,7 +342,7 @@ export class StudentDashboardService {
       id: user._id.toString(),
       firstName: user.profile.firstName,
       lastName: user.profile.lastName,
-      grade: user.profile.grade ?? 1,
+      grade: user.profile.grade ?? this.DEFAULT_GRADE,
       avatarUrl: user.selectedAvatar
         ? `/assets/avatars/${user.selectedAvatar}.svg`
         : undefined,
@@ -516,20 +357,24 @@ export class StudentDashboardService {
    * @param dailyProgress - Today's daily progress data
    * @returns Array of PracticeSessionDto
    */
-  private buildRecentActivity(dailyProgress: {
-    topicBreakdown: Array<{
-      topicName: string;
-      difficulty: string;
-      questionsAttempted: number;
-      correctAnswers: number;
-      accuracyPercentage: number;
-    }>;
-    timeSpentMinutes: number;
-  }): PracticeSessionDto[] {
+  private buildRecentActivity(
+    dailyProgress: {
+      topicBreakdown: Array<{
+        topicName: string;
+        difficulty: string;
+        questionsAttempted: number;
+        correctAnswers: number;
+        accuracyPercentage: number;
+      }>;
+      timeSpentMinutes: number;
+    },
+    grade: number
+  ): PracticeSessionDto[] {
     return dailyProgress.topicBreakdown.slice(0, 5).map((tp, idx) => ({
       id: `session-${Date.now()}-${idx}`,
-      subject: 'math',
-      topic: tp.topicName,
+      subject: 'mathematics',
+      topic:
+        this.resolveCurriculumTopic(grade, tp.topicName)?.label ?? tp.topicName,
       score: tp.accuracyPercentage,
       questionsAnswered: tp.questionsAttempted,
       correctAnswers: tp.correctAnswers,
@@ -539,5 +384,78 @@ export class StudentDashboardService {
           (dailyProgress.topicBreakdown.length || 1)
       ),
     }));
+  }
+
+  private getSubjectsForGrade(
+    grade: number
+  ): Array<{ subject: string; displayName: string; icon: string }> {
+    const yearPlan = getMathematicsYearPlan(grade);
+
+    return (yearPlan?.topics ?? []).map((topic) => ({
+      subject: topic.key,
+      displayName: topic.label,
+      icon: this.getTopicIcon(topic.strand, topic.label),
+    }));
+  }
+
+  private resolveCurriculumTopic(grade: number, topicValue: string) {
+    const normalizedTopic = topicValue.trim().toLowerCase();
+    const yearPlan = getMathematicsYearPlan(grade);
+
+    if (!yearPlan || !normalizedTopic) {
+      return null;
+    }
+
+    return (
+      yearPlan.topics.find(
+        (topic) =>
+          topic.key.toLowerCase() === normalizedTopic ||
+          topic.label.toLowerCase() === normalizedTopic ||
+          topic.legacyTopicKeys?.some(
+            (legacyTopicKey) => legacyTopicKey.toLowerCase() === normalizedTopic
+          )
+      ) ?? null
+    );
+  }
+
+  private getTopicIcon(strand?: string, label?: string): string {
+    const normalizedLabel = label?.toLowerCase() ?? '';
+
+    if (strand === 'Algebra') {
+      return '📈';
+    }
+
+    if (
+      strand === 'Measurement' ||
+      strand === 'Geometry' ||
+      normalizedLabel.includes('geometry') ||
+      normalizedLabel.includes('shape')
+    ) {
+      return '📐';
+    }
+
+    if (
+      normalizedLabel.includes('data') ||
+      normalizedLabel.includes('probability') ||
+      normalizedLabel.includes('statistics')
+    ) {
+      return '📊';
+    }
+
+    return '🧮';
+  }
+
+  private getRecommendationDifficulty(
+    subject: SubjectProgressDto
+  ): 'easy' | 'medium' | 'hard' {
+    if (subject.questionsAnswered === 0 || subject.masteryPercentage < 50) {
+      return 'easy';
+    }
+
+    if (subject.masteryPercentage < 80) {
+      return 'medium';
+    }
+
+    return 'hard';
   }
 }

@@ -69,7 +69,7 @@
             >{{ adequateCoverage }}/{{ totalCombos }}</span
           >
           <span class="coverage-stat">
-            grade/topic combinations have adequate coverage (≥10 approved)
+            year/topic combinations have adequate coverage (≥10 approved)
           </span>
         </div>
       </div>
@@ -80,7 +80,7 @@
           @for (gap of topGaps; track gap.grade + ':' + gap.topic) {
           <li class="gap-item">
             <span class="gap-label"
-              >Grade {{ gap.grade }} / {{ formatTopic(gap.topic) }}</span
+              >Year {{ gap.grade }} / {{ formatTopic(gap.topic) }}</span
             >
             <span class="gap-count" [class.zero]="gap.approved === 0"
               >{{ gap.approved }} approved</span
@@ -121,7 +121,7 @@
           </div>
           <p>
             View detailed question coverage heatmap, identify gaps, and balance
-            question generation across grades and topics.
+            question generation across years and topics.
           </p>
           <a
             routerLink="/analytics"
@@ -138,8 +138,8 @@
             <h4>Generate Questions</h4>
           </div>
           <p>
-            Use AI to generate new curriculum-aligned questions for any grade
-            and topic.
+            Use AI to generate new curriculum-aligned questions for any year and
+            topic.
           </p>
           <a
             routerLink="/generate"

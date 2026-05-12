@@ -117,6 +117,7 @@ export class AuthService {
         email: user.email,
         name: `${user.profile.firstName} ${user.profile.lastName}`,
         role: user.role,
+        profile: user.profile,
       },
     };
   }
@@ -167,6 +168,7 @@ export class AuthService {
         email: user.email,
         name: `${user.profile.firstName} ${user.profile.lastName}`,
         role: user.role,
+        profile: user.profile,
       },
     };
   }

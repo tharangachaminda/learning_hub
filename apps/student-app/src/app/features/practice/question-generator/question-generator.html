@@ -20,6 +20,7 @@
   @if (phase() === 'controls') {
   <app-generation-controls
     [grade]="profileGrade()"
+    [curriculumGrades]="curriculumGrades()"
     [country]="profileCountry()"
     [initialTopic]="initialTopic()"
     [isGenerating]="isGenerating()"

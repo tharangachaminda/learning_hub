@@ -41,11 +41,13 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import {
-  GRADE_TOPICS,
-  QUESTION_TYPE_DISPLAY_NAMES,
-} from '../ai/curriculum.types';
+import { QUESTION_TYPE_TO_CATEGORY } from '../ai/curriculum.types';
 import { QuestionIndexingService } from '../opensearch/question-indexing.service';
+import {
+  getMathematicsTopicCriteria,
+  getMathematicsYearPlan,
+  MATHEMATICS_CURRICULUM,
+} from '../ai/mathematics-curriculum.criteria';
 
 /**
  * REST API controller for persisted question management.
@@ -110,16 +112,33 @@ export class QuestionsController {
    */
   @Get('curriculum')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'teacher')
+  @Roles('admin', 'teacher', 'student')
   getCurriculum() {
-    const grades = Object.entries(GRADE_TOPICS).map(([grade, subjects]) => ({
-      grade: Number(grade),
-      topics: (subjects['mathematics'] || []).map((topic: string) => ({
-        key: topic,
-        label: QUESTION_TYPE_DISPLAY_NAMES[topic] || topic,
+    const years = MATHEMATICS_CURRICULUM.years.map((yearPlan) => ({
+      grade: yearPlan.year,
+      year: yearPlan.year,
+      subject: MATHEMATICS_CURRICULUM.subject,
+      phase: yearPlan.phase,
+      focusSummary: yearPlan.focusSummary,
+      topics: yearPlan.topics.map((topic) => ({
+        key: topic.key,
+        label: topic.label,
+        strand: topic.strand,
+        overview: topic.overview,
+        legacyTopicKeys: topic.legacyTopicKeys ?? [],
       })),
     }));
-    return { grades };
+
+    return {
+      subjects: [
+        {
+          subject: MATHEMATICS_CURRICULUM.subject,
+          version: MATHEMATICS_CURRICULUM.version,
+          years,
+        },
+      ],
+      grades: years,
+    };
   }
 
   /**
@@ -134,10 +153,12 @@ export class QuestionsController {
     @Query('grade') grade?: string
   ): Promise<QuestionAnalytics> {
     const gapThreshold = threshold ? parseInt(threshold, 10) || 10 : 10;
-    const gradeNum = grade ? parseInt(grade, 10) : undefined;
+    const gradeNum = grade !== undefined ? parseInt(grade, 10) : undefined;
     return this.questionsService.getAnalytics(
       gapThreshold,
-      gradeNum && gradeNum >= 3 && gradeNum <= 8 ? gradeNum : undefined
+      gradeNum !== undefined && gradeNum >= 0 && gradeNum <= 10
+        ? gradeNum
+        : undefined
     );
   }
 
@@ -150,18 +171,21 @@ export class QuestionsController {
     @Query('grade') grade: string,
     @Query('topic') topic: string,
     @Query('count') count?: string,
-    @Query('difficulty') difficulty?: string
+    @Query('difficulty') difficulty?: string,
+    @Query('subject') subject?: string
   ): Promise<PracticeQuestionsResult> {
     const gradeNum = parseInt(grade, 10);
-    if (!gradeNum || gradeNum < 3 || gradeNum > 8) {
+    if (Number.isNaN(gradeNum) || gradeNum < 0 || gradeNum > 10) {
       throw new HttpException(
-        'Grade must be between 3 and 8',
+        'Grade must be between 0 and 10',
         HttpStatus.BAD_REQUEST
       );
     }
+    this.validateSupportedSubject(subject);
     if (!topic) {
       throw new HttpException('Topic is required', HttpStatus.BAD_REQUEST);
     }
+    this.resolveCurriculumTopicOrThrow(gradeNum, topic);
     const questionCount = Math.min(parseInt(count ?? '10', 10) || 10, 50);
     return this.questionsService.getPracticeQuestions(
       gradeNum,
@@ -209,6 +233,12 @@ export class QuestionsController {
     @Request() req: { user?: { email?: string; userId?: string } }
   ): Promise<{ stored: number; questions: QuestionDocument[] }> {
     const count = dto.count ?? 10;
+    this.validateSupportedSubject(dto.subject);
+    const resolvedTopic = this.resolveCurriculumTopicOrThrow(
+      dto.grade,
+      dto.topic
+    );
+    const yearPlan = getMathematicsYearPlan(dto.grade);
     const difficulty = this.gradeToDifficulty(dto.grade);
     const generatedByUser = req.user?.email || req.user?.userId || 'unknown';
 
@@ -246,7 +276,7 @@ export class QuestionsController {
       explanation: q.stepByStepSolution?.join('\n') || '',
       grade: dto.grade,
       topic: dto.topic,
-      category: this.topicToCategory(dto.topic),
+      category: this.topicToCategory(dto.topic, resolvedTopic),
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       stepByStepSolution: q.stepByStepSolution || [],
       generatedByUser,
@@ -255,6 +285,13 @@ export class QuestionsController {
         generationTime: Date.now() - startTime,
         difficulty: dto.difficulty ?? 'medium',
         country: 'NZ',
+        subject: dto.subject ?? MATHEMATICS_CURRICULUM.subject,
+        curriculumVersion: MATHEMATICS_CURRICULUM.version,
+        resolvedTopicKey: resolvedTopic?.key,
+        resolvedTopicLabel: resolvedTopic?.label,
+        curriculumStrand: resolvedTopic?.strand,
+        curriculumPhase: yearPlan?.phase,
+        sourceTopicKey: dto.topic,
       },
     }));
 
@@ -664,48 +701,79 @@ IMPORTANT LaTeX rules:
 
   private gradeToDifficulty(grade: number): DifficultyLevel {
     const mapping: Record<number, DifficultyLevel> = {
+      0: DifficultyLevel.GRADE_3,
+      1: DifficultyLevel.GRADE_3,
+      2: DifficultyLevel.GRADE_3,
       3: DifficultyLevel.GRADE_3,
       4: DifficultyLevel.GRADE_4,
       5: DifficultyLevel.GRADE_5,
       6: DifficultyLevel.GRADE_6,
       7: DifficultyLevel.GRADE_7,
       8: DifficultyLevel.GRADE_8,
+      9: DifficultyLevel.GRADE_8,
+      10: DifficultyLevel.GRADE_8,
     };
     return mapping[grade] ?? DifficultyLevel.GRADE_3;
   }
 
-  private topicToCategory(topic: string): string {
-    const categoryMap: Record<string, string> = {
-      ADDITION: 'number-operations',
-      SUBTRACTION: 'number-operations',
-      MULTIPLICATION: 'number-operations',
-      DIVISION: 'number-operations',
-      DECIMAL_BASICS: 'number-operations',
-      DECIMAL_OPERATIONS: 'number-operations',
-      FRACTION_BASICS: 'number-operations',
-      FRACTION_OPERATIONS: 'number-operations',
-      ADVANCED_ARITHMETIC: 'number-operations',
-      ADVANCED_FRACTIONS_DECIMALS: 'number-operations',
-      LARGE_NUMBER_OPERATIONS: 'number-operations',
-      PLACE_VALUE: 'number-operations',
-      PATTERN_RECOGNITION: 'algebra-patterns',
-      ALGEBRAIC_THINKING: 'algebra-patterns',
-      ALGEBRAIC_EQUATIONS: 'algebra-patterns',
-      ADVANCED_PATTERNS: 'algebra-patterns',
-      RATIO_PROPORTION: 'algebra-patterns',
-      SHAPE_PROPERTIES: 'geometry-measurement',
-      AREA_VOLUME_CALCULATIONS: 'geometry-measurement',
-      COORDINATE_GEOMETRY: 'geometry-measurement',
-      TRANSFORMATIONS_SYMMETRY: 'geometry-measurement',
-      MEASUREMENT_MASTERY: 'geometry-measurement',
-      TIME_MEASUREMENT: 'geometry-measurement',
-      ADVANCED_PROBLEM_SOLVING: 'problem-solving-reasoning',
-      MATHEMATICAL_REASONING: 'problem-solving-reasoning',
-      REAL_WORLD_APPLICATIONS: 'problem-solving-reasoning',
-      DATA_ANALYSIS: 'problem-solving-reasoning',
-      PROBABILITY_BASICS: 'problem-solving-reasoning',
-      FINANCIAL_LITERACY: 'problem-solving-reasoning',
-    };
-    return categoryMap[topic] ?? 'number-operations';
+  private topicToCategory(
+    topic: string,
+    resolvedTopic?: { key: string; strand: string } | null
+  ): string {
+    const directCategory = QUESTION_TYPE_TO_CATEGORY[topic];
+    if (directCategory) {
+      return directCategory;
+    }
+
+    const resolvedCategory = resolvedTopic?.key
+      ? QUESTION_TYPE_TO_CATEGORY[resolvedTopic.key]
+      : undefined;
+    if (resolvedCategory) {
+      return resolvedCategory;
+    }
+
+    switch (resolvedTopic?.strand) {
+      case 'Algebra':
+        return 'algebra-patterns';
+      case 'Measurement':
+      case 'Geometry':
+        return 'geometry-measurement';
+      case 'Statistics':
+      case 'Probability':
+        return 'problem-solving-reasoning';
+      case 'Number':
+      default:
+        return 'number-operations';
+    }
+  }
+
+  private validateSupportedSubject(subject?: string): void {
+    const normalizedSubject = (
+      subject || MATHEMATICS_CURRICULUM.subject
+    ).toLowerCase();
+    if (normalizedSubject !== MATHEMATICS_CURRICULUM.subject) {
+      throw new BadRequestException(
+        `Unsupported subject '${subject}'. Currently supported subjects: ${MATHEMATICS_CURRICULUM.subject}`
+      );
+    }
+  }
+
+  private resolveCurriculumTopicOrThrow(grade: number, topic: string) {
+    const yearPlan = getMathematicsYearPlan(grade);
+    const resolvedTopic = getMathematicsTopicCriteria(grade, topic);
+
+    if (!yearPlan || !resolvedTopic) {
+      const validTopics = yearPlan?.topics.flatMap((entry) => [
+        entry.key,
+        ...(entry.legacyTopicKeys ?? []),
+      ]);
+      throw new BadRequestException(
+        `Topic '${topic}' is not supported for grade ${grade}. Valid topics: ${
+          validTopics?.join(', ') || 'none'
+        }`
+      );
+    }
+
+    return resolvedTopic;
   }
 }

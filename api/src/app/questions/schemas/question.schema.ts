@@ -71,6 +71,34 @@ export class QuestionMetadata {
   @Prop({ type: String })
   country: string;
 
+  /** Subject key used for curriculum lookup and filtering */
+  @Prop({ type: String })
+  subject?: string;
+
+  /** Version of the curriculum criteria artifact used during generation */
+  @Prop({ type: String })
+  curriculumVersion?: string;
+
+  /** Canonical resolved curriculum topic key used by the prompt engine */
+  @Prop({ type: String })
+  resolvedTopicKey?: string;
+
+  /** Canonical resolved curriculum topic label used by the prompt engine */
+  @Prop({ type: String })
+  resolvedTopicLabel?: string;
+
+  /** Curriculum strand resolved for the generated question */
+  @Prop({ type: String })
+  curriculumStrand?: string;
+
+  /** Phase or year-band grouping from the curriculum artifact */
+  @Prop({ type: String })
+  curriculumPhase?: string;
+
+  /** Raw requested topic key before canonical curriculum resolution */
+  @Prop({ type: String })
+  sourceTopicKey?: string;
+
   /** Whether a deterministic fallback was used instead of AI */
   @Prop({ type: Boolean })
   fallbackUsed?: boolean;
@@ -304,5 +332,9 @@ QuestionSchema.index({ generatedByUser: 1 });
 QuestionSchema.index({ reviewedBy: 1 });
 QuestionSchema.index({ format: 1 });
 QuestionSchema.index({ 'metadata.difficulty': 1 });
+QuestionSchema.index({ 'metadata.subject': 1 });
+QuestionSchema.index({ 'metadata.curriculumVersion': 1 });
+QuestionSchema.index({ 'metadata.resolvedTopicKey': 1 });
+QuestionSchema.index({ 'metadata.curriculumStrand': 1 });
 QuestionSchema.index({ 'vectorSync.status': 1 });
 QuestionSchema.index({ 'vectorSync.documentId': 1 }, { sparse: true });

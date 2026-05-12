@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import {
+  AuthService,
+  AuthUserProfile,
+} from '../../../../services/auth.service';
 
 /**
- * Mock student profile service for MVP.
- *
- * Returns hardcoded grade and country until the auth story
- * (`US-AUTH-*`) provides a real profile service. Replace this
- * service with an authenticated profile lookup when available.
+ * Student profile service backed by authenticated user data.
  *
  * @example
  * ```typescript
@@ -16,19 +16,43 @@ import { Injectable } from '@angular/core';
  */
 @Injectable({ providedIn: 'root' })
 export class StudentProfileService {
+  private readonly authService = inject(AuthService);
+
   /** Default fallback country code. */
   private readonly DEFAULT_COUNTRY = 'NZ';
 
-  /** Default student grade for MVP. */
+  /** Default student grade when no profile has been loaded yet. */
   private readonly DEFAULT_GRADE = 3;
+
+  private readonly profileState = signal<{ grade: number; country: string }>(
+    this.resolveStoredProfile()
+  );
+
+  private hasAttemptedRemoteLoad = false;
+
+  loadProfile(): void {
+    if (this.hasAttemptedRemoteLoad || !this.authService.isAuthenticated()) {
+      return;
+    }
+
+    this.hasAttemptedRemoteLoad = true;
+    this.authService.getProfile().subscribe({
+      next: (response) => {
+        this.profileState.set(this.normalizeProfile(response.profile));
+      },
+      error: () => {
+        this.hasAttemptedRemoteLoad = false;
+      },
+    });
+  }
 
   /**
    * Returns the student's grade level.
    *
-   * @returns Grade number (3–8)
+   * @returns Year number (0–10)
    */
   getGrade(): number {
-    return this.DEFAULT_GRADE;
+    return this.profileState().grade;
   }
 
   /**
@@ -38,7 +62,7 @@ export class StudentProfileService {
    * @returns ISO country code string
    */
   getCountry(): string {
-    return this.DEFAULT_COUNTRY;
+    return this.profileState().country;
   }
 
   /**
@@ -50,6 +74,20 @@ export class StudentProfileService {
     return {
       grade: this.getGrade(),
       country: this.getCountry(),
+    };
+  }
+
+  private resolveStoredProfile(): { grade: number; country: string } {
+    return this.normalizeProfile(this.authService.getUser()?.profile);
+  }
+
+  private normalizeProfile(profile?: AuthUserProfile): {
+    grade: number;
+    country: string;
+  } {
+    return {
+      grade: profile?.grade ?? this.DEFAULT_GRADE,
+      country: profile?.country ?? this.DEFAULT_COUNTRY,
     };
   }
 }

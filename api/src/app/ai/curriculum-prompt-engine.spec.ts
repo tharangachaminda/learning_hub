@@ -1,8 +1,4 @@
-import {
-  CurriculumPromptEngine,
-  CurriculumPromptTemplate,
-} from './curriculum-prompt-engine';
-import { getCurriculumLevel } from './curriculum-knowledge.types';
+import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 
 /**
  * Test Suite: Curriculum-Aware Prompt Engine
@@ -197,6 +193,38 @@ describe('CurriculumPromptEngine', () => {
           promptText.includes('aotearoa') ||
           promptText.includes('kiwi')
       ).toBe(true);
+    });
+
+    it('should resolve year-specific criteria from the new mathematics curriculum artifact', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 3,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.topicCriteria).not.toBeNull();
+      expect(prompt.criteriaVersion).toBe('nz-maths-2025-seed-v1');
+      expect(prompt.topicCriteria?.key).toBe('WHOLE_NUMBER_OPERATIONS');
+      expect(prompt.curriculumContext).toContain(
+        'Resolved Curriculum Topic: Whole Number Operations'
+      );
+      expect(prompt.systemPrompt).toContain('CURRICULUM CRITERIA ARTIFACT');
+    });
+
+    it('should resolve year 9 prompts using phase 4 curriculum criteria', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 9,
+        topic: 'PROPORTIONAL_REASONING',
+        difficulty: 'hard',
+        country: 'NZ',
+      });
+
+      expect(prompt.curriculumLevel).toBe(4);
+      expect(prompt.curriculumStrand).toBe('Number');
+      expect(prompt.topicCriteria?.key).toBe('PROPORTIONAL_REASONING');
+      expect(prompt.curriculumContext).toContain('Year Focus:');
+      expect(prompt.systemPrompt).toContain('Required Skills:');
     });
   });
 

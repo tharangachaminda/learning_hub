@@ -39,7 +39,7 @@
           <select
             [(ngModel)]="filterTopic"
             (ngModelChange)="onFilterChange()"
-            [disabled]="!filterGrade"
+            [disabled]="filterGrade === null"
           >
             <option value="">All topics</option>
             @for (topic of filteredTopics; track topic.key) {

@@ -26,6 +26,47 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+export interface AuthUserProfile {
+  firstName?: string;
+  lastName?: string;
+  grade?: number;
+  country?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  profile?: AuthUserProfile;
+}
+
+export interface AuthProfileResponse {
+  id: string;
+  email: string;
+  role: string;
+  profile?: AuthUserProfile;
+}
+
+export interface CurriculumTopicInfo {
+  key: string;
+  label: string;
+  legacyTopicKeys?: string[];
+}
+
+export interface CurriculumGradeInfo {
+  grade: number;
+  topics: CurriculumTopicInfo[];
+}
+
+export interface CurriculumData {
+  grades: CurriculumGradeInfo[];
+  subjects?: Array<{
+    subject: string;
+    version: string;
+  }>;
+}
+
 /**
  * Request payload for student login.
  *
@@ -47,12 +88,7 @@ export interface LoginRequest {
  */
 export interface LoginResponse {
   token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
+  user: AuthUser;
 }
 
 /** Key used for storing the auth token in web storage. */
@@ -66,6 +102,8 @@ const AUTH_USER_KEY = 'auth_user';
 })
 export class AuthService {
   private readonly apiUrl = '/api/auth/student';
+  private readonly curriculumUrl = '/api/questions/curriculum';
+  private readonly profileUrl = '/api/auth/me';
 
   constructor(private http: HttpClient) {}
 
@@ -92,6 +130,22 @@ export class AuthService {
         this.storeUser(response.user, request.rememberMe);
       })
     );
+  }
+
+  /**
+   * Load curriculum metadata used by student-facing year/topic selectors.
+   */
+  getCurriculum(): Observable<CurriculumData> {
+    return this.http.get<CurriculumData>(this.curriculumUrl);
+  }
+
+  /**
+   * Load the authenticated user's current profile.
+   */
+  getProfile(): Observable<AuthProfileResponse> {
+    return this.http
+      .get<AuthProfileResponse>(this.profileUrl)
+      .pipe(tap((profile) => this.mergeStoredUserProfile(profile)));
   }
 
   /**
@@ -187,5 +241,30 @@ export class AuthService {
    */
   getUserId(): string | null {
     return this.getUser()?.id ?? null;
+  }
+
+  private mergeStoredUserProfile(profile: AuthProfileResponse): void {
+    const storedUser = this.getUser();
+    if (!storedUser) {
+      return;
+    }
+
+    const mergedUser: AuthUser = {
+      ...storedUser,
+      email: profile.email ?? storedUser.email,
+      role: profile.role ?? storedUser.role,
+      profile: {
+        ...storedUser.profile,
+        ...profile.profile,
+      },
+    };
+
+    if (localStorage.getItem(AUTH_USER_KEY)) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(mergedUser));
+    }
+
+    if (sessionStorage.getItem(AUTH_USER_KEY)) {
+      sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(mergedUser));
+    }
   }
 }

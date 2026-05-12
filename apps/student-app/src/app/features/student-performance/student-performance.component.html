@@ -3,7 +3,7 @@
     appearance="brand"
     eyebrow="Student Performance"
     title="Track your learning momentum"
-    description="Review today’s effort, this week’s trend, and the subjects that need the most attention."
+    [description]="performanceDescription"
     [actions]="heroActions"
   ></app-page-hero>
 
@@ -95,10 +95,10 @@
     <section class="performance-panel">
       <div class="performance-panel__header">
         <div>
-          <p class="performance-panel__eyebrow">Subject Mastery</p>
+          <p class="performance-panel__eyebrow">Curriculum Topics</p>
           <h3>Where to focus next</h3>
         </div>
-        <a routerLink="/practice/generate">Practice a topic</a>
+        <a routerLink="/practice/generate">Practice a curriculum topic</a>
       </div>
 
       <div class="performance-subjects">

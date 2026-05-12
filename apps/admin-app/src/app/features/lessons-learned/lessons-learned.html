@@ -17,15 +17,15 @@
 
     <div class="admin-filter-grid">
       <label class="admin-field-group">
-        <span>Grade</span>
+        <span>Year</span>
         <select
           class="admin-select"
           [(ngModel)]="filterGrade"
           (ngModelChange)="onGradeFilterChange()"
         >
-          <option [ngValue]="null">All Grades</option>
+          <option [ngValue]="null">All Years</option>
           <option *ngFor="let g of grades" [ngValue]="g.grade">
-            Grade {{ g.grade }}
+            Year {{ g.grade }}
           </option>
         </select>
       </label>
@@ -35,7 +35,7 @@
           class="admin-select"
           [(ngModel)]="filterTopic"
           (ngModelChange)="onFilterChange()"
-          [disabled]="!filterGrade"
+          [disabled]="filterGrade === null"
         >
           <option value="">All Topics</option>
           <option *ngFor="let t of filteredTopics" [value]="t.key">
@@ -82,7 +82,7 @@
     >
       <div class="lesson-header">
         <div class="lesson-badges">
-          <span class="badge grade-badge">Grade {{ lesson.grade }}</span>
+          <span class="badge grade-badge">Year {{ lesson.grade }}</span>
           <span class="badge topic-badge">{{ lesson.topic }}</span>
           <span class="badge cat-badge">{{ lesson.category }}</span>
           <span

@@ -28,14 +28,21 @@ export enum PersistedQuestionDifficulty {
  */
 export class FindQuestionsDto {
   /**
-   * Filter by grade level (3–8).
+   * Filter by grade/year level (0–10).
    */
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(3)
-  @Max(8)
+  @Min(0)
+  @Max(10)
   grade?: number;
+
+  /**
+   * Filter by subject key (currently 'mathematics').
+   */
+  @IsOptional()
+  @IsString()
+  subject?: string;
 
   /**
    * Filter by curriculum topic key (e.g. 'ADDITION', 'FRACTION_OPERATIONS').

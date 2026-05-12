@@ -48,11 +48,9 @@ export class Registration implements OnInit {
   registrationForm!: FormGroup;
 
   /**
-   * Available grade levels for selection (1-12).
+   * Available year levels for selection (0-10).
    */
-  readonly availableGrades = Array.from({ length: 12 }, (_, i) =>
-    (i + 1).toString()
-  );
+  readonly availableYears = Array.from({ length: 11 }, (_, i) => i.toString());
 
   /**
    * Available learning goal subjects.

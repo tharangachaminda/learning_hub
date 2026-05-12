@@ -199,11 +199,11 @@
       <h2>Step 2: Profile Details</h2>
 
       <div class="form-field">
-        <label for="grade">Grade Level</label>
+        <label for="grade">Year Level</label>
         <select id="grade" data-testid="grade-select" formControlName="grade">
-          <option value="">Select your grade</option>
-          @for (grade of availableGrades; track grade) {
-          <option [value]="grade">Grade {{ grade }}</option>
+          <option value="">Select your year</option>
+          @for (year of availableYears; track year) {
+          <option [value]="year">Year {{ year }}</option>
           }
         </select>
       </div>

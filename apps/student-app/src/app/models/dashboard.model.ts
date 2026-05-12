@@ -13,7 +13,7 @@ import { Achievement } from './achievement.model';
  * @property id - Unique student identifier
  * @property firstName - Student's first name (used in welcome banner)
  * @property lastName - Student's last name
- * @property grade - Current grade level (1-12)
+ * @property grade - Current year level (0-10)
  * @property avatarUrl - URL to the student's avatar image
  */
 export interface StudentProfile {
@@ -52,8 +52,8 @@ export interface Streak {
  * AI-powered topic recommendation (AC5).
  *
  * @property id - Unique recommendation identifier
- * @property topic - Topic name (e.g. "Fractions")
- * @property subject - Subject area (e.g. "math")
+ * @property topic - Backend-provided topic label or key shown to the student
+ * @property subject - Backend-provided subject identifier
  * @property reason - Why this topic is recommended
  * @property difficulty - Suggested difficulty level
  * @property estimatedMinutes - Estimated time to complete
@@ -71,8 +71,8 @@ export interface TopicRecommendation {
  * A completed practice session shown in recent activity (AC6).
  *
  * @property id - Session identifier
- * @property subject - Subject practiced
- * @property topic - Specific topic
+ * @property subject - Backend-provided subject identifier
+ * @property topic - Backend-provided topic label or key
  * @property score - Score as a percentage (0-100)
  * @property questionsAnswered - Total questions in session
  * @property correctAnswers - Number answered correctly

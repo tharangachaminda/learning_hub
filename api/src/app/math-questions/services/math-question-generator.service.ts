@@ -5,6 +5,11 @@ import {
 } from '../entities/math-question.entity';
 import { OllamaService } from '../../ai/ollama.service';
 import { QuestionsService } from '../../questions/questions.service';
+import {
+  getMathematicsTopicCriteria,
+  getMathematicsYearPlan,
+  MATHEMATICS_CURRICULUM,
+} from '../../ai/mathematics-curriculum.criteria';
 
 /**
  * Service responsible for generating mathematical questions for educational purposes
@@ -79,7 +84,13 @@ export class MathQuestionGenerator {
 
     // Auto-persist generated questions to MongoDB if QuestionsService is available
     if (autoPersist && this.questionsService) {
-      await this.persistQuestions(questions, difficulty, topic, startTime);
+      await this.persistQuestions(
+        questions,
+        difficulty,
+        topic,
+        startTime,
+        questionDifficulty
+      );
     }
 
     return questions;
@@ -277,11 +288,14 @@ export class MathQuestionGenerator {
     questions: MathQuestion[],
     difficulty: DifficultyLevel,
     topic: string,
-    startTime: number
+    startTime: number,
+    questionDifficulty: 'easy' | 'medium' | 'hard'
   ): Promise<void> {
     try {
       const gradeNumber = this.difficultyToGrade(difficulty);
       const generationTime = Date.now() - startTime;
+      const yearPlan = getMathematicsYearPlan(gradeNumber);
+      const topicCriteria = getMathematicsTopicCriteria(gradeNumber, topic);
 
       const dtos = questions.map((q) => ({
         questionText: q.question,
@@ -291,8 +305,15 @@ export class MathQuestionGenerator {
         stepByStepSolution: q.stepByStepSolution,
         metadata: {
           generatedBy: this.ollamaService ? 'ollama' : 'deterministic',
-          difficulty: difficulty as string,
+          difficulty: questionDifficulty,
           country: 'NZ',
+          subject: MATHEMATICS_CURRICULUM.subject,
+          curriculumVersion: MATHEMATICS_CURRICULUM.version,
+          resolvedTopicKey: topicCriteria?.key,
+          resolvedTopicLabel: topicCriteria?.label,
+          curriculumStrand: topicCriteria?.strand,
+          curriculumPhase: yearPlan?.phase,
+          sourceTopicKey: topic,
           generationTime,
         },
       }));

@@ -4,20 +4,20 @@
     Create Your Questions
   </h2>
 
-  <!-- Grade Dropdown -->
+  <!-- Year Dropdown -->
   <div class="control-group">
-    <label for="grade-select" class="control-label">Grade</label>
+    <label for="grade-select" class="control-label">Year</label>
     <select
       id="grade-select"
       class="form-select control-select"
       [ngModel]="selectedGrade()"
       (ngModelChange)="onGradeChange($event)"
       [disabled]="isGenerating"
-      aria-label="Select your grade level"
+      aria-label="Select your year level"
       data-testid="grade-select"
     >
-      @for (g of supportedGrades; track g) {
-      <option [ngValue]="g">Grade {{ g }}</option>
+      @for (g of supportedGrades(); track g) {
+      <option [ngValue]="g">Year {{ g }}</option>
       }
     </select>
   </div>

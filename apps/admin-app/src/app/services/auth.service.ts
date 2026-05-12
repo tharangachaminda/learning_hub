@@ -78,15 +78,29 @@ export interface StaffStats {
 export interface GradeTopic {
   key: string;
   label: string;
+  strand?: string;
+  overview?: string;
+  legacyTopicKeys?: string[];
 }
 
 export interface GradeInfo {
   grade: number;
+  year?: number;
+  subject?: string;
+  phase?: string;
+  focusSummary?: string;
   topics: GradeTopic[];
+}
+
+export interface SubjectCurriculumInfo {
+  subject: string;
+  version: string;
+  years: GradeInfo[];
 }
 
 export interface CurriculumData {
   grades: GradeInfo[];
+  subjects?: SubjectCurriculumInfo[];
 }
 
 export interface QuestionItem {
@@ -106,6 +120,13 @@ export interface QuestionItem {
     generationTime: number;
     difficulty: string;
     country: string;
+    subject?: string;
+    curriculumVersion?: string;
+    resolvedTopicKey?: string;
+    resolvedTopicLabel?: string;
+    curriculumStrand?: string;
+    curriculumPhase?: string;
+    sourceTopicKey?: string;
     fallbackUsed?: boolean;
     validationScore?: number;
   };
@@ -146,6 +167,7 @@ export interface PaginatedQuestions {
 
 export interface BatchGenerateRequest {
   grade: number;
+  subject?: string;
   topic: string;
   count?: number;
   format?: string;
@@ -378,6 +400,7 @@ export class AuthService {
   }
 
   getQuestions(filters: {
+    subject?: string;
     grade?: number;
     topic?: string;
     status?: string;
@@ -387,7 +410,9 @@ export class AuthService {
     limit?: number;
   }): Observable<PaginatedQuestions> {
     let params = new HttpParams();
-    if (filters.grade) params = params.set('grade', filters.grade.toString());
+    if (filters.subject) params = params.set('subject', filters.subject);
+    if (filters.grade !== undefined)
+      params = params.set('grade', filters.grade.toString());
     if (filters.topic) params = params.set('topic', filters.topic);
     if (filters.status) params = params.set('status', filters.status);
     if (filters.approvedNotIndexed) {
@@ -396,8 +421,10 @@ export class AuthService {
     if (filters.difficulty) {
       params = params.set('difficulty', filters.difficulty);
     }
-    if (filters.page) params = params.set('page', filters.page.toString());
-    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    if (filters.page !== undefined)
+      params = params.set('page', filters.page.toString());
+    if (filters.limit !== undefined)
+      params = params.set('limit', filters.limit.toString());
     return this.http.get<PaginatedQuestions>(this.questionsApiUrl, { params });
   }
 
@@ -495,7 +522,8 @@ export class AuthService {
     category?: string;
   }): Observable<LessonLearned[]> {
     let params = new HttpParams();
-    if (filters?.grade) params = params.set('grade', filters.grade.toString());
+    if (filters?.grade !== undefined)
+      params = params.set('grade', filters.grade.toString());
     if (filters?.topic) params = params.set('topic', filters.topic);
     if (filters?.category) params = params.set('category', filters.category);
     return this.http.get<LessonLearned[]>(

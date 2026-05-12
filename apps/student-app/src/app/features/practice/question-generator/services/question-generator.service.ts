@@ -35,7 +35,7 @@ interface PracticeQuestionsResponse {
  * ```typescript
  * const service = inject(QuestionGeneratorService);
  * service.checkHealth().subscribe(h => console.log(h.status));
- * service.loadPracticeQuestions(3, 'ADDITION', 10).subscribe(res => ...);
+ * service.loadPracticeQuestions(6, 'ALGEBRA_AND_PATTERNS', 10).subscribe(res => ...);
  * ```
  */
 @Injectable({ providedIn: 'root' })
@@ -57,8 +57,8 @@ export class QuestionGeneratorService {
   /**
    * Loads pre-approved practice questions from the question bank.
    *
-   * @param grade - Grade level (3–8)
-   * @param topic - Topic key (e.g. 'ADDITION')
+   * @param grade - Year level (0–10)
+   * @param topic - Canonical curriculum topic key (for example 'WHOLE_NUMBER_OPERATIONS')
    * @param count - Number of questions to load
    * @param difficulty - Optional difficulty filter ('easy', 'medium', 'hard')
    * @returns Observable of practice response with questions and availability info
@@ -85,23 +85,19 @@ export class QuestionGeneratorService {
 
   /**
    * Loads practice questions and maps them to GeneratedQuestion format
-   * for backward compatibility with the question generator UI.
+   * for the question generator UI.
    *
-   * @param difficulty - Grade-based difficulty param (e.g. 'grade_3')
+   * @param grade - Year level (0–10)
    * @param count - Number of questions to generate
-   * @param type - Topic type
+   * @param topic - Canonical curriculum topic key
    * @returns Observable of GeneratedQuestion array
    */
   generateQuestions(
-    difficulty: string,
+    grade: number,
     count: number,
-    type: string
+    topic: string
   ): Observable<GeneratedQuestion[]> {
-    // Parse grade number from difficulty param (e.g. 'grade_3' -> 3)
-    const gradeMatch = difficulty.match(/grade_?(\d+)/i);
-    const grade = gradeMatch ? parseInt(gradeMatch[1], 10) : 3;
-
-    return this.loadPracticeQuestions(grade, type.toUpperCase(), count).pipe(
+    return this.loadPracticeQuestions(grade, topic, count).pipe(
       map((response) =>
         response.questions.map((q) => ({
           question: q.questionText,

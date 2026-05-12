@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import {
   AuthService,
+  CurriculumData,
   QuestionStats,
   QuestionAnalytics,
   CoverageGap,
@@ -48,13 +49,36 @@ export class DashboardComponent implements OnInit {
   /** Top 5 coverage gaps sorted by lowest approved count */
   topGaps: CoverageGap[] = [];
 
+  private readonly topicLabels = new Map<string, string>();
+
   private readonly authService = inject(AuthService);
 
   ngOnInit(): void {
     this.isAdmin = this.authService.isAdmin();
 
+    this.loadCurriculum();
     this.loadStats();
     this.loadAnalytics();
+  }
+
+  loadCurriculum(): void {
+    this.authService.getCurriculum().subscribe({
+      next: (data: CurriculumData) => {
+        const years = data.subjects?.[0]?.years ?? data.grades;
+        this.topicLabels.clear();
+        for (const year of years) {
+          for (const topic of year.topics) {
+            this.topicLabels.set(topic.key, topic.label);
+            for (const legacyKey of topic.legacyTopicKeys ?? []) {
+              this.topicLabels.set(legacyKey, topic.label);
+            }
+          }
+        }
+      },
+      error: () => {
+        // Non-blocking — dashboard still renders with fallback formatting.
+      },
+    });
   }
 
   loadStats(): void {
@@ -90,6 +114,11 @@ export class DashboardComponent implements OnInit {
   }
 
   formatTopic(topic: string): string {
+    const label = this.topicLabels.get(topic);
+    if (label) {
+      return label;
+    }
+
     return topic
       .replace(/_/g, ' ')
       .toLowerCase()

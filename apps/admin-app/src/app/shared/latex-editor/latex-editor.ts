@@ -22,7 +22,6 @@ import {
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { bracketMatching } from '@codemirror/language';
-import { oneDark } from '@codemirror/theme-one-dark';
 
 interface ToolbarItem {
   label: string;
@@ -222,12 +221,10 @@ export class LatexEditorComponent implements AfterViewInit, OnDestroy {
     const initialContent = this.content() || '';
     this.previewText = initialContent;
 
-    const self = this;
-
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         const text = update.state.doc.toString();
-        self.onContentChange(text);
+        this.onContentChange(text);
       }
     });
 
@@ -235,21 +232,21 @@ export class LatexEditorComponent implements AfterViewInit, OnDestroy {
       {
         key: 'Mod-b',
         run: (view) => {
-          self.wrapSelection(view, '\\textbf{', '}');
+          this.wrapSelection(view, '\\textbf{', '}');
           return true;
         },
       },
       {
         key: 'Mod-i',
         run: (view) => {
-          self.wrapSelection(view, '\\textit{', '}');
+          this.wrapSelection(view, '\\textit{', '}');
           return true;
         },
       },
       {
         key: 'Mod-m',
         run: (view) => {
-          self.wrapSelection(view, '$', '$');
+          this.wrapSelection(view, '$', '$');
           return true;
         },
       },
