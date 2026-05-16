@@ -3,6 +3,8 @@ import {
   getGradePatterns,
   getCountryContext,
   parseLLMResponse,
+  QuestionGenerationRequestSchema,
+  ExplanationRequestSchema,
 } from './schemas';
 
 describe('GRADE_LEVEL_PATTERNS', () => {
@@ -133,6 +135,36 @@ describe('getCountryContext', () => {
     const context = getCountryContext('NZ');
     expect(context.currency).toBe('dollars');
     expect(context.commonNames.length).toBeGreaterThan(0);
+    expect(context.contextBuckets['nature-wildlife'].approvedTerms).toContain(
+      'forest'
+    );
+    expect(
+      context.contextBuckets['games-sports'].scenarios.length
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe('request schemas', () => {
+  it('should allow Year 0 question generation requests', () => {
+    const parsed = QuestionGenerationRequestSchema.parse({
+      grade: 0,
+      topic: 'COUNTING_AND_QUANTITY',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    expect(parsed.grade).toBe(0);
+  });
+
+  it('should allow Year 0 explanation requests', () => {
+    const parsed = ExplanationRequestSchema.parse({
+      question: 'What is $2 + 1$?',
+      answer: 3,
+      grade: 0,
+      country: 'NZ',
+    });
+
+    expect(parsed.grade).toBe(0);
   });
 });
 

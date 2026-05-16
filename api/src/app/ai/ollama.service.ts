@@ -175,6 +175,7 @@ export class OllamaService {
     difficulty: string;
     country?: string;
     context?: string;
+    contextPlan?: QuestionGenerationRequest['contextPlan'];
     existingQuestions?: string[];
   }): Promise<GeneratedQuestion> {
     const startTime = Date.now();
@@ -193,6 +194,7 @@ export class OllamaService {
           topic: request.topic.toUpperCase(),
           difficulty: request.difficulty,
           country: request.country,
+          contextPlan: request.contextPlan,
         });
 
       // Use the curriculum-aware system prompt for AI generation
@@ -279,6 +281,9 @@ export class OllamaService {
           generation_time: generationTime,
           validation_score: 1.0, // High score for successful AI generation
           latexValid: latexValidation.isValid,
+          contextBucketId: request.contextPlan?.bucketId,
+          contextScenario: request.contextPlan?.scenario,
+          contextualQuestion: request.contextPlan?.sentenceQuestion,
         },
       };
 
@@ -286,7 +291,44 @@ export class OllamaService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`LLM question generation failed: ${message}`);
-      throw new Error(`LLM question generation failed: ${message}`);
+
+      const request = QuestionGenerationRequestSchema.parse({
+        ...requestData,
+        country: requestData.country || 'NZ',
+      });
+      const fallbackQuestion = this.generateFallbackQuestion({
+        grade: request.grade,
+        topic: request.topic,
+        difficulty: request.difficulty,
+      });
+      const fallbackExplanation = this.generateFallbackExplanation(
+        fallbackQuestion.question,
+        fallbackQuestion.answer,
+        request.grade
+      );
+      const generationTime = Date.now() - startTime;
+      const latexValidation = validateLatexContent(
+        `${fallbackQuestion.question} ${fallbackExplanation}`
+      );
+
+      return GeneratedQuestionSchema.parse({
+        question: fallbackQuestion.question,
+        answer: fallbackQuestion.answer,
+        explanation: fallbackExplanation,
+        metadata: {
+          grade: request.grade,
+          topic: request.topic,
+          difficulty: request.difficulty,
+          country: request.country,
+          generated_by: 'deterministic-fallback',
+          generation_time: generationTime,
+          fallback_used: true,
+          latexValid: latexValidation.isValid,
+          contextBucketId: request.contextPlan?.bucketId,
+          contextScenario: request.contextPlan?.scenario,
+          contextualQuestion: request.contextPlan?.sentenceQuestion,
+        },
+      });
     }
   }
 
@@ -486,7 +528,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
     // Fallback to regex parsing with validation
     const questionMatch = aiResponse.match(
-      /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/s
+      /QUESTION:\s*([\s\S]+?)(?=\nANSWER:|$)/
     );
     const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
     const explanationMatch = aiResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);
@@ -998,5 +1040,50 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
     }
 
     return `Let's solve this step by step! The answer is ${answer}. Great job working on this problem!`;
+  }
+
+  private generateFallbackQuestion(request: {
+    grade: number;
+    topic: string;
+    difficulty: string;
+  }): {
+    question: string;
+    answer: number;
+  } {
+    const topicUpper = request.topic.toUpperCase();
+
+    if (topicUpper.includes('SUBTRACTION')) {
+      const minuend = 12;
+      const subtrahend = 5;
+      return {
+        question: `${minuend} - ${subtrahend} = ?`,
+        answer: minuend - subtrahend,
+      };
+    }
+
+    if (topicUpper.includes('MULTIPLICATION')) {
+      const factor1 = 3;
+      const factor2 = 4;
+      return {
+        question: `$${factor1} \\times ${factor2} = ?$`,
+        answer: factor1 * factor2,
+      };
+    }
+
+    if (topicUpper.includes('DIVISION')) {
+      const dividend = 12;
+      const divisor = 3;
+      return {
+        question: `$${dividend} \\div ${divisor} = ?$`,
+        answer: dividend / divisor,
+      };
+    }
+
+    const addend1 = 7;
+    const addend2 = 5;
+    return {
+      question: `${addend1} + ${addend2} = ?`,
+      answer: addend1 + addend2,
+    };
   }
 }

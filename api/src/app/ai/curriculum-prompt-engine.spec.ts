@@ -517,6 +517,24 @@ describe('CurriculumPromptEngine', () => {
       );
     });
 
+    it('should prohibit sentence questions for years 1-2 at every difficulty', () => {
+      (['easy', 'medium', 'hard'] as const).forEach((difficulty) => {
+        const prompt = engine.generateCurriculumPrompt({
+          grade: 2,
+          topic: 'ADDITION',
+          difficulty,
+          country: 'NZ',
+        });
+
+        expect(prompt.systemPrompt).toMatch(
+          /do NOT use sentence questions, word problems, or story contexts/i
+        );
+        expect(prompt.systemPrompt).toMatch(
+          /very simple wording is acceptable/i
+        );
+      });
+    });
+
     /**
      * Test: Higher grades (5+) easy → no restriction on sentence format
      * Why Essential: Older students handle word problems even at easy level
@@ -532,6 +550,75 @@ describe('CurriculumPromptEngine', () => {
 
       expect(prompt.systemPrompt).not.toMatch(
         /do NOT.*sentence|no.*word.*problem/i
+      );
+    });
+
+    it('should include planned context instructions for contextual questions', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 6,
+        topic: 'FRACTION_OPERATIONS',
+        difficulty: 'medium',
+        country: 'NZ',
+        contextPlan: {
+          bucketId: 'beaches-ocean',
+          bucketLabel: 'Beaches and Ocean',
+          scenario: 'collecting shells at the beach',
+          approvedTerms: ['shell', 'sand', 'tide'],
+          sentenceQuestion: true,
+          avoidSettings: ['keeping score in a rugby game'],
+        },
+      });
+
+      expect(prompt.systemPrompt).toContain('CONTEXT PLAN:');
+      expect(prompt.systemPrompt).toContain('Beaches and Ocean');
+      expect(prompt.systemPrompt).toContain('collecting shells at the beach');
+      expect(prompt.systemPrompt).toContain(
+        'Use at least one approved context term'
+      );
+      expect(prompt.systemPrompt).toContain('keeping score in a rugby game');
+    });
+
+    it('should keep planner-directed non-contextual questions numeric', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'ADDITION',
+        difficulty: 'easy',
+        country: 'NZ',
+        contextPlan: {
+          bucketId: 'games-sports',
+          bucketLabel: 'Games and Sports',
+          scenario: 'keeping score in a rugby game',
+          approvedTerms: ['rugby', 'game'],
+          sentenceQuestion: false,
+          simpleWordingOnly: true,
+          avoidSettings: ['collecting shells at the beach'],
+        },
+      });
+
+      expect(prompt.systemPrompt).toContain(
+        'This question should remain direct numeric or short-form'
+      );
+      expect(prompt.systemPrompt).toContain(
+        'Use only very simple wording if any surrounding words are needed'
+      );
+    });
+
+    it('should require English-only wording while allowing Maori proper nouns', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 5,
+        topic: 'ADDITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      expect(prompt.systemPrompt).toContain(
+        'Write the entire question and explanation in English only'
+      );
+      expect(prompt.systemPrompt).toContain(
+        'Do NOT switch the question or explanation into te reo Māori'
+      );
+      expect(prompt.systemPrompt).toContain(
+        'Māori names, place names, and culturally specific nouns are allowed'
       );
     });
   });
