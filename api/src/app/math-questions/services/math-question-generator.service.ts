@@ -6,6 +6,11 @@ import {
 import { OllamaService } from '../../ai/ollama.service';
 import { QuestionsService } from '../../questions/questions.service';
 import {
+  CONTEXT_BUCKET_IDS,
+  getCountryContext,
+  QuestionContextPlan,
+} from '../../ai/schemas';
+import {
   getMathematicsTopicCriteria,
   getMathematicsYearPlan,
   MATHEMATICS_CURRICULUM,
@@ -58,7 +63,8 @@ export class MathQuestionGenerator {
     count: number,
     topic: string,
     autoPersist = true,
-    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
+    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    requestedGrade?: number
   ): Promise<MathQuestion[]> {
     this.validateQuestionCount(count);
     const startTime = Date.now();
@@ -73,7 +79,8 @@ export class MathQuestionGenerator {
       difficulty,
       count,
       topic,
-      questionDifficulty
+      questionDifficulty,
+      requestedGrade
     );
 
     if (questions.length === 0) {
@@ -89,7 +96,8 @@ export class MathQuestionGenerator {
         difficulty,
         topic,
         startTime,
-        questionDifficulty
+        questionDifficulty,
+        requestedGrade
       );
     }
 
@@ -133,10 +141,17 @@ export class MathQuestionGenerator {
     difficulty: DifficultyLevel,
     count: number,
     topic: string,
-    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
+    questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    requestedGrade?: number
   ): Promise<MathQuestion[]> {
     const questions: MathQuestion[] = [];
-    const gradeNumber = this.difficultyToGrade(difficulty);
+    const gradeNumber = requestedGrade ?? this.difficultyToGrade(difficulty);
+    const contextPlans = this.buildBatchContextPlans(
+      gradeNumber,
+      count,
+      topic,
+      questionDifficulty
+    );
 
     const maxRetries = 2;
 
@@ -153,6 +168,7 @@ export class MathQuestionGenerator {
             topic,
             difficulty: questionDifficulty,
             country: 'NZ',
+            contextPlan: contextPlans[i],
             existingQuestions,
           });
 
@@ -289,10 +305,11 @@ export class MathQuestionGenerator {
     difficulty: DifficultyLevel,
     topic: string,
     startTime: number,
-    questionDifficulty: 'easy' | 'medium' | 'hard'
+    questionDifficulty: 'easy' | 'medium' | 'hard',
+    requestedGrade?: number
   ): Promise<void> {
     try {
-      const gradeNumber = this.difficultyToGrade(difficulty);
+      const gradeNumber = requestedGrade ?? this.difficultyToGrade(difficulty);
       const generationTime = Date.now() - startTime;
       const yearPlan = getMathematicsYearPlan(gradeNumber);
       const topicCriteria = getMathematicsTopicCriteria(gradeNumber, topic);
@@ -355,6 +372,107 @@ export class MathQuestionGenerator {
     if (count <= 0) {
       throw new Error('Question count must be greater than 0');
     }
+  }
+
+  private buildBatchContextPlans(
+    grade: number,
+    count: number,
+    topic: string,
+    questionDifficulty: 'easy' | 'medium' | 'hard'
+  ): QuestionContextPlan[] {
+    const countryContext = getCountryContext('NZ');
+    const sentenceTarget = this.calculateSentenceQuestionTarget(
+      grade,
+      topic,
+      questionDifficulty,
+      count
+    );
+    const sentenceQuestionIndices = this.buildSentenceQuestionIndices(
+      count,
+      sentenceTarget
+    );
+
+    return Array.from({ length: count }, (_, index) => {
+      const bucketId = CONTEXT_BUCKET_IDS[index % CONTEXT_BUCKET_IDS.length];
+      const bucket = countryContext.contextBuckets[bucketId];
+      const scenario = this.getScenarioForPlanIndex(countryContext, index);
+      const sentenceQuestion = sentenceQuestionIndices.has(index);
+
+      return {
+        bucketId,
+        bucketLabel: bucket.label,
+        scenario,
+        approvedTerms: [...bucket.approvedTerms],
+        sentenceQuestion,
+        simpleWordingOnly:
+          grade <= 2 || (!sentenceQuestion && questionDifficulty === 'easy'),
+        avoidSettings:
+          index > 0
+            ? [this.getScenarioForPlanIndex(countryContext, index - 1)]
+            : [],
+      };
+    });
+  }
+
+  private getScenarioForPlanIndex(
+    countryContext: ReturnType<typeof getCountryContext>,
+    index: number
+  ): string {
+    const bucketId = CONTEXT_BUCKET_IDS[index % CONTEXT_BUCKET_IDS.length];
+    const bucket = countryContext.contextBuckets[bucketId];
+    const cycle = Math.floor(index / CONTEXT_BUCKET_IDS.length);
+
+    return bucket.scenarios[cycle % bucket.scenarios.length];
+  }
+
+  private calculateSentenceQuestionTarget(
+    grade: number,
+    topic: string,
+    questionDifficulty: 'easy' | 'medium' | 'hard',
+    count: number
+  ): number {
+    if (grade <= 2) {
+      return 0;
+    }
+
+    const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
+    const isBasicOp = basicOps.includes(topic.toUpperCase());
+
+    if (questionDifficulty === 'easy' && grade <= 4 && isBasicOp) {
+      return 0;
+    }
+
+    const ratioByDifficulty: Record<typeof questionDifficulty, number> = {
+      easy: 0.15,
+      medium: 0.5,
+      hard: 0.7,
+    };
+
+    return Math.max(
+      0,
+      Math.min(count, Math.round(count * ratioByDifficulty[questionDifficulty]))
+    );
+  }
+
+  private buildSentenceQuestionIndices(
+    count: number,
+    target: number
+  ): Set<number> {
+    const indices = new Set<number>();
+
+    if (target <= 0 || count <= 0) {
+      return indices;
+    }
+
+    for (let position = 0; position < target; position++) {
+      const index = Math.min(
+        count - 1,
+        Math.round(((position + 0.5) * count) / target - 0.5)
+      );
+      indices.add(index);
+    }
+
+    return indices;
   }
 
   /**

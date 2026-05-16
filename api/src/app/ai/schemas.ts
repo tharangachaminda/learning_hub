@@ -24,16 +24,45 @@ export type Country = z.infer<typeof CountrySchema>;
  * Enhanced question generation request with country context
  */
 export const QuestionGenerationRequestSchema = z.object({
-  grade: z.number().int().min(1).max(12),
+  grade: z.number().int().min(0).max(12),
   topic: z.string().min(1),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   country: CountrySchema.default('NZ'),
   context: z.string().optional(),
+  contextPlan: z
+    .object({
+      bucketId: z.enum([
+        'nature-wildlife',
+        'beaches-ocean',
+        'snow-mountains',
+        'games-sports',
+        'international',
+      ]),
+      bucketLabel: z.string().min(1),
+      scenario: z.string().min(1),
+      approvedTerms: z.array(z.string().min(1)).min(1),
+      sentenceQuestion: z.boolean(),
+      simpleWordingOnly: z.boolean().optional(),
+      avoidSettings: z.array(z.string().min(1)).optional(),
+    })
+    .optional(),
 });
 
 export type QuestionGenerationRequest = z.infer<
   typeof QuestionGenerationRequestSchema
 >;
+
+export type QuestionContextPlan = NonNullable<
+  QuestionGenerationRequest['contextPlan']
+>;
+
+export const CONTEXT_BUCKET_IDS = [
+  'nature-wildlife',
+  'beaches-ocean',
+  'snow-mountains',
+  'games-sports',
+  'international',
+] as const;
 
 /**
  * Structured LLM response schema for math questions
@@ -76,6 +105,9 @@ export const GeneratedQuestionSchema = z.object({
     fallback_used: z.boolean().optional(),
     validation_score: z.number().min(0).max(1).optional(),
     latexValid: z.boolean().optional(),
+    contextBucketId: z.string().optional(),
+    contextScenario: z.string().optional(),
+    contextualQuestion: z.boolean().optional(),
   }),
 });
 
@@ -119,7 +151,7 @@ export const ExplanationRequestSchema = z.object({
   question: z.string().min(1),
   answer: z.number(),
   studentAnswer: z.number().optional(),
-  grade: z.number().int().min(1).max(12),
+  grade: z.number().int().min(0).max(12),
   style: ExplanationStyleSchema.default('step-by-step'),
   country: CountrySchema.default('NZ'),
 });
@@ -191,6 +223,88 @@ export const COUNTRY_CONTEXTS = {
       'L&P drink',
       'All Blacks rugby team',
     ],
+    contextBuckets: {
+      'nature-wildlife': {
+        label: 'Nature and Wildlife',
+        approvedTerms: [
+          'forest',
+          'river',
+          'harbour',
+          'bush',
+          'volcano',
+          'lake',
+          'kiwi',
+          'tui',
+          'kea',
+          'penguin',
+          'seal',
+        ],
+        scenarios: [
+          'counting birds near a forest trail',
+          'measuring a walk beside the harbour',
+          'spotting seals near the rocks',
+        ],
+      },
+      'beaches-ocean': {
+        label: 'Beaches and Ocean',
+        approvedTerms: [
+          'sand',
+          'tide',
+          'surf',
+          'shell',
+          'cliff',
+          'fish',
+          'beach',
+          'ocean',
+        ],
+        scenarios: [
+          'collecting shells at the beach',
+          'counting fish near the wharf',
+          'measuring steps along the sand',
+        ],
+      },
+      'snow-mountains': {
+        label: 'Snow and Mountains',
+        approvedTerms: ['ski', 'frost', 'mountain', 'glacier', 'cold', 'snow'],
+        scenarios: [
+          'counting skis at the lodge',
+          'tracking steps in the snow',
+          'measuring distance on a mountain walk',
+        ],
+      },
+      'games-sports': {
+        label: 'Games and Sports',
+        approvedTerms: [
+          'cricket',
+          'rugby',
+          'soccer',
+          'board game',
+          'tag',
+          'game',
+        ],
+        scenarios: [
+          'keeping score in a rugby game',
+          'counting moves in a board game',
+          'sharing equipment for soccer practice',
+        ],
+      },
+      international: {
+        label: 'International Settings',
+        approvedTerms: [
+          'airport',
+          'classroom',
+          'festival',
+          'food',
+          'home',
+          'travel',
+        ],
+        scenarios: [
+          'counting bags at the airport',
+          'sharing food at a festival',
+          'organising books in a classroom',
+        ],
+      },
+    },
   },
   AU: {
     currency: 'dollars',
@@ -219,6 +333,62 @@ export const COUNTRY_CONTEXTS = {
       'cricket matches',
       'eucalyptus trees',
     ],
+    contextBuckets: {
+      'nature-wildlife': {
+        label: 'Nature and Wildlife',
+        approvedTerms: ['bush', 'river', 'kangaroo', 'koala', 'bird', 'park'],
+        scenarios: [
+          'counting koalas in the park',
+          'measuring a bushwalk trail',
+        ],
+      },
+      'beaches-ocean': {
+        label: 'Beaches and Ocean',
+        approvedTerms: ['surf', 'sand', 'beach', 'wave', 'shell', 'fish'],
+        scenarios: [
+          'counting surfboards on the beach',
+          'collecting shells near the water',
+        ],
+      },
+      'snow-mountains': {
+        label: 'Snow and Mountains',
+        approvedTerms: ['snow', 'mountain', 'ski', 'cold', 'trail', 'frost'],
+        scenarios: [
+          'counting skis at the snow field',
+          'measuring a walk in the mountains',
+        ],
+      },
+      'games-sports': {
+        label: 'Games and Sports',
+        approvedTerms: [
+          'cricket',
+          'soccer',
+          'game',
+          'team',
+          'board game',
+          'tag',
+        ],
+        scenarios: [
+          'keeping score in a cricket match',
+          'sharing cards in a board game',
+        ],
+      },
+      international: {
+        label: 'International Settings',
+        approvedTerms: [
+          'airport',
+          'classroom',
+          'festival',
+          'food',
+          'home',
+          'travel',
+        ],
+        scenarios: [
+          'counting bags for travel',
+          'sharing snacks in a classroom',
+        ],
+      },
+    },
   },
   // Add more countries as needed
 } as const;
@@ -462,12 +632,12 @@ export function parseLLMResponse(
     // Extract individual fields from JSON-like or malformed JSON responses
     // Handles unescaped quotes, missing closing braces, and rambling explanations
     const jsonQuestion = rawResponse.match(
-      /"question"\s*:\s*"((?:[^"\\]|\\.)*)"/s
+      /"question"\s*:\s*"([\s\S]*?)"(?=\s*,\s*"answer"|\s*})/
     );
     const jsonAnswer = rawResponse.match(/"answer"\s*:\s*"?(\d+)"?/);
     if (jsonQuestion && jsonAnswer) {
       const jsonExplanation = rawResponse.match(
-        /"explanation"\s*:\s*"((?:[^"\\]|\\.)*)"/s
+        /"explanation"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/
       );
       const response = {
         question: jsonQuestion[1].trim(),
@@ -483,7 +653,7 @@ export function parseLLMResponse(
 
     // Fallback to regex parsing for text responses
     const questionMatch = rawResponse.match(
-      /QUESTION:\s*(.+?)(?=\n|ANSWER:|$)/s
+      /QUESTION:\s*([\s\S]+?)(?=\nANSWER:|$)/
     );
     const answerMatch = rawResponse.match(/ANSWER:\s*(\d+)/);
     const explanationMatch = rawResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);

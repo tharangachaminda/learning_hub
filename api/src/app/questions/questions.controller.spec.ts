@@ -224,6 +224,30 @@ describe('QuestionsController', () => {
     });
   });
 
+  describe('POST /questions/batch-generate', () => {
+    it('should preserve the requested lower-year grade when calling the generator', async () => {
+      await controller.batchGenerate(
+        {
+          grade: 0,
+          topic: 'EARLY_OPERATIONS',
+          count: 2,
+          difficulty: 'hard',
+          subject: 'mathematics',
+        } as any,
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(mathGenerator.generateQuestions).toHaveBeenCalledWith(
+        'grade_3',
+        2,
+        'EARLY_OPERATIONS',
+        false,
+        'hard',
+        0
+      );
+    });
+  });
+
   describe('POST /questions/batch-generate (AC-006)', () => {
     it('should generate questions and store them', async () => {
       const dto = { grade: 4, topic: 'MULTIPLICATION', count: 10 };
@@ -274,7 +298,8 @@ describe('QuestionsController', () => {
         10,
         'ADDITION',
         false,
-        'medium'
+        'medium',
+        3
       );
     });
 

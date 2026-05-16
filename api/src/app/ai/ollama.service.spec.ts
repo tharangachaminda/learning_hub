@@ -131,6 +131,36 @@ describe('OllamaService', () => {
       expect(generationTime).toBeLessThan(3000); // <3 seconds requirement
     });
 
+    it('should include planner-directed context instructions in the generated prompt', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: What is $5 + 3$?\nANSWER: 8\nEXPLANATION: Add 5 and 3 to get 8.',
+        },
+      });
+
+      await service.generateMathQuestion({
+        grade: 6,
+        topic: 'fraction_operations',
+        difficulty: 'medium',
+        country: 'NZ',
+        contextPlan: {
+          bucketId: 'beaches-ocean',
+          bucketLabel: 'Beaches and Ocean',
+          scenario: 'collecting shells at the beach',
+          approvedTerms: ['shell', 'sand', 'tide'],
+          sentenceQuestion: true,
+          avoidSettings: ['keeping score in a rugby game'],
+        },
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+      expect(postBody.prompt).toContain('CONTEXT PLAN:');
+      expect(postBody.prompt).toContain('collecting shells at the beach');
+      expect(postBody.prompt).toContain('shell, sand, tide');
+      expect(postBody.prompt).toContain('keeping score in a rugby game');
+    });
+
     it('should fallback to deterministic generation when AI fails', async () => {
       // Mock AI failure
       mockAxios.post.mockRejectedValue(new Error('Ollama server error'));
@@ -146,6 +176,7 @@ describe('OllamaService', () => {
 
       // Should get a valid question even if AI fails
       expect(result.question).toBeDefined();
+      expect(result.question).toBe('$7 + 5 = ?$');
       expect(result.answer).toBeDefined();
       expect(result.metadata.fallback_used).toBe(true);
       expect(result.metadata.country).toBe('NZ');

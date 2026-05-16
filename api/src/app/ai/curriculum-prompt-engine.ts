@@ -9,6 +9,7 @@ import {
   MATHEMATICS_CURRICULUM,
 } from './mathematics-curriculum.criteria';
 import { CurriculumTopicDefinition } from './curriculum-criteria.types';
+import type { QuestionContextPlan } from './schemas';
 
 /**
  * Curriculum-aware prompt template for AI question generation
@@ -75,6 +76,9 @@ export interface CurriculumPromptRequest {
 
   /** Country code for cultural context */
   country: string;
+
+  /** Optional batch-planned context guidance for this specific question */
+  contextPlan?: QuestionContextPlan;
 }
 
 /**
@@ -473,11 +477,20 @@ QUESTION REQUIREMENTS:
     }
 8. Match the ${request.difficulty.toUpperCase()} difficulty level described above
 9. If curriculum criteria are provided, obey the required skills, allowed question forms, and constraints exactly
+10. Write the entire question and explanation in English only
+11. Māori proper names, place names, and culturally specific item names are allowed, but the sentence structure and instructions must remain English
 
 STRICT TOPIC ENFORCEMENT:
 ${this.buildTopicEnforcement(request.topic)}
 
 ${this.buildQuestionFormatRules(request)}
+${this.buildContextPlanRules(request)}
+LANGUAGE REQUIREMENTS:
+- Write in English only.
+- Do NOT switch the question or explanation into te reo Māori.
+- Māori names, place names, and culturally specific nouns are allowed when used naturally inside otherwise English sentences.
+- Keep instructions, verbs, and full sentence structure in English.
+
 PROHIBITED QUESTION PATTERNS:
 - NEVER generate vague or self-referential questions like "What is the result of this MULTIPLICATION problem?" or "Solve this ADDITION problem" without an actual math expression.
 - Every question MUST contain concrete numbers and a specific mathematical operation (e.g. "$7 \\times 8 = ?$", "What is $12 + 5$?").
@@ -523,6 +536,14 @@ Generate a ${request.difficulty.toUpperCase()} difficulty ${
     const isLowerGrade = request.grade <= 4;
     const isEasy = request.difficulty === 'easy';
 
+    if (request.grade <= 2) {
+      return `QUESTION FORMAT STYLE:
+Generate direct numeric or short-form questions ONLY.
+Do NOT use sentence questions, word problems, or story contexts for this question.
+Very simple wording is acceptable, but keep the mathematics direct and concise.
+`;
+    }
+
     if (isEasy && isBasicOp && isLowerGrade) {
       return `QUESTION FORMAT STYLE:
 Generate simple numeric questions ONLY (e.g. "$5 + 3 = ?$", "$12 \\times 4 = ?$").
@@ -532,6 +553,42 @@ Keep the format direct: a math expression followed by "= ?".
     }
 
     return '';
+  }
+
+  private buildContextPlanRules(request: CurriculumPromptRequest): string {
+    const contextPlan = request.contextPlan;
+
+    if (!contextPlan) {
+      return '';
+    }
+
+    const avoidSettings = contextPlan.avoidSettings?.length
+      ? contextPlan.avoidSettings.join(', ')
+      : 'none provided';
+
+    if (!contextPlan.sentenceQuestion) {
+      return `CONTEXT PLAN:
+- Planned Context Bucket: ${contextPlan.bucketLabel} (${contextPlan.bucketId})
+- Suggested Setting: ${contextPlan.scenario}
+- Approved Context Terms: ${contextPlan.approvedTerms.join(', ')}
+- Avoid Repeating These Settings: ${avoidSettings}
+- This question should remain direct numeric or short-form, not a sentence or word problem.
+${
+  contextPlan.simpleWordingOnly
+    ? '- Use only very simple wording if any surrounding words are needed.'
+    : '- If you use any surrounding words, keep them brief and secondary to the numeric task.'
+}
+`;
+    }
+
+    return `CONTEXT PLAN:
+- Planned Context Bucket: ${contextPlan.bucketLabel} (${contextPlan.bucketId})
+- Required Setting: ${contextPlan.scenario}
+- Approved Context Terms: ${contextPlan.approvedTerms.join(', ')}
+- Avoid Repeating These Settings: ${avoidSettings}
+- This question should be a contextual sentence or word-problem style question.
+- Use at least one approved context term naturally in the question.
+`;
   }
 
   /**
@@ -547,19 +604,36 @@ Keep the format direct: a math expression followed by "= ?".
   private buildDifficultyGuidance(request: CurriculumPromptRequest): string {
     const grade = request.grade;
 
+    if (grade <= 2) {
+      return `- ${request.difficulty.toUpperCase()} means: keep the numbers and representation appropriate for Year ${grade}; keep the task direct; do not use sentence questions or word problems; very simple wording is acceptable when needed.
+`;
+    }
+
     switch (request.difficulty) {
       case 'easy':
         if (grade <= 4) {
           return `- EASY means: use small, simple numbers appropriate for Grade ${grade}; single-step operation; no word problems or multi-part reasoning; straightforward computation.
 `;
         }
+        if (request.contextPlan?.sentenceQuestion) {
+          return `- EASY means: use straightforward numbers appropriate for Grade ${grade}; keep the computation simple; because this question is planned as contextual, use one short real-world sentence with approved terms only.
+`;
+        }
         return `- EASY means: use straightforward numbers appropriate for Grade ${grade}; single-step operation; minimal complexity; brief context is okay but keep the math simple.
 `;
       case 'medium':
+        if (request.contextPlan?.sentenceQuestion) {
+          return `- MEDIUM means: use moderate numbers appropriate for Grade ${grade}; use a short real-world context tied to the planned setting; single to two-step operations; some carrying/borrowing is acceptable.
+`;
+        }
         return `- MEDIUM means: use moderate numbers appropriate for Grade ${grade}; may involve a brief real-world context; single to two-step operations; some carrying/borrowing is acceptable.
 `;
       case 'hard':
-        return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; word problems with real-world context required; may combine operations or require careful thinking.
+        if (!request.contextPlan || request.contextPlan.sentenceQuestion) {
+          return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; word problems with real-world context required; may combine operations or require careful thinking.
+`;
+        }
+        return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; keep the format numeric or short-form as planned; do not turn this into a word problem; may combine operations or require careful thinking.
 `;
       default:
         return '';

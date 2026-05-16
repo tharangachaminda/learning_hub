@@ -257,7 +257,8 @@ export class QuestionsController {
         count,
         dto.topic,
         false,
-        dto.difficulty ?? 'medium'
+        dto.difficulty ?? 'medium',
+        dto.grade
       );
     } catch (error) {
       const message =
