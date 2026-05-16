@@ -176,6 +176,7 @@ describe('OllamaService', () => {
 
       // Should get a valid question even if AI fails
       expect(result.question).toBeDefined();
+      expect(result.question).toBe('$7 + 5 = ?$');
       expect(result.answer).toBeDefined();
       expect(result.metadata.fallback_used).toBe(true);
       expect(result.metadata.country).toBe('NZ');

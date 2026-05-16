@@ -1056,7 +1056,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
       const minuend = 12;
       const subtrahend = 5;
       return {
-        question: `${minuend} - ${subtrahend} = ?`,
+        question: `$${minuend} - ${subtrahend} = ?$`,
         answer: minuend - subtrahend,
       };
     }
@@ -1082,7 +1082,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
     const addend1 = 7;
     const addend2 = 5;
     return {
-      question: `${addend1} + ${addend2} = ?`,
+      question: `$${addend1} + ${addend2} = ?$`,
       answer: addend1 + addend2,
     };
   }

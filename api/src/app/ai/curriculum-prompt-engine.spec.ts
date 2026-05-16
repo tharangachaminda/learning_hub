@@ -603,6 +603,34 @@ describe('CurriculumPromptEngine', () => {
       );
     });
 
+    it('should keep hard planner-directed non-contextual questions numeric', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 6,
+        topic: 'MULTIPLICATION',
+        difficulty: 'hard',
+        country: 'NZ',
+        contextPlan: {
+          bucketId: 'games-sports',
+          bucketLabel: 'Games and Sports',
+          scenario: 'keeping score in a rugby game',
+          approvedTerms: ['rugby', 'game'],
+          sentenceQuestion: false,
+          avoidSettings: ['collecting shells at the beach'],
+        },
+      });
+
+      expect(prompt.systemPrompt).toContain(
+        'This question should remain direct numeric or short-form'
+      );
+      expect(prompt.systemPrompt).toContain(
+        'keep the format numeric or short-form as planned'
+      );
+      expect(prompt.systemPrompt).toContain('multi-step reasoning');
+      expect(prompt.systemPrompt).not.toContain(
+        'word problems with real-world context required'
+      );
+    });
+
     it('should require English-only wording while allowing Maori proper nouns', () => {
       const prompt = engine.generateCurriculumPrompt({
         grade: 5,

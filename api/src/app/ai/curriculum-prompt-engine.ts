@@ -633,7 +633,7 @@ ${
           return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; word problems with real-world context required; may combine operations or require careful thinking.
 `;
         }
-        return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; word problems with real-world context required; may combine operations or require careful thinking.
+        return `- HARD means: use larger or more complex numbers appropriate for Grade ${grade}; multi-step reasoning; keep the format numeric or short-form as planned; do not turn this into a word problem; may combine operations or require careful thinking.
 `;
       default:
         return '';

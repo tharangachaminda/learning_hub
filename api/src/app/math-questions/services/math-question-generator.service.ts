@@ -395,8 +395,7 @@ export class MathQuestionGenerator {
     return Array.from({ length: count }, (_, index) => {
       const bucketId = CONTEXT_BUCKET_IDS[index % CONTEXT_BUCKET_IDS.length];
       const bucket = countryContext.contextBuckets[bucketId];
-      const cycle = Math.floor(index / CONTEXT_BUCKET_IDS.length);
-      const scenario = bucket.scenarios[cycle % bucket.scenarios.length];
+      const scenario = this.getScenarioForPlanIndex(countryContext, index);
       const sentenceQuestion = sentenceQuestionIndices.has(index);
 
       return {
@@ -409,21 +408,21 @@ export class MathQuestionGenerator {
           grade <= 2 || (!sentenceQuestion && questionDifficulty === 'easy'),
         avoidSettings:
           index > 0
-            ? [
-                countryContext.contextBuckets[
-                  CONTEXT_BUCKET_IDS[(index - 1) % CONTEXT_BUCKET_IDS.length]
-                ].scenarios[
-                  Math.floor((index - 1) / CONTEXT_BUCKET_IDS.length) %
-                    countryContext.contextBuckets[
-                      CONTEXT_BUCKET_IDS[
-                        (index - 1) % CONTEXT_BUCKET_IDS.length
-                      ]
-                    ].scenarios.length
-                ],
-              ]
+            ? [this.getScenarioForPlanIndex(countryContext, index - 1)]
             : [],
       };
     });
+  }
+
+  private getScenarioForPlanIndex(
+    countryContext: ReturnType<typeof getCountryContext>,
+    index: number
+  ): string {
+    const bucketId = CONTEXT_BUCKET_IDS[index % CONTEXT_BUCKET_IDS.length];
+    const bucket = countryContext.contextBuckets[bucketId];
+    const cycle = Math.floor(index / CONTEXT_BUCKET_IDS.length);
+
+    return bucket.scenarios[cycle % bucket.scenarios.length];
   }
 
   private calculateSentenceQuestionTarget(
