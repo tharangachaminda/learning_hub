@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OllamaService } from './ollama.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { VisualAssetRegistryService } from './visual-asset-registry.service';
 
 describe('OllamaService', () => {
   let service: OllamaService;
@@ -30,6 +31,7 @@ describe('OllamaService', () => {
             get: jest.fn().mockReturnValue('http://localhost:11434'),
           },
         },
+        VisualAssetRegistryService,
       ],
     }).compile();
 
@@ -90,21 +92,24 @@ describe('OllamaService', () => {
 
       const result = await service.generateMathQuestion(questionRequest);
 
-      expect(result).toEqual({
-        question: expect.stringMatching(/\d+\s*\+\s*\d+\s*=\s*\?/),
-        answer: expect.any(Number),
-        explanation: expect.any(String),
-        metadata: {
-          grade: 3,
-          topic: 'addition',
-          difficulty: 'medium',
-          country: 'NZ',
-          generated_by: 'falcon3:latest',
-          generation_time: expect.any(Number),
-          validation_score: expect.any(Number),
-          latexValid: expect.any(Boolean),
-        },
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          question: expect.stringMatching(/\d+\s*\+\s*\d+\s*=\s*\?/),
+          answer: expect.any(Number),
+          explanation: expect.any(String),
+          visuals: [],
+          metadata: {
+            grade: 3,
+            topic: 'addition',
+            difficulty: 'medium',
+            country: 'NZ',
+            generated_by: 'falcon3:latest',
+            generation_time: expect.any(Number),
+            validation_score: expect.any(Number),
+            latexValid: expect.any(Boolean),
+          },
+        })
+      );
     });
 
     it('should maintain generation time under 3 seconds', async () => {
@@ -178,8 +183,128 @@ describe('OllamaService', () => {
       expect(result.question).toBeDefined();
       expect(result.question).toBe('$7 + 5 = ?$');
       expect(result.answer).toBeDefined();
+      expect(result.visuals).toEqual([]);
       expect(result.metadata.fallback_used).toBe(true);
       expect(result.metadata.country).toBe('NZ');
+    });
+
+    it('should fallback to a pattern-aligned question with default visuals for early patterning', async () => {
+      mockAxios.post.mockRejectedValue(new Error('Ollama server error'));
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.question).toContain('repeating pattern');
+      expect(result.question).toContain('empty circle');
+      expect(result.answer).toBe(2);
+      expect(result.visuals).toEqual([
+        expect.objectContaining({ assetId: 'pattern.circle.empty' }),
+        expect.objectContaining({ assetId: 'pattern.circle.full' }),
+      ]);
+      expect(result.metadata.fallback_used).toBe(true);
+    });
+
+    it('should reject arithmetic-only outputs for pattern topics and use the pattern fallback', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: $7 + 5 = ?$\nANSWER: 12\nEXPLANATION: Add 7 and 5 to get 12.',
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.question).toContain('repeating pattern');
+      expect(result.visuals.length).toBeGreaterThan(0);
+    });
+
+    it('should inject the approved visual catalog and resolve returned visual IDs for pattern topics', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'What comes next in this pattern: empty circle, full circle, empty circle, full circle?',
+            answer: 1,
+            explanation:
+              'The pattern alternates between an empty circle and a full circle.',
+            visuals: [
+              { assetId: 'pattern.circle.empty', role: 'inline-symbol' },
+              { assetId: 'pattern.circle.full', role: 'inline-symbol' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'PATTERN_RECOGNITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+      expect(postBody.prompt).toContain('APPROVED VISUAL ASSET CATALOG');
+      expect(postBody.prompt).toContain('pattern.circle.empty');
+      expect(postBody.prompt).toContain('pattern.circle.full');
+      expect(result.visuals).toEqual([
+        expect.objectContaining({
+          assetId: 'pattern.circle.empty',
+          placement: 'inline',
+          svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+        }),
+        expect.objectContaining({
+          assetId: 'pattern.circle.full',
+          placement: 'inline',
+          svgPath: '/assets/question-visuals/patterns/full-circle.svg',
+        }),
+      ]);
+    });
+
+    it('should use approved fallback visuals for counting topics when the model invents an asset id', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the shown circles and squares. Count how many objects you can see.',
+            answer: 4,
+            explanation:
+              'Count each shown object once to find there are 4 objects.',
+            visuals: [
+              {
+                assetId: 'forest-trail-kiwi-count',
+                role: 'prompt-illustration',
+              },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+      expect(postBody.prompt).toContain('APPROVED VISUAL ASSET CATALOG');
+      expect(postBody.prompt).toContain(
+        'For counting topics, the JSON "visuals" array must not be empty.'
+      );
+      expect(result.visuals).toEqual([
+        expect.objectContaining({ assetId: 'pattern.circle.empty' }),
+        expect.objectContaining({ assetId: 'pattern.circle.full' }),
+      ]);
     });
   });
   describe('validateMathematicalAccuracy', () => {

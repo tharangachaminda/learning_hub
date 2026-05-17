@@ -133,6 +133,7 @@ export interface QuestionItem {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  visuals?: QuestionVisual[];
   vectorSync?: {
     status: 'pending' | 'prepared' | 'stored' | 'failed';
     preparedAt?: string;
@@ -146,6 +147,22 @@ export interface QuestionItem {
   refinementHistory?: RefinementEntry[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuestionVisual {
+  assetId: string;
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  label: string;
+  altText: string;
+  subject?: string;
+  keywords?: string[];
+  svgPath?: string;
+  templateId?: string;
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
 }
 
 export interface RefinementEntry {

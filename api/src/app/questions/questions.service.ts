@@ -1030,6 +1030,19 @@ export class QuestionsService {
     return question;
   }
 
+  async resetAllVectorSyncStatuses(): Promise<number> {
+    const result = await this.questionModel.updateMany(
+      {},
+      {
+        $set: {
+          vectorSync: this.buildPendingVectorSync(),
+        },
+      }
+    );
+
+    return result.modifiedCount ?? 0;
+  }
+
   /**
    * Updates a question's content after refinement.
    */
@@ -1246,6 +1259,11 @@ export class QuestionsService {
       throw new NotFoundException(`Question ${id} not found`);
     }
     this.logger.log(`Question ${id} deleted`);
+  }
+
+  async deleteAllQuestions(): Promise<number> {
+    const result = await this.questionModel.deleteMany({}).exec();
+    return result.deletedCount ?? 0;
   }
 
   /**

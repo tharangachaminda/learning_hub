@@ -29,6 +29,28 @@
       <app-katex-render [content]="question().question" />
     </div>
 
+    @if (question().visuals?.length) {
+    <div class="question-card__visuals" data-testid="question-visuals">
+      @for (visual of question().visuals; track $index) {
+      <div class="question-card__visual">
+        @if (visual.svgPath) {
+        <img
+          class="question-card__visual-image"
+          [src]="visual.svgPath"
+          [alt]="visual.altText"
+          loading="lazy"
+        />
+        } @else {
+        <div class="question-card__visual-fallback" aria-hidden="true">
+          {{ visual.label }}
+        </div>
+        }
+        <span class="question-card__visual-label">{{ visual.label }}</span>
+      </div>
+      }
+    </div>
+    }
+
     <!-- Multiple-choice options (2×2 grid) -->
     @if (options().length > 0) {
     <div

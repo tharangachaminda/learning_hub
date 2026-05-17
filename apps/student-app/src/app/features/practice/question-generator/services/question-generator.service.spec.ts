@@ -30,6 +30,7 @@ describe('QuestionGeneratorService', () => {
         options: [],
         stepByStepSolution: [question.explanation],
         difficulty: question.metadata.difficulty,
+        visuals: question.visuals ?? [],
       })),
       total: questions.length,
       requested: questions.length,
@@ -41,6 +42,16 @@ describe('QuestionGeneratorService', () => {
     question: 'What is 5 + 3?',
     answer: 8,
     explanation: 'Add 5 and 3 together to get 8.',
+    visuals: [
+      {
+        assetId: 'pattern.circle.full',
+        role: 'prompt-illustration',
+        label: 'full circle',
+        altText: 'full circle',
+        svgPath: '/assets/question-visuals/patterns/full-circle.svg',
+        placement: 'before-question',
+      },
+    ],
     metadata: {
       grade: 3,
       topic: 'ADDITION',
@@ -132,6 +143,7 @@ describe('QuestionGeneratorService', () => {
           expect(questions).toHaveLength(2);
           expect(questions[0].question).toBe('What is 5 + 3?');
           expect(questions[0].metadata.generated_by).toBe('question-bank');
+          expect(questions[0].visuals).toEqual(mockQuestion.visuals);
         });
 
       const req = httpMock.expectOne(

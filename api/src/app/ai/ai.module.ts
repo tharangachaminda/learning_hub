@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { OllamaService } from './ollama.service';
+import { VisualAssetRegistryService } from './visual-asset-registry.service';
 
 /**
  * AI module providing LLM integration services for question generation.
@@ -15,7 +16,7 @@ import { OllamaService } from './ollama.service';
     }),
     ConfigModule,
   ],
-  providers: [OllamaService],
-  exports: [OllamaService],
+  providers: [OllamaService, VisualAssetRegistryService],
+  exports: [OllamaService, VisualAssetRegistryService],
 })
 export class AiModule {}

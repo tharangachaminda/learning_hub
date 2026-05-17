@@ -19,6 +19,11 @@
           {
             "glob": "**/*",
             "input": "apps/admin-app/public"
+          },
+          {
+            "glob": "**/*",
+            "input": "shared-assets",
+            "output": "/assets"
           }
         ],
         "styles": ["apps/admin-app/src/styles.scss"]

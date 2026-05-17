@@ -280,6 +280,7 @@ export class QuestionsController {
       category: this.topicToCategory(dto.topic, resolvedTopic),
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       stepByStepSolution: q.stepByStepSolution || [],
+      visuals: q.visuals || [],
       generatedByUser,
       metadata: {
         generatedBy: 'falcon3:latest',

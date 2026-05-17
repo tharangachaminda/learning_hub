@@ -1,5 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import type {
+  QuestionVisual as GeneratedQuestionVisual,
+  VisualAssetPlacement,
+  VisualAssetRole,
+} from '../../ai/schemas';
 
 /**
  * Status values for a stored question in the review workflow.
@@ -33,6 +38,22 @@ export enum QuestionFormat {
   OPEN_ENDED = 'open-ended',
   /** Multiple-choice with predefined options */
   MULTIPLE_CHOICE = 'multiple-choice',
+}
+
+/** Supported roles for structured visual content attached to a question. */
+export enum QuestionVisualRole {
+  INLINE_SYMBOL = 'inline-symbol',
+  PROMPT_ILLUSTRATION = 'prompt-illustration',
+  ANSWER_OPTION = 'answer-option',
+  EXPLANATION_AID = 'explanation-aid',
+}
+
+/** Placement hints for question visuals in the UI. */
+export enum QuestionVisualPlacement {
+  BEFORE_QUESTION = 'before-question',
+  AFTER_QUESTION = 'after-question',
+  INLINE = 'inline',
+  EXPLANATION = 'explanation',
 }
 
 /**
@@ -184,6 +205,53 @@ export class VectorSyncMetadata {
   embeddingModelVersion?: string;
 }
 
+/** Structured visual content associated with a question. */
+@Schema({ _id: false })
+export class QuestionVisual implements GeneratedQuestionVisual {
+  /** Stable registry identifier for the visual asset */
+  @Prop({ type: String, required: true })
+  assetId: string;
+
+  /** How the frontend should use the visual */
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualRole),
+    required: true,
+  })
+  role: VisualAssetRole;
+
+  /** Human-friendly label used in admin surfaces and indexing */
+  @Prop({ type: String, required: true })
+  label: string;
+
+  /** Accessibility text for the visual */
+  @Prop({ type: String, required: true })
+  altText: string;
+
+  /** Optional subject tag for multi-subject asset filtering */
+  @Prop({ type: String })
+  subject?: string;
+
+  /** Semantic keywords associated with the visual */
+  @Prop({ type: [String], default: [] })
+  keywords: string[];
+
+  /** Path to a static SVG asset when the visual is file-backed */
+  @Prop({ type: String })
+  svgPath?: string;
+
+  /** Template identifier when the visual is generated from parameters */
+  @Prop({ type: String })
+  templateId?: string;
+
+  /** Optional placement hint for the frontend */
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualPlacement),
+  })
+  placement?: VisualAssetPlacement;
+}
+
 /** Mongoose hydrated document type for the Question schema */
 export type QuestionDocument = HydratedDocument<Question>;
 
@@ -278,6 +346,10 @@ export class Question {
    */
   @Prop({ type: [String], default: [] })
   stepByStepSolution: string[];
+
+  /** Structured SVG-backed visuals associated with the question. */
+  @Prop({ type: [QuestionVisual], default: [] })
+  visuals: QuestionVisual[];
 
   /**
    * AI generation metadata including model, timing, and quality info.

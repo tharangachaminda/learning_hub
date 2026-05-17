@@ -18,6 +18,7 @@ import {
   GeneratedExplanation,
   ExplanationStyle,
   getGradePatterns,
+  LLMSelectedVisual,
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 import { validateLatexContent } from './latex-validation.utils';
@@ -25,6 +26,7 @@ import {
   SemanticSearchService,
   SearchResult,
 } from '../opensearch/semantic-search.service';
+import { VisualAssetRegistryService } from './visual-asset-registry.service';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -59,7 +61,9 @@ export class OllamaService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     @Optional()
-    private readonly semanticSearchService?: SemanticSearchService
+    private readonly semanticSearchService?: SemanticSearchService,
+    @Optional()
+    private readonly visualAssetRegistryService?: VisualAssetRegistryService
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
@@ -91,8 +95,10 @@ export class OllamaService {
       );
 
       const responseTime = Date.now() - startTime;
-      const models =
-        response.data.models?.map((model: any) => model.name) || [];
+      const modelList = response.data.models as
+        | Array<{ name: string }>
+        | undefined;
+      const models = modelList?.map((model) => model.name) || [];
 
       const result = {
         status: 'healthy' as const,
@@ -200,6 +206,15 @@ export class OllamaService {
       // Use the curriculum-aware system prompt for AI generation
       let prompt = curriculumPrompt.systemPrompt;
 
+      const visualCatalog = await this.getVisualCatalogForRequest(request);
+
+      if (visualCatalog.length > 0) {
+        prompt += this.buildVisualCatalogPromptSection(
+          request.topic,
+          visualCatalog
+        );
+      }
+
       // Retrieve RAG context from OpenSearch vector store
       const ragContext = await this.retrieveRAGContext(
         request.grade,
@@ -255,6 +270,14 @@ export class OllamaService {
         aiResponse,
         request
       );
+      let visuals = await this.resolveQuestionVisuals(
+        request,
+        parsedQuestion.visuals
+      );
+
+      if (visuals.length === 0 && this.shouldUseVisualCatalog(request.topic)) {
+        visuals = await this.getDefaultPatternVisuals(request);
+      }
 
       // Validate that the generated question uses the correct operation
       this.validateTopicAlignment(parsedQuestion.question, request.topic);
@@ -272,6 +295,7 @@ export class OllamaService {
         question: parsedQuestion.question,
         answer: parsedQuestion.answer,
         explanation: parsedQuestion.explanation,
+        visuals,
         metadata: {
           grade: request.grade,
           topic: request.topic,
@@ -303,18 +327,21 @@ export class OllamaService {
       });
       const fallbackExplanation = this.generateFallbackExplanation(
         fallbackQuestion.question,
-        fallbackQuestion.answer,
-        request.grade
+        fallbackQuestion.answer
       );
       const generationTime = Date.now() - startTime;
       const latexValidation = validateLatexContent(
         `${fallbackQuestion.question} ${fallbackExplanation}`
       );
+      const visuals = this.shouldUseVisualCatalog(request.topic)
+        ? await this.getDefaultPatternVisuals(request)
+        : [];
 
       return GeneratedQuestionSchema.parse({
         question: fallbackQuestion.question,
         answer: fallbackQuestion.answer,
         explanation: fallbackExplanation,
+        visuals,
         metadata: {
           grade: request.grade,
           topic: request.topic,
@@ -405,8 +432,13 @@ ${exampleLines}`;
    */
   private createEnhancedCurriculumPrompt(
     request: QuestionGenerationRequest,
-    curriculumContext: any,
-    countryContext: any
+    curriculumContext: {
+      ageContext: string;
+      complexityLevel: string;
+      category?: { curriculumStrand?: string };
+      skillsFocus: string[];
+    },
+    countryContext: ReturnType<typeof getCountryContext>
   ): string {
     const randomName =
       countryContext.commonNames[
@@ -466,6 +498,58 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   private validateTopicAlignment(question: string, topic: string): void {
     const topicUpper = topic.toUpperCase();
 
+    if (this.shouldUseVisualCatalog(topicUpper)) {
+      const hasVisualLanguage =
+        /picture|shown|showing|visual|count|group|objects|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
+          question
+        );
+
+      if (!hasVisualLanguage) {
+        throw new Error(
+          'Generated question does not reference the required visual representation. Retrying.'
+        );
+      }
+
+      if (topicUpper.includes('PATTERN')) {
+        const hasPatternLanguage =
+          /pattern|repeat|repeating|sequence|comes next|next shape|shape|circle|square|triangle|diamond|full|empty|half|row/i.test(
+            question
+          );
+
+        if (!hasPatternLanguage) {
+          throw new Error(
+            'Generated question does not match requested pattern topic. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'COUNTING_AND_QUANTITY') {
+        const hasCountingLanguage =
+          /count|how many|same number|altogether|in the picture|shown/i.test(
+            question
+          );
+
+        if (!hasCountingLanguage) {
+          throw new Error(
+            'Generated question does not match requested counting topic. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'EARLY_OPERATIONS') {
+        const hasGroupLanguage =
+          /group|altogether|join|take away|left|remain|shown|count/i.test(
+            question
+          );
+
+        if (!hasGroupLanguage) {
+          throw new Error(
+            'Generated question does not match requested early operations topic. Retrying.'
+          );
+        }
+      }
+    }
+
     // Map topics to their expected and forbidden operator patterns
     const operatorPatterns: Record<
       string,
@@ -513,7 +597,12 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   private parseAIResponseWithValidation(
     aiResponse: string,
     request: QuestionGenerationRequest
-  ): { question: string; answer: number; explanation: string } {
+  ): {
+    question: string;
+    answer: number;
+    explanation: string;
+    visuals: LLMSelectedVisual[];
+  } {
     // First try structured parsing with Zod validation
     const structured = parseLLMResponse(aiResponse);
     if (structured) {
@@ -523,6 +612,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         ),
         answer: structured.answer,
         explanation: this.stripLatex(structured.explanation),
+        visuals: structured.visuals ?? [],
       };
     }
 
@@ -553,7 +643,101 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       question: this.normalizeLatexDelimiters(question),
       answer,
       explanation: this.stripLatex(explanation),
+      visuals: [],
     };
+  }
+
+  private async getVisualCatalogForRequest(request: QuestionGenerationRequest) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.getGenerationCatalog({
+      grade: request.grade,
+      topic: request.topic,
+    });
+  }
+
+  private async resolveQuestionVisuals(
+    request: QuestionGenerationRequest,
+    selectedVisuals: LLMSelectedVisual[]
+  ) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.resolveSelectedVisuals(
+      {
+        grade: request.grade,
+        topic: request.topic,
+      },
+      selectedVisuals
+    );
+  }
+
+  private async getDefaultPatternVisuals(request: QuestionGenerationRequest) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.getDefaultVisualsForTopic({
+      grade: request.grade,
+      topic: request.topic,
+    });
+  }
+
+  private shouldUseVisualCatalog(topic: string): boolean {
+    const normalizedTopic = topic.toUpperCase();
+
+    return (
+      normalizedTopic === 'COUNTING_AND_QUANTITY' ||
+      normalizedTopic === 'EARLY_OPERATIONS' ||
+      normalizedTopic === 'PATTERN_RECOGNITION' ||
+      normalizedTopic.includes('PATTERN')
+    );
+  }
+
+  private buildVisualCatalogPromptSection(
+    topic: string,
+    visualCatalog: Awaited<ReturnType<typeof this.getVisualCatalogForRequest>>
+  ): string {
+    const topicUpper = topic.toUpperCase();
+    const catalogEntries = visualCatalog
+      .map(
+        (asset) =>
+          `- ${asset.assetId}: ${asset.displayName} | semanticText=${
+            asset.semanticText
+          } | roles=${asset.roles.join(
+            ', '
+          )} | categories=${asset.categories.join(', ')}`
+      )
+      .join('\n');
+
+    const topicRules =
+      topicUpper === 'COUNTING_AND_QUANTITY'
+        ? `Use these approved SVG assets as the visible objects the student counts.
+The question MUST refer to objects that are shown, such as circles, squares, or triangles.
+Do NOT invent unseen scenes, animals, beaches, forests, mountains, or number lines.
+For counting topics, the JSON "visuals" array must not be empty.`
+        : topicUpper === 'EARLY_OPERATIONS'
+        ? `Use these approved SVG assets as the visible groups that are joined or taken away.
+The question MUST talk about the shown groups, not a made-up story scene.
+For early operations topics, the JSON "visuals" array must not be empty.`
+        : `Use only these approved SVG assets when a visual helps the student recognise or continue a pattern.
+For pattern topics, you MUST choose between 2 and 4 visuals from this list and the JSON "visuals" array must not be empty.`;
+
+    return `\n\nAPPROVED VISUAL ASSET CATALOG:
+${topicRules}
+Do not invent asset IDs, do not output raw SVG, and do not choose assets outside this list.
+When you use visuals, the student-facing question text must still be semantically complete in plain English by naming the visual labels such as "empty circle" or "full square".
+Choose at most 4 visuals.
+
+AVAILABLE VISUALS:
+${catalogEntries}`;
   }
 
   /**
@@ -746,7 +930,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       };
 
       return ValidationResultSchema.parse(result);
-    } catch (error) {
+    } catch {
       // Fallback validation with schema validation
       const result = {
         isCorrect: false,
@@ -837,7 +1021,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
       // Parse and analyze explanation
       const explanation = this.parseExplanationResponse(aiResponse);
-      const analysis = this.analyzeExplanation(explanation, request.grade);
+      const analysis = this.analyzeExplanation(explanation);
 
       const generationTime = Date.now() - startTime;
 
@@ -861,13 +1045,12 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       };
 
       return GeneratedExplanationSchema.parse(result);
-    } catch (error) {
+    } catch {
       // Fallback to simple deterministic explanation
       const generationTime = Date.now() - startTime;
       const fallbackExplanation = this.generateFallbackExplanation(
         requestData.question,
-        requestData.answer,
-        requestData.grade
+        requestData.answer
       );
 
       return GeneratedExplanationSchema.parse({
@@ -893,8 +1076,8 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
    */
   private createExplanationPrompt(
     request: ExplanationRequest,
-    gradePatterns: any,
-    countryContext: any
+    gradePatterns: ReturnType<typeof getGradePatterns>,
+    countryContext: ReturnType<typeof getCountryContext>
   ): string {
     const isWrongAnswer =
       request.studentAnswer !== undefined &&
@@ -959,10 +1142,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
   /**
    * Analyzes explanation for educational appropriateness.
    */
-  private analyzeExplanation(
-    explanation: string,
-    grade: number
-  ): {
+  private analyzeExplanation(explanation: string): {
     vocabularyLevel: 'simple' | 'moderate' | 'complex';
     visualAids: string[];
     wordCount: number;
@@ -1018,8 +1198,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
    */
   private generateFallbackExplanation(
     question: string,
-    answer: number,
-    grade: number
+    answer: number
   ): string {
     // Extract numbers and operation
     const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
@@ -1051,6 +1230,22 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
     answer: number;
   } {
     const topicUpper = request.topic.toUpperCase();
+
+    if (this.shouldUseVisualCatalog(topicUpper)) {
+      if (request.grade <= 1) {
+        return {
+          question:
+            'Look at the repeating pattern: empty circle, full circle, empty circle, full circle. How many shapes are in the repeating part?',
+          answer: 2,
+        };
+      }
+
+      return {
+        question:
+          'Look at the repeating pattern: empty circle, full circle, left half circle, empty circle, full circle, left half circle. How many shapes are in the repeating part?',
+        answer: 3,
+      };
+    }
 
     if (topicUpper.includes('SUBTRACTION')) {
       const minuend = 12;

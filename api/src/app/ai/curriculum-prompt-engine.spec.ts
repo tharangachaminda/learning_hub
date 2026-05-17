@@ -178,6 +178,24 @@ describe('CurriculumPromptEngine', () => {
       expect(prompt.learningObjectives.length).toBeGreaterThan(0);
     });
 
+    it('should keep early patterning prompts focused on patterns instead of numeric-only arithmetic', () => {
+      const prompt = engine.generateCurriculumPrompt({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(prompt.curriculumStrand).toBe('Algebra');
+      expect(prompt.systemPrompt).toContain('Generate a pattern question');
+      expect(prompt.systemPrompt).toContain(
+        'Do NOT turn this into a plain addition'
+      );
+      expect(prompt.systemPrompt).not.toContain(
+        'Generate direct numeric or short-form questions ONLY.'
+      );
+    });
+
     it('should include NZ cultural context in prompts', () => {
       const prompt = engine.generateCurriculumPrompt({
         grade: 3,

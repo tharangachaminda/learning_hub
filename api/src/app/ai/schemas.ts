@@ -56,6 +56,107 @@ export type QuestionContextPlan = NonNullable<
   QuestionGenerationRequest['contextPlan']
 >;
 
+export const VisualAssetRoleSchema = z.enum([
+  'inline-symbol',
+  'prompt-illustration',
+  'answer-option',
+  'explanation-aid',
+]);
+
+export type VisualAssetRole = z.infer<typeof VisualAssetRoleSchema>;
+
+export const VisualAssetPlacementSchema = z.enum([
+  'before-question',
+  'after-question',
+  'inline',
+  'explanation',
+]);
+
+export type VisualAssetPlacement = z.infer<typeof VisualAssetPlacementSchema>;
+
+export const LLMSelectedVisualSchema = z.object({
+  assetId: z.string().min(1),
+  role: VisualAssetRoleSchema,
+});
+
+export type LLMSelectedVisual = z.infer<typeof LLMSelectedVisualSchema>;
+
+export type QuestionVisual = {
+  assetId: string;
+  role: VisualAssetRole;
+  label: string;
+  altText: string;
+  subject?: string;
+  keywords: string[];
+  svgPath?: string;
+  templateId?: string;
+  placement?: VisualAssetPlacement;
+};
+
+export const QuestionVisualSchema = z
+  .object({
+    assetId: z.string().min(1),
+    role: VisualAssetRoleSchema,
+    label: z.string().min(1),
+    altText: z.string().min(1),
+    subject: z.string().min(1).optional(),
+    keywords: z.array(z.string().min(1)).default([]),
+    svgPath: z.string().min(1).optional(),
+    templateId: z.string().min(1).optional(),
+    placement: VisualAssetPlacementSchema.optional(),
+  })
+  .refine((value) => value.svgPath || value.templateId, {
+    message: 'Question visuals require either svgPath or templateId',
+    path: ['svgPath'],
+  });
+
+export const VisualAssetRegistryEntrySchema = z
+  .object({
+    assetId: z.string().min(1),
+    displayName: z.string().min(1),
+    altText: z.string().min(1),
+    semanticText: z.string().min(1),
+    subjects: z.array(z.string().min(1)).min(1),
+    categories: z.array(z.string().min(1)).min(1),
+    supportedTopics: z.array(z.string().min(1)).default([]),
+    yearLevels: z.array(z.number().int().min(0).max(12)).default([]),
+    keywords: z.array(z.string().min(1)).default([]),
+    roles: z.array(VisualAssetRoleSchema).min(1),
+    format: z.literal('svg'),
+    source: z
+      .object({
+        kind: z.enum(['file', 'template']),
+        svgPath: z.string().min(1).optional(),
+        templateId: z.string().min(1).optional(),
+        legacySymbol: z.string().min(1).optional(),
+        templateData: z
+          .record(z.string(), z.union([z.string(), z.number()]))
+          .optional(),
+      })
+      .refine((source) => source.svgPath || source.templateId, {
+        message: 'Visual asset sources require either svgPath or templateId',
+        path: ['svgPath'],
+      }),
+  })
+  .strict();
+
+export type VisualAssetRegistryEntry = z.infer<
+  typeof VisualAssetRegistryEntrySchema
+>;
+
+export const VisualAssetRegistryManifestSchema = z.object({
+  metadata: z.object({
+    version: z.string().min(1),
+    source: z.string().min(1),
+    generatedAt: z.string().min(1).optional(),
+  }),
+  assets: z.array(VisualAssetRegistryEntrySchema),
+});
+
+export type VisualAssetRegistryManifest = z.infer<
+  typeof VisualAssetRegistryManifestSchema
+>;
+
 export const CONTEXT_BUCKET_IDS = [
   'nature-wildlife',
   'beaches-ocean',
@@ -77,6 +178,7 @@ export const LLMQuestionResponseSchema = z.object({
   question: z.string().min(5),
   answer: z.coerce.number(),
   explanation: z.string().min(10),
+  visuals: z.array(LLMSelectedVisualSchema).default([]),
   context_elements: z
     .object({
       names: z.array(z.string()).optional(),
@@ -95,6 +197,7 @@ export const GeneratedQuestionSchema = z.object({
   question: z.string(),
   answer: z.number(),
   explanation: z.string(),
+  visuals: z.array(QuestionVisualSchema).default([]),
   metadata: z.object({
     grade: z.number(),
     topic: z.string(),

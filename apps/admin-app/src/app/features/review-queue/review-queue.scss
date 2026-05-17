@@ -49,6 +49,10 @@
 
 .question-link{background:none;border:none;color:#1e293b;cursor:pointer;font-size:.875rem;text-align:left;padding:0;font-weight:500;line-height:1.4}
 .question-link:hover{color:#4f46e5;text-decoration:underline}
+.question-visual-preview{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.65rem}
+.visual-thumb{display:flex;align-items:center;gap:.45rem;padding:.35rem .45rem;border-radius:.75rem;background:#f8fbff;border:1px solid rgba(148,163,184,.22)}
+.visual-thumb img{width:26px;height:26px;object-fit:contain;display:block}
+.visual-thumb-label{font-size:.72rem;font-weight:600;color:#475569;line-height:1.1}
 
 .difficulty-badge{display:inline-block;padding:.15rem .5rem;border-radius:10px;font-size:.7rem;font-weight:600;text-transform:capitalize}
 .diff-easy{background:#d1fae5;color:#065f46}

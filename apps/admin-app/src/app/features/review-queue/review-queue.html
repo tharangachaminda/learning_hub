@@ -218,10 +218,28 @@
                   [content]="(q.questionText | slice:0:120) + (q.questionText.length > 120 ? '…' : '')"
                 />
               </button>
+              <div class="question-visual-preview" *ngIf="q.visuals?.length">
+                <div
+                  class="visual-thumb"
+                  *ngFor="let visual of q.visuals | slice:0:4"
+                >
+                  <img
+                    *ngIf="visual.svgPath"
+                    [src]="visual.svgPath"
+                    [alt]="visual.altText"
+                    loading="lazy"
+                  />
+                  <span class="visual-thumb-label">{{ visual.label }}</span>
+                </div>
+              </div>
               <div class="question-meta">
                 <span class="meta-tag">{{ q.format }}</span>
                 <span class="meta-tag" *ngIf="q.category"
                   >{{ q.category }}</span
+                >
+                <span class="meta-tag" *ngIf="q.visuals?.length as visualCount"
+                  >{{ visualCount }} visual{{ visualCount === 1 ? '' : 's'
+                  }}</span
                 >
               </div>
             </td>

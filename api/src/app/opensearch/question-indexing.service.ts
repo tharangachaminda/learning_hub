@@ -307,7 +307,8 @@ export class QuestionIndexingService {
       answer: this.normalizeAnswer(question.answer),
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.questionText,
-        explanation
+        explanation,
+        question.visuals
       ),
       metadata: {
         grade: question.grade.toString(),
@@ -397,7 +398,8 @@ export class QuestionIndexingService {
       answer: question.answer,
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.question,
-        explanation
+        explanation,
+        question.visuals
       ),
       metadata: {
         grade: metadata.grade.toString(),
@@ -419,11 +421,29 @@ export class QuestionIndexingService {
 
   private buildEmbeddingSourceText(
     questionText: string,
-    explanation: string
+    explanation: string,
+    visuals?: Array<{
+      label?: string;
+      altText?: string;
+      keywords?: string[];
+    }>
   ): string {
+    const visualText = visuals?.length
+      ? `\n\nVisual references: ${visuals
+          .map((visual) => {
+            const keywords = visual.keywords?.length
+              ? ` keywords ${visual.keywords.join(', ')}`
+              : '';
+            return `${visual.label || 'visual'} (${
+              visual.altText || 'no alt text'
+            })${keywords}`;
+          })
+          .join('; ')}`
+      : '';
+
     return explanation
-      ? `${questionText}\n\nExplanation: ${explanation}`
-      : questionText;
+      ? `${questionText}\n\nExplanation: ${explanation}${visualText}`
+      : `${questionText}${visualText}`;
   }
 
   private normalizeAnswer(answer: number | string): number {

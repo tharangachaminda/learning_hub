@@ -1,0 +1,297 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "source": "pattern-visual-registry",
+    "generatedAt": "2026-05-17T00:00:00.000Z"
+  },
+  "assets": [
+    {
+      "assetId": "pattern.circle.empty",
+      "displayName": "empty circle",
+      "altText": "empty circle",
+      "semanticText": "empty circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["circle", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.full",
+      "displayName": "full circle",
+      "altText": "full circle",
+      "semanticText": "full circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["circle", "filled", "solid", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.half-left",
+      "displayName": "left half circle",
+      "altText": "circle filled on the left half",
+      "semanticText": "left half circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["circle", "half", "left", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-left-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.half-right",
+      "displayName": "right half circle",
+      "altText": "circle filled on the right half",
+      "semanticText": "right half circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["circle", "half", "right", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-right-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.empty",
+      "displayName": "empty square",
+      "altText": "empty square",
+      "semanticText": "empty square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["square", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.full",
+      "displayName": "full square",
+      "altText": "full square",
+      "semanticText": "full square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["square", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.half-left",
+      "displayName": "left half square",
+      "altText": "square filled on the left half",
+      "semanticText": "left half square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["square", "half", "left", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-left-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.half-right",
+      "displayName": "right half square",
+      "altText": "square filled on the right half",
+      "semanticText": "right half square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["square", "half", "right", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-right-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.triangle.empty",
+      "displayName": "empty triangle",
+      "altText": "empty triangle",
+      "semanticText": "empty triangle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "triangle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING"
+      ],
+      "yearLevels": [0, 1, 3, 4],
+      "keywords": ["triangle", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-triangle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.triangle.full",
+      "displayName": "full triangle",
+      "altText": "full triangle",
+      "semanticText": "full triangle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "triangle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "EARLY_PATTERNING"
+      ],
+      "yearLevels": [0, 1, 3, 4],
+      "keywords": ["triangle", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-triangle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.diamond.empty",
+      "displayName": "empty diamond",
+      "altText": "empty diamond",
+      "semanticText": "empty diamond pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "diamond"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["diamond", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-diamond.svg"
+      }
+    },
+    {
+      "assetId": "pattern.diamond.full",
+      "displayName": "full diamond",
+      "altText": "full diamond",
+      "semanticText": "full diamond pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "diamond"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["diamond", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-diamond.svg"
+      }
+    },
+    {
+      "assetId": "pattern.star.empty",
+      "displayName": "empty star",
+      "altText": "empty star",
+      "semanticText": "empty star pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "star"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["star", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-star.svg"
+      }
+    },
+    {
+      "assetId": "pattern.star.full",
+      "displayName": "full star",
+      "altText": "full star",
+      "semanticText": "full star pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "star"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["star", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-star.svg"
+      }
+    }
+  ]
+}

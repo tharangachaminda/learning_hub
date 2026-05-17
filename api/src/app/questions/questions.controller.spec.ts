@@ -257,6 +257,17 @@ describe('QuestionsController', () => {
         operation: 'MULTIPLICATION',
         difficulty: 'grade_4',
         stepByStepSolution: [`Step for Q${i}`],
+        visuals: [
+          {
+            assetId: 'pattern.circle.empty',
+            role: 'prompt-illustration',
+            label: 'empty circle',
+            altText: 'empty circle',
+            keywords: ['circle', 'empty', 'pattern'],
+            svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+            placement: 'before-question',
+          },
+        ],
       }));
 
       mathGenerator.generateQuestions.mockResolvedValue(
@@ -279,6 +290,18 @@ describe('QuestionsController', () => {
 
       expect(mathGenerator.generateQuestions).toHaveBeenCalled();
       expect(questionsService.createMany).toHaveBeenCalled();
+      expect(questionsService.createMany).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            visuals: [
+              expect.objectContaining({
+                assetId: 'pattern.circle.empty',
+                svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+              }),
+            ],
+          }),
+        ])
+      );
       expect(
         questionIndexingService.indexStoredQuestions
       ).not.toHaveBeenCalled();

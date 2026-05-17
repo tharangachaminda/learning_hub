@@ -172,6 +172,8 @@ export class MathQuestionGenerator {
             existingQuestions,
           });
 
+          const visuals = this.normalizeQuestionVisuals(aiQuestion.visuals);
+
           // Convert AI question format to MathQuestion entity
           questions.push(
             new MathQuestion(
@@ -179,7 +181,8 @@ export class MathQuestionGenerator {
               aiQuestion.answer,
               topic,
               difficulty,
-              [aiQuestion.explanation] // stepByStepSolution from AI
+              [aiQuestion.explanation], // stepByStepSolution from AI
+              visuals
             )
           );
           lastError = null;
@@ -236,7 +239,7 @@ export class MathQuestionGenerator {
   ): Promise<string> {
     if (!this.ollamaService) {
       // Fallback to basic explanation if no AI service
-      return this.generateBasicExplanation(question, answer, difficulty);
+      return this.generateBasicExplanation(question, answer);
     }
 
     try {
@@ -264,7 +267,7 @@ export class MathQuestionGenerator {
         'Enhanced explanation generation failed, using basic:',
         error.message
       );
-      return this.generateBasicExplanation(question, answer, difficulty);
+      return this.generateBasicExplanation(question, answer);
     }
   }
 
@@ -273,11 +276,7 @@ export class MathQuestionGenerator {
    *
    * @private
    */
-  private generateBasicExplanation(
-    question: string,
-    answer: number,
-    difficulty: DifficultyLevel
-  ): string {
+  private generateBasicExplanation(question: string, answer: number): string {
     const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
 
     if (additionMatch) {
@@ -286,6 +285,48 @@ export class MathQuestionGenerator {
     }
 
     return `The answer is ${answer}. Let's practice more problems like this!`;
+  }
+
+  private normalizeQuestionVisuals(
+    visuals: Array<{
+      assetId?: string;
+      role?:
+        | 'inline-symbol'
+        | 'prompt-illustration'
+        | 'answer-option'
+        | 'explanation-aid';
+      label?: string;
+      altText?: string;
+      subject?: string;
+      keywords?: string[];
+      svgPath?: string;
+      templateId?: string;
+      placement?:
+        | 'before-question'
+        | 'after-question'
+        | 'inline'
+        | 'explanation';
+    }> = []
+  ) {
+    return visuals.flatMap((visual) => {
+      if (!visual.assetId || !visual.role || !visual.label || !visual.altText) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: visual.assetId,
+          role: visual.role,
+          label: visual.label,
+          altText: visual.altText,
+          subject: visual.subject,
+          keywords: visual.keywords ?? [],
+          svgPath: visual.svgPath,
+          templateId: visual.templateId,
+          placement: visual.placement,
+        },
+      ];
+    });
   }
 
   /**
@@ -320,6 +361,7 @@ export class MathQuestionGenerator {
         grade: gradeNumber,
         topic,
         stepByStepSolution: q.stepByStepSolution,
+        visuals: q.visuals,
         metadata: {
           generatedBy: this.ollamaService ? 'ollama' : 'deterministic',
           difficulty: questionDifficulty,

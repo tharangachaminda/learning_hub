@@ -277,7 +277,7 @@ export class CurriculumPromptEngine {
    * @returns Formatted curriculum context string
    */
   private buildCurriculumContext(
-    levelData: any,
+    levelData: ReturnType<typeof getCurriculumLevel>,
     strandName: string,
     objectives: LearningObjective[],
     topic: string,
@@ -513,7 +513,12 @@ Use $...$ ONLY around mathematical expressions and operators — NOT around plai
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
-{"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation with LaTeX>"}
+{"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation in plain English>", "visuals": [{"assetId": "<approved visual asset id>", "role": "inline-symbol|prompt-illustration|answer-option|explanation-aid"}]}
+
+- For pattern-related topics, if an approved visual asset catalog is supplied later in the prompt, you MUST use approved asset IDs and "visuals" must contain 2 to 4 items.
+- Only return "visuals": [] when no approved visual asset catalog is supplied or the topic is not visual by nature.
+- Never invent asset IDs.
+- Never output SVG markup.
 
 Generate a ${request.difficulty.toUpperCase()} difficulty ${
       request.topic
@@ -532,9 +537,39 @@ Generate a ${request.difficulty.toUpperCase()} difficulty ${
    */
   private buildQuestionFormatRules(request: CurriculumPromptRequest): string {
     const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
-    const isBasicOp = basicOps.includes(request.topic.toUpperCase());
+    const topicUpper = request.topic.toUpperCase();
+    const isPatternTopic = this.isPatternTopic(request.topic);
+    const isBasicOp = basicOps.includes(topicUpper);
     const isLowerGrade = request.grade <= 4;
     const isEasy = request.difficulty === 'easy';
+
+    if (topicUpper === 'COUNTING_AND_QUANTITY') {
+      return `QUESTION FORMAT STYLE:
+Generate a visual counting question tied to shown objects only.
+Ask the student to count the shown circles, squares, triangles, or a clearly described shown group.
+Do NOT invent story scenes such as birds in forests, sports scores, beaches, mountains, or number lines unless those are actually provided as approved visuals.
+For Year ${request.grade}, keep the wording short and direct and keep the mathematics within early counting and quantity recognition.
+`;
+    }
+
+    if (topicUpper === 'EARLY_OPERATIONS') {
+      return `QUESTION FORMAT STYLE:
+Generate a visual joining or taking-away question tied to shown groups only.
+The student should reason from visible groups of approved objects, not from an unrelated story context.
+Use simple join, add, take away, left, or altogether language appropriate for Year ${request.grade}.
+Do NOT turn this into a plain symbolic equation with no shown objects.
+`;
+    }
+
+    if (isPatternTopic) {
+      return `QUESTION FORMAT STYLE:
+Generate a pattern question, not a standalone arithmetic computation.
+Use the approved visual labels in the prompt such as empty circle, full circle, or full triangle.
+Ask the student to identify the repeating unit, continue the pattern, or count a named shape within a shown pattern.
+Keep the wording short and direct for Year ${request.grade}, but the mathematics must stay about patterns.
+Do NOT turn this into a plain addition, subtraction, multiplication, or division equation unless the pattern itself is central to the question.
+`;
+    }
 
     if (request.grade <= 2) {
       return `QUESTION FORMAT STYLE:
@@ -553,6 +588,12 @@ Keep the format direct: a math expression followed by "= ?".
     }
 
     return '';
+  }
+
+  private isPatternTopic(topic: string): boolean {
+    const topicUpper = topic.toUpperCase();
+
+    return topicUpper.includes('PATTERN');
   }
 
   private buildContextPlanRules(request: CurriculumPromptRequest): string {
@@ -679,6 +720,18 @@ ${
       return `CRITICAL: The question MUST use ONLY ${enforcement.allowed} as the primary mathematical operation.
 ${enforcement.forbidden} as the main operation, even if they are "related" or "inverse" operations.
 The core computation the student performs MUST be ${enforcement.allowed}.`;
+    }
+
+    if (topicUpper === 'COUNTING_AND_QUANTITY') {
+      return `CRITICAL: The question MUST stay within counting and quantity recognition.
+The student must count or recognise the quantity of shown objects.
+Do NOT switch to addition, subtraction, sports scoring, number lines beyond early counting, or invented scenic word problems.`;
+    }
+
+    if (topicUpper === 'EARLY_OPERATIONS') {
+      return `CRITICAL: The question MUST stay within early operations using shown groups.
+Use only simple joining or taking-away situations with visible objects.
+Do NOT switch to unrelated story problems, advanced number facts, multiplication, or division.`;
     }
 
     return `The question MUST focus on the topic: ${topic}. Do not generate questions about other topics.`;

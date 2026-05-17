@@ -1,3 +1,5 @@
+import type { QuestionVisual as GeneratedQuestionVisual } from '../../ai/schemas';
+
 /**\n * Educational difficulty levels based on New Zealand Mathematics Curriculum
  * Defines cognitive complexity and numerical ranges appropriate for each grade
  *
@@ -56,6 +58,8 @@ export enum DifficultyLevel {
   GRADE_8 = 'grade_8',
 }
 
+export type MathQuestionVisual = GeneratedQuestionVisual;
+
 /**
  * Represents a mathematical question with answer and solution steps.
  * Core entity for the AI-powered question generation system.
@@ -106,7 +110,8 @@ export class MathQuestion {
     public readonly answer: number,
     public readonly operation: string,
     public readonly difficulty: DifficultyLevel,
-    public readonly stepByStepSolution: string[] = []
+    public readonly stepByStepSolution: string[] = [],
+    public readonly visuals: MathQuestionVisual[] = []
   ) {
     this.validateQuestionText(question);
     this.validateAnswer(answer);

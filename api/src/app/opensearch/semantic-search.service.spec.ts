@@ -142,7 +142,7 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.grade': 3 },
+                term: { 'metadata.grade': '3' },
               }),
             }),
           }),
@@ -169,7 +169,13 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.topic': 'addition' },
+                bool: expect.objectContaining({
+                  should: expect.arrayContaining([
+                    { term: { 'metadata.topic': 'addition' } },
+                    { term: { 'metadata.source_topic_key': 'addition' } },
+                  ]),
+                  minimum_should_match: 1,
+                }),
               }),
             }),
           }),
@@ -196,7 +202,13 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.operation': 'addition' },
+                bool: expect.objectContaining({
+                  should: expect.arrayContaining([
+                    { term: { 'metadata.operation': 'addition' } },
+                    { term: { 'metadata.source_topic_key': 'addition' } },
+                  ]),
+                  minimum_should_match: 1,
+                }),
               }),
             }),
           }),
@@ -229,9 +241,17 @@ describe('SemanticSearchService', () => {
               filter: expect.objectContaining({
                 bool: expect.objectContaining({
                   must: expect.arrayContaining([
-                    { term: { 'metadata.grade': 3 } },
-                    { term: { 'metadata.topic': 'addition' } },
-                    { term: { 'metadata.operation': 'addition' } },
+                    { term: { 'metadata.grade': '3' } },
+                    expect.objectContaining({
+                      bool: expect.objectContaining({
+                        minimum_should_match: 1,
+                      }),
+                    }),
+                    expect.objectContaining({
+                      bool: expect.objectContaining({
+                        minimum_should_match: 1,
+                      }),
+                    }),
                   ]),
                 }),
               }),
@@ -415,7 +435,7 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.grade': 3 },
+                term: { 'metadata.grade': '3' },
               }),
             }),
           }),

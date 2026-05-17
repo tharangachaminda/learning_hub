@@ -39,6 +39,31 @@ export interface QuestionMetadata {
   validation_score?: number;
 }
 
+export interface QuestionVisual {
+  /** Stable registry identifier for the visual asset */
+  assetId: string;
+  /** Rendering role for placement/use in the UI */
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  /** Human-friendly label used in admin and accessibility contexts */
+  label: string;
+  /** Accessibility description for the image */
+  altText: string;
+  /** Optional subject tag for filtering */
+  subject?: string;
+  /** Semantic keywords to preserve search meaning */
+  keywords?: string[];
+  /** Path to a static SVG asset if file-backed */
+  svgPath?: string;
+  /** Template identifier if generated from parameters */
+  templateId?: string;
+  /** Optional layout hint for the renderer */
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+}
+
 /**
  * A single AI-generated question returned from the API.
  *
@@ -59,6 +84,8 @@ export interface GeneratedQuestion {
   answer: number;
   /** Age-appropriate explanation (used for hints) */
   explanation: string;
+  /** Optional structured visuals associated with the question */
+  visuals?: QuestionVisual[];
   /** Generation metadata */
   metadata: QuestionMetadata;
 }

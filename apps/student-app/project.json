@@ -19,6 +19,11 @@
           {
             "glob": "**/*",
             "input": "apps/student-app/public"
+          },
+          {
+            "glob": "**/*",
+            "input": "shared-assets",
+            "output": "/assets"
           }
         ],
         "styles": ["apps/student-app/src/styles.scss"]
