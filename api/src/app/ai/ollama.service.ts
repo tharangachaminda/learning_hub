@@ -270,17 +270,35 @@ export class OllamaService {
         aiResponse,
         request
       );
-      let visuals = await this.resolveQuestionVisuals(
+      const visualSelections = parsedQuestion.visualSelections;
+      const visuals = await this.resolveQuestionVisuals(
         request,
-        parsedQuestion.visuals
+        visualSelections
       );
 
-      if (visuals.length === 0 && this.shouldUseVisualCatalog(request.topic)) {
-        visuals = await this.getDefaultPatternVisuals(request);
+      if (this.shouldUseVisualCatalog(request.topic)) {
+        if (visualSelections.length === 0) {
+          throw new Error(
+            'Generated question omitted required visual selections. Retrying.'
+          );
+        }
+
+        if (visuals.length !== visualSelections.length) {
+          throw new Error(
+            'Generated question used unresolved visual selections. Retrying.'
+          );
+        }
       }
 
       // Validate that the generated question uses the correct operation
       this.validateTopicAlignment(parsedQuestion.question, request.topic);
+      this.validateVisualQuestionConsistency(
+        request,
+        parsedQuestion.question,
+        parsedQuestion.answer,
+        visualSelections,
+        visuals
+      );
 
       const generationTime = Date.now() - startTime;
 
@@ -295,6 +313,7 @@ export class OllamaService {
         question: parsedQuestion.question,
         answer: parsedQuestion.answer,
         explanation: parsedQuestion.explanation,
+        visualSelections,
         visuals,
         metadata: {
           grade: request.grade,
@@ -320,10 +339,17 @@ export class OllamaService {
         ...requestData,
         country: requestData.country || 'NZ',
       });
+      const fallbackVisualSelections = await this.buildFallbackVisualSelections(
+        request
+      );
+      const fallbackVisuals = this.shouldUseVisualCatalog(request.topic)
+        ? await this.resolveQuestionVisuals(request, fallbackVisualSelections)
+        : [];
       const fallbackQuestion = this.generateFallbackQuestion({
         grade: request.grade,
         topic: request.topic,
         difficulty: request.difficulty,
+        visuals: fallbackVisuals,
       });
       const fallbackExplanation = this.generateFallbackExplanation(
         fallbackQuestion.question,
@@ -333,15 +359,13 @@ export class OllamaService {
       const latexValidation = validateLatexContent(
         `${fallbackQuestion.question} ${fallbackExplanation}`
       );
-      const visuals = this.shouldUseVisualCatalog(request.topic)
-        ? await this.getDefaultPatternVisuals(request)
-        : [];
 
       return GeneratedQuestionSchema.parse({
         question: fallbackQuestion.question,
         answer: fallbackQuestion.answer,
         explanation: fallbackExplanation,
-        visuals,
+        visualSelections: fallbackVisualSelections,
+        visuals: fallbackVisuals,
         metadata: {
           grade: request.grade,
           topic: request.topic,
@@ -528,10 +552,18 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
           /count|how many|same number|altogether|in the picture|shown/i.test(
             question
           );
+        const hasPatternLanguage =
+          /pattern|repeat|repeating|sequence|comes next/i.test(question);
 
         if (!hasCountingLanguage) {
           throw new Error(
             'Generated question does not match requested counting topic. Retrying.'
+          );
+        }
+
+        if (hasPatternLanguage) {
+          throw new Error(
+            'Generated counting question drifted into a pattern prompt. Retrying.'
           );
         }
       }
@@ -591,6 +623,58 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
   }
 
+  private validateVisualQuestionConsistency(
+    request: QuestionGenerationRequest,
+    question: string,
+    answer: number,
+    visualSelections: LLMSelectedVisual[],
+    visuals: GeneratedQuestion['visuals']
+  ): void {
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return;
+    }
+
+    if (visualSelections.length === 0 || visuals.length === 0) {
+      throw new Error(
+        'Generated visual-topic question is missing resolved visuals. Retrying.'
+      );
+    }
+
+    const normalizedQuestion = question.toLowerCase();
+    const mentionsVisualDescriptors = visualSelections.some((selection) =>
+      this.getVisualTextDescriptors(selection.assetId).some((descriptor) =>
+        normalizedQuestion.includes(descriptor)
+      )
+    );
+
+    if (mentionsVisualDescriptors) {
+      throw new Error(
+        'Generated question names visual asset descriptors instead of using plain wording. Retrying.'
+      );
+    }
+
+    if (
+      request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
+      answer !== visuals.length
+    ) {
+      throw new Error(
+        'Generated counting question answer does not match the displayed objects. Retrying.'
+      );
+    }
+  }
+
+  private getVisualTextDescriptors(assetId: string): string[] {
+    const parts = assetId.toLowerCase().split('.');
+    const shape = parts.at(-2);
+    const state = parts.at(-1)?.replace(/-/g, ' ');
+
+    if (!shape || !state) {
+      return [];
+    }
+
+    return [`${state} ${shape}`, `${shape} ${state}`];
+  }
+
   /**
    * Parses AI response using Zod validation for structured output.
    */
@@ -601,7 +685,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     question: string;
     answer: number;
     explanation: string;
-    visuals: LLMSelectedVisual[];
+    visualSelections: LLMSelectedVisual[];
   } {
     // First try structured parsing with Zod validation
     const structured = parseLLMResponse(aiResponse);
@@ -612,7 +696,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         ),
         answer: structured.answer,
         explanation: this.stripLatex(structured.explanation),
-        visuals: structured.visuals ?? [],
+        visualSelections:
+          structured.visualSelections?.length > 0
+            ? structured.visualSelections
+            : structured.visuals ?? [],
       };
     }
 
@@ -643,7 +730,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       question: this.normalizeLatexDelimiters(question),
       answer,
       explanation: this.stripLatex(explanation),
-      visuals: [],
+      visualSelections: [],
     };
   }
 
@@ -679,6 +766,22 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     );
   }
 
+  private toVisualSelections(visuals: GeneratedQuestion['visuals']) {
+    return (visuals ?? []).flatMap((visual) => {
+      if (!visual.assetId || !visual.role) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: visual.assetId,
+          role: visual.role,
+          placement: visual.placement,
+        },
+      ];
+    });
+  }
+
   private async getDefaultPatternVisuals(request: QuestionGenerationRequest) {
     if (!this.visualAssetRegistryService) {
       return [];
@@ -688,6 +791,36 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       grade: request.grade,
       topic: request.topic,
     });
+  }
+
+  private async buildFallbackVisualSelections(
+    request: QuestionGenerationRequest
+  ): Promise<LLMSelectedVisual[]> {
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return [];
+    }
+
+    const defaultVisuals = await this.getDefaultPatternVisuals(request);
+    const defaultSelections = this.toVisualSelections(defaultVisuals);
+    const topicUpper = request.topic.toUpperCase();
+
+    if (
+      topicUpper === 'COUNTING_AND_QUANTITY' &&
+      defaultSelections.length > 0
+    ) {
+      const targetLength = request.grade <= 1 ? 4 : 6;
+
+      return Array.from({ length: targetLength }, (_, index) => {
+        const selection = defaultSelections[index % defaultSelections.length];
+        return {
+          assetId: selection.assetId,
+          role: selection.role,
+          placement: 'before-question' as const,
+        };
+      });
+    }
+
+    return defaultSelections;
   }
 
   private shouldUseVisualCatalog(topic: string): boolean {
@@ -722,19 +855,23 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         ? `Use these approved SVG assets as the visible objects the student counts.
 The question MUST refer to objects that are shown, such as circles, squares, or triangles.
 Do NOT invent unseen scenes, animals, beaches, forests, mountains, or number lines.
-For counting topics, the JSON "visuals" array must not be empty.`
+    For counting topics, the JSON "visualSelections" array must not be empty.
+    Return one visualSelections entry for each displayed image in left-to-right, top-to-bottom order, so repeated shapes are preserved.`
         : topicUpper === 'EARLY_OPERATIONS'
         ? `Use these approved SVG assets as the visible groups that are joined or taken away.
 The question MUST talk about the shown groups, not a made-up story scene.
-For early operations topics, the JSON "visuals" array must not be empty.`
+For early operations topics, the JSON "visualSelections" array must not be empty.
+Return one visualSelections entry for each displayed image in order so the frontend can show the exact groups.`
         : `Use only these approved SVG assets when a visual helps the student recognise or continue a pattern.
-For pattern topics, you MUST choose between 2 and 4 visuals from this list and the JSON "visuals" array must not be empty.`;
+For pattern topics, you MUST choose between 2 and 4 visuals from this list and the JSON "visualSelections" array must not be empty.
+Return the visualSelections in display order.`;
 
     return `\n\nAPPROVED VISUAL ASSET CATALOG:
 ${topicRules}
 Do not invent asset IDs, do not output raw SVG, and do not choose assets outside this list.
-When you use visuals, the student-facing question text must still be semantically complete in plain English by naming the visual labels such as "empty circle" or "full square".
-Choose at most 4 visuals.
+The student-facing question text must stay plain and generic, such as "Look at the shapes shown. How many shapes are there altogether?"
+Do NOT mention asset IDs or visual labels such as "empty circle" or "full square" in the question text.
+Choose at most 12 visual selections for counting and early operations, and at most 4 for patterns.
 
 AVAILABLE VISUALS:
 ${catalogEntries}`;
@@ -1225,24 +1362,47 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
     grade: number;
     topic: string;
     difficulty: string;
+    visuals?: GeneratedQuestion['visuals'];
   }): {
     question: string;
     answer: number;
   } {
     const topicUpper = request.topic.toUpperCase();
 
+    if (topicUpper === 'COUNTING_AND_QUANTITY' && request.visuals?.length) {
+      return {
+        question:
+          'Look at the shapes shown. How many shapes are there altogether?',
+        answer: request.visuals.length,
+      };
+    }
+
     if (this.shouldUseVisualCatalog(topicUpper)) {
-      if (request.grade <= 1) {
+      if (topicUpper.includes('PATTERN')) {
         return {
           question:
-            'Look at the repeating pattern: empty circle, full circle, empty circle, full circle. How many shapes are in the repeating part?',
+            'Look at the shapes shown. How many shapes are in the repeating part?',
+          answer: request.grade <= 1 ? 2 : 3,
+        };
+      }
+
+      if (topicUpper === 'EARLY_OPERATIONS') {
+        return {
+          question:
+            'Look at the groups shown. How many shapes are there altogether?',
+          answer: request.grade <= 1 ? 2 : 3,
+        };
+      }
+
+      if (request.grade <= 1) {
+        return {
+          question: 'Look at the shapes shown. How many shapes are there?',
           answer: 2,
         };
       }
 
       return {
-        question:
-          'Look at the repeating pattern: empty circle, full circle, left half circle, empty circle, full circle, left half circle. How many shapes are in the repeating part?',
+        question: 'Look at the shapes shown. How many shapes are there?',
         answer: 3,
       };
     }

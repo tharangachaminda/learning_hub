@@ -186,8 +186,6 @@ describe('QuestionCardComponent', () => {
           {
             assetId: 'pattern.circle.full',
             role: 'prompt-illustration' as const,
-            label: 'full circle',
-            altText: 'full circle',
             svgPath: '/assets/question-visuals/patterns/full-circle.svg',
             placement: 'before-question' as const,
           },
@@ -207,7 +205,7 @@ describe('QuestionCardComponent', () => {
       expect(visuals).toBeTruthy();
       expect(image).toBeTruthy();
       expect(image.getAttribute('src')).toContain('full-circle.svg');
-      expect(visuals.textContent).toContain('full circle');
+      expect(visuals.textContent?.trim()).toBe('');
     });
   });
 

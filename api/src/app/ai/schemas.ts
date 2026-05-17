@@ -77,6 +77,7 @@ export type VisualAssetPlacement = z.infer<typeof VisualAssetPlacementSchema>;
 export const LLMSelectedVisualSchema = z.object({
   assetId: z.string().min(1),
   role: VisualAssetRoleSchema,
+  placement: VisualAssetPlacementSchema.optional(),
 });
 
 export type LLMSelectedVisual = z.infer<typeof LLMSelectedVisualSchema>;
@@ -84,10 +85,6 @@ export type LLMSelectedVisual = z.infer<typeof LLMSelectedVisualSchema>;
 export type QuestionVisual = {
   assetId: string;
   role: VisualAssetRole;
-  label: string;
-  altText: string;
-  subject?: string;
-  keywords: string[];
   svgPath?: string;
   templateId?: string;
   placement?: VisualAssetPlacement;
@@ -97,10 +94,6 @@ export const QuestionVisualSchema = z
   .object({
     assetId: z.string().min(1),
     role: VisualAssetRoleSchema,
-    label: z.string().min(1),
-    altText: z.string().min(1),
-    subject: z.string().min(1).optional(),
-    keywords: z.array(z.string().min(1)).default([]),
     svgPath: z.string().min(1).optional(),
     templateId: z.string().min(1).optional(),
     placement: VisualAssetPlacementSchema.optional(),
@@ -178,6 +171,7 @@ export const LLMQuestionResponseSchema = z.object({
   question: z.string().min(5),
   answer: z.coerce.number(),
   explanation: z.string().min(10),
+  visualSelections: z.array(LLMSelectedVisualSchema).default([]),
   visuals: z.array(LLMSelectedVisualSchema).default([]),
   context_elements: z
     .object({
@@ -197,6 +191,7 @@ export const GeneratedQuestionSchema = z.object({
   question: z.string(),
   answer: z.number(),
   explanation: z.string(),
+  visualSelections: z.array(LLMSelectedVisualSchema).default([]),
   visuals: z.array(QuestionVisualSchema).default([]),
   metadata: z.object({
     grade: z.number(),
@@ -293,6 +288,78 @@ export const HealthCheckSchema = z.object({
 });
 
 export type HealthCheck = z.infer<typeof HealthCheckSchema>;
+
+const VISUAL_ASSET_ROLES = VisualAssetRoleSchema.options;
+const VISUAL_ASSET_PLACEMENTS = VisualAssetPlacementSchema.options;
+
+function extractFirstKnownValue(
+  rawValue: unknown,
+  knownValues: readonly string[]
+): string | undefined {
+  if (typeof rawValue !== 'string') {
+    return undefined;
+  }
+
+  const candidates = rawValue
+    .split(/[|,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return candidates.find((candidate) => knownValues.includes(candidate));
+}
+
+function normalizeLLMSelectedVisuals(value: unknown): LLMSelectedVisual[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const rawEntry = entry as Record<string, unknown>;
+    const assetId =
+      typeof rawEntry.assetId === 'string' ? rawEntry.assetId.trim() : '';
+
+    if (!assetId) {
+      return [];
+    }
+
+    const role =
+      extractFirstKnownValue(rawEntry.role, VISUAL_ASSET_ROLES) ??
+      'prompt-illustration';
+    const placement = extractFirstKnownValue(
+      rawEntry.placement,
+      VISUAL_ASSET_PLACEMENTS
+    );
+
+    return [
+      LLMSelectedVisualSchema.parse({
+        assetId,
+        role,
+        placement,
+      }),
+    ];
+  });
+}
+
+function normalizeParsedLLMQuestionResponse(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== 'object') {
+    return parsed;
+  }
+
+  const rawResponse = parsed as Record<string, unknown>;
+  const visualSelections = normalizeLLMSelectedVisuals(
+    rawResponse.visualSelections ?? rawResponse.visuals
+  );
+
+  return {
+    ...rawResponse,
+    visualSelections,
+    visuals: visualSelections,
+  };
+}
 
 /**
  * Country-specific context data for prompts
@@ -719,12 +786,16 @@ export function parseLLMResponse(
       const sanitized = jsonStr.replace(/(?<!\\)\\([a-zA-Z]{2,})/g, '\\\\$1');
 
       try {
-        const parsed = JSON.parse(sanitized);
+        const parsed = normalizeParsedLLMQuestionResponse(
+          JSON.parse(sanitized)
+        );
         return LLMQuestionResponseSchema.parse(parsed);
       } catch {
         // Sanitized parse failed — try original as last resort
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed = normalizeParsedLLMQuestionResponse(
+            JSON.parse(jsonStr)
+          );
           return LLMQuestionResponseSchema.parse(parsed);
         } catch {
           // Still failed — try field-level regex extraction from JSON-like text
@@ -746,6 +817,23 @@ export function parseLLMResponse(
         question: jsonQuestion[1].trim(),
         answer: parseInt(jsonAnswer[1], 10),
         explanation: jsonExplanation?.[1]?.trim() || 'Solve step by step.',
+        visualSelections: normalizeLLMSelectedVisuals(
+          (() => {
+            const visualMatch = rawResponse.match(
+              /"(?:visualSelections|visuals)"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/
+            );
+
+            if (!visualMatch) {
+              return [];
+            }
+
+            try {
+              return JSON.parse(visualMatch[1]);
+            } catch {
+              return [];
+            }
+          })()
+        ),
       };
       try {
         return LLMQuestionResponseSchema.parse(response);

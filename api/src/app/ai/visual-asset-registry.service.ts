@@ -125,12 +125,12 @@ export class VisualAssetRegistryService {
       approvedAssets.map((asset) => [asset.assetId, asset])
     );
     const resolvedVisuals: QuestionVisual[] = [];
-    const seenAssetIds = new Set<string>();
+    const maxVisuals = request.grade <= 1 ? 12 : 8;
 
     for (const visual of selectedVisuals) {
       const asset = approvedById.get(visual.assetId);
 
-      if (!asset || seenAssetIds.has(visual.assetId)) {
+      if (!asset) {
         continue;
       }
 
@@ -140,15 +140,15 @@ export class VisualAssetRegistryService {
 
       const questionVisual = await this.toQuestionVisual(visual.assetId, {
         role: visual.role,
-        placement: this.defaultPlacementForRole(visual.role),
+        placement:
+          visual.placement ?? this.defaultPlacementForRole(visual.role),
       });
 
       if (questionVisual) {
         resolvedVisuals.push(questionVisual);
-        seenAssetIds.add(visual.assetId);
       }
 
-      if (resolvedVisuals.length >= 4) {
+      if (resolvedVisuals.length >= maxVisuals) {
         break;
       }
     }
@@ -223,10 +223,6 @@ export class VisualAssetRegistryService {
     return {
       assetId: asset.assetId,
       role: overrides.role ?? asset.roles[0],
-      label: overrides.label ?? asset.displayName,
-      altText: overrides.altText ?? asset.altText,
-      subject: overrides.subject ?? asset.subjects[0],
-      keywords: overrides.keywords ?? asset.keywords,
       svgPath: overrides.svgPath ?? asset.source.svgPath,
       templateId: overrides.templateId ?? asset.source.templateId,
       placement: overrides.placement,

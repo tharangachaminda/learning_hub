@@ -31,23 +31,16 @@
 
     @if (question().visuals?.length) {
     <div class="question-card__visuals" data-testid="question-visuals">
-      @for (visual of question().visuals; track $index) {
+      @for (visual of question().visuals; track $index) { @if (visual.svgPath) {
       <div class="question-card__visual">
-        @if (visual.svgPath) {
         <img
           class="question-card__visual-image"
           [src]="visual.svgPath"
-          [alt]="visual.altText"
+          alt=""
           loading="lazy"
         />
-        } @else {
-        <div class="question-card__visual-fallback" aria-hidden="true">
-          {{ visual.label }}
-        </div>
-        }
-        <span class="question-card__visual-label">{{ visual.label }}</span>
       </div>
-      }
+      } }
     </div>
     }
 

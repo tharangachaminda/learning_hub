@@ -173,6 +173,9 @@ export class MathQuestionGenerator {
           });
 
           const visuals = this.normalizeQuestionVisuals(aiQuestion.visuals);
+          const visualSelections = this.normalizeQuestionVisualSelections(
+            aiQuestion.visualSelections
+          );
 
           // Convert AI question format to MathQuestion entity
           questions.push(
@@ -182,7 +185,8 @@ export class MathQuestionGenerator {
               topic,
               difficulty,
               [aiQuestion.explanation], // stepByStepSolution from AI
-              visuals
+              visuals,
+              visualSelections
             )
           );
           lastError = null;
@@ -295,10 +299,6 @@ export class MathQuestionGenerator {
         | 'prompt-illustration'
         | 'answer-option'
         | 'explanation-aid';
-      label?: string;
-      altText?: string;
-      subject?: string;
-      keywords?: string[];
       svgPath?: string;
       templateId?: string;
       placement?:
@@ -309,7 +309,11 @@ export class MathQuestionGenerator {
     }> = []
   ) {
     return visuals.flatMap((visual) => {
-      if (!visual.assetId || !visual.role || !visual.label || !visual.altText) {
+      if (!visual.assetId || !visual.role) {
+        return [];
+      }
+
+      if (!visual.svgPath && !visual.templateId) {
         return [];
       }
 
@@ -317,13 +321,39 @@ export class MathQuestionGenerator {
         {
           assetId: visual.assetId,
           role: visual.role,
-          label: visual.label,
-          altText: visual.altText,
-          subject: visual.subject,
-          keywords: visual.keywords ?? [],
           svgPath: visual.svgPath,
           templateId: visual.templateId,
           placement: visual.placement,
+        },
+      ];
+    });
+  }
+
+  private normalizeQuestionVisualSelections(
+    visualSelections: Array<{
+      assetId?: string;
+      role?:
+        | 'inline-symbol'
+        | 'prompt-illustration'
+        | 'answer-option'
+        | 'explanation-aid';
+      placement?:
+        | 'before-question'
+        | 'after-question'
+        | 'inline'
+        | 'explanation';
+    }> = []
+  ) {
+    return visualSelections.flatMap((selection) => {
+      if (!selection.assetId || !selection.role) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: selection.assetId,
+          role: selection.role,
+          placement: selection.placement,
         },
       ];
     });
@@ -361,6 +391,19 @@ export class MathQuestionGenerator {
         grade: gradeNumber,
         topic,
         stepByStepSolution: q.stepByStepSolution,
+        visualSelections: q.visualSelections.flatMap((selection) => {
+          if (!selection.assetId || !selection.role) {
+            return [];
+          }
+
+          return [
+            {
+              assetId: selection.assetId,
+              role: selection.role,
+              placement: selection.placement,
+            },
+          ];
+        }),
         visuals: q.visuals,
         metadata: {
           generatedBy: this.ollamaService ? 'ollama' : 'deterministic',

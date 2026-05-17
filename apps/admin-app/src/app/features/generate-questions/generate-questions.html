@@ -112,22 +112,13 @@
             </div>
             @if (q.visuals?.length) {
             <div class="q-visuals" aria-label="Question visuals">
-              <div class="q-visuals-title">Visual Prompt</div>
               <div class="q-visuals-grid">
-                @for (visual of q.visuals; track $index) {
+                @for (visual of q.visuals; track $index) { @if (visual.svgPath)
+                {
                 <div class="q-visual-chip">
-                  @if (visual.svgPath) {
-                  <img
-                    [src]="visual.svgPath"
-                    [alt]="visual.altText"
-                    loading="lazy"
-                  />
-                  } @else {
-                  <div class="q-visual-fallback">{{ visual.label }}</div>
-                  }
-                  <span>{{ visual.label }}</span>
+                  <img [src]="visual.svgPath" alt="" loading="lazy" />
                 </div>
-                }
+                } }
               </div>
             </div>
             }
@@ -136,12 +127,6 @@
                 >Answer:
                 <strong><app-katex-render [content]="'' + q.answer" /></strong
               ></span>
-              @if (q.visuals?.length; as visualCount) {
-              <span class="q-badge q-visual-count"
-                >{{ visualCount }} visual{{ visualCount === 1 ? '' : 's'
-                }}</span
-              >
-              }
               <span
                 class="q-badge q-difficulty"
                 [attr.data-level]="q.metadata.difficulty || 'medium'"

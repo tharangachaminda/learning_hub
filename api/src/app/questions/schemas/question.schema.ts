@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import type {
+  LLMSelectedVisual,
   QuestionVisual as GeneratedQuestionVisual,
   VisualAssetPlacement,
   VisualAssetRole,
@@ -220,22 +221,6 @@ export class QuestionVisual implements GeneratedQuestionVisual {
   })
   role: VisualAssetRole;
 
-  /** Human-friendly label used in admin surfaces and indexing */
-  @Prop({ type: String, required: true })
-  label: string;
-
-  /** Accessibility text for the visual */
-  @Prop({ type: String, required: true })
-  altText: string;
-
-  /** Optional subject tag for multi-subject asset filtering */
-  @Prop({ type: String })
-  subject?: string;
-
-  /** Semantic keywords associated with the visual */
-  @Prop({ type: [String], default: [] })
-  keywords: string[];
-
   /** Path to a static SVG asset when the visual is file-backed */
   @Prop({ type: String })
   svgPath?: string;
@@ -245,6 +230,25 @@ export class QuestionVisual implements GeneratedQuestionVisual {
   templateId?: string;
 
   /** Optional placement hint for the frontend */
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualPlacement),
+  })
+  placement?: VisualAssetPlacement;
+}
+
+@Schema({ _id: false })
+export class QuestionVisualSelection implements LLMSelectedVisual {
+  @Prop({ type: String, required: true })
+  assetId: string;
+
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualRole),
+    required: true,
+  })
+  role: VisualAssetRole;
+
   @Prop({
     type: String,
     enum: Object.values(QuestionVisualPlacement),
@@ -346,6 +350,10 @@ export class Question {
    */
   @Prop({ type: [String], default: [] })
   stepByStepSolution: string[];
+
+  /** Ordered visual selection sequence supplied by the LLM. */
+  @Prop({ type: [QuestionVisualSelection], default: [] })
+  visualSelections: QuestionVisualSelection[];
 
   /** Structured SVG-backed visuals associated with the question. */
   @Prop({ type: [QuestionVisual], default: [] })

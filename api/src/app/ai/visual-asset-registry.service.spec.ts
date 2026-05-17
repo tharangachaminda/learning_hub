@@ -42,10 +42,6 @@ describe('VisualAssetRegistryService', () => {
     expect(visual).toEqual({
       assetId: 'pattern.square.full',
       role: 'inline-symbol',
-      label: 'full square',
-      altText: 'full square',
-      subject: 'mathematics',
-      keywords: ['square', 'filled', 'pattern'],
       svgPath: '/assets/question-visuals/patterns/full-square.svg',
       templateId: undefined,
       placement: undefined,
@@ -101,6 +97,23 @@ describe('VisualAssetRegistryService', () => {
         expect.objectContaining({ assetId: 'pattern.circle.full' }),
       ])
     );
+  });
+
+  it('should preserve duplicate ordered selections for counting visuals', async () => {
+    const visuals = await service.resolveSelectedVisuals(
+      { grade: 0, topic: 'COUNTING_AND_QUANTITY' },
+      [
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+        { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+      ]
+    );
+
+    expect(visuals).toEqual([
+      expect.objectContaining({ assetId: 'pattern.square.full' }),
+      expect.objectContaining({ assetId: 'pattern.square.full' }),
+      expect.objectContaining({ assetId: 'pattern.circle.empty' }),
+    ]);
   });
 
   it('should provide richer default visuals for higher-grade pattern topics', async () => {

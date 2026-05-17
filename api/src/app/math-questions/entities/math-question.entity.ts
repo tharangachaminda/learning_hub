@@ -1,4 +1,7 @@
-import type { QuestionVisual as GeneratedQuestionVisual } from '../../ai/schemas';
+import type {
+  LLMSelectedVisual,
+  QuestionVisual as GeneratedQuestionVisual,
+} from '../../ai/schemas';
 
 /**\n * Educational difficulty levels based on New Zealand Mathematics Curriculum
  * Defines cognitive complexity and numerical ranges appropriate for each grade
@@ -59,6 +62,7 @@ export enum DifficultyLevel {
 }
 
 export type MathQuestionVisual = GeneratedQuestionVisual;
+export type MathQuestionVisualSelection = LLMSelectedVisual;
 
 /**
  * Represents a mathematical question with answer and solution steps.
@@ -111,7 +115,8 @@ export class MathQuestion {
     public readonly operation: string,
     public readonly difficulty: DifficultyLevel,
     public readonly stepByStepSolution: string[] = [],
-    public readonly visuals: MathQuestionVisual[] = []
+    public readonly visuals: MathQuestionVisual[] = [],
+    public readonly visualSelections: MathQuestionVisualSelection[] = []
   ) {
     this.validateQuestionText(question);
     this.validateAnswer(answer);

@@ -72,33 +72,18 @@
         </div>
 
         <div class="field-group" *ngIf="question.visuals?.length">
-          <span class="field-label">Attached Visuals</span>
           <div class="detail-visual-grid">
-            <article
-              class="detail-visual-card"
+            <div
+              class="detail-visual-preview"
               *ngFor="let visual of question.visuals"
             >
-              <div class="detail-visual-preview">
-                <img
-                  *ngIf="visual.svgPath"
-                  [src]="visual.svgPath"
-                  [alt]="visual.altText"
-                  loading="lazy"
-                />
-                <div class="detail-visual-fallback" *ngIf="!visual.svgPath">
-                  {{ visual.templateId || visual.assetId }}
-                </div>
-              </div>
-              <div class="detail-visual-meta">
-                <strong>{{ visual.label }}</strong>
-                <span>{{ visual.altText }}</span>
-                <span>Role: {{ visual.role }}</span>
-                <span *ngIf="visual.placement"
-                  >Placement: {{ visual.placement }}</span
-                >
-                <span class="detail-visual-asset">{{ visual.assetId }}</span>
-              </div>
-            </article>
+              <img
+                *ngIf="visual.svgPath"
+                [src]="visual.svgPath"
+                alt=""
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
 

@@ -198,8 +198,7 @@ describe('OllamaService', () => {
         country: 'NZ',
       });
 
-      expect(result.question).toContain('repeating pattern');
-      expect(result.question).toContain('empty circle');
+      expect(result.question).toContain('Look at the shapes shown.');
       expect(result.answer).toBe(2);
       expect(result.visuals).toEqual([
         expect.objectContaining({ assetId: 'pattern.circle.empty' }),
@@ -224,7 +223,7 @@ describe('OllamaService', () => {
       });
 
       expect(result.metadata.fallback_used).toBe(true);
-      expect(result.question).toContain('repeating pattern');
+      expect(result.question).toContain('Look at the shapes shown.');
       expect(result.visuals.length).toBeGreaterThan(0);
     });
 
@@ -233,10 +232,10 @@ describe('OllamaService', () => {
         data: {
           response: JSON.stringify({
             question:
-              'What comes next in this pattern: empty circle, full circle, empty circle, full circle?',
+              'Look at the shapes shown. What comes next in the pattern?',
             answer: 1,
             explanation:
-              'The pattern alternates between an empty circle and a full circle.',
+              'The pattern repeats, so the next shape matches the start of the sequence.',
             visuals: [
               { assetId: 'pattern.circle.empty', role: 'inline-symbol' },
               { assetId: 'pattern.circle.full', role: 'inline-symbol' },
@@ -270,7 +269,7 @@ describe('OllamaService', () => {
       ]);
     });
 
-    it('should use approved fallback visuals for counting topics when the model invents an asset id', async () => {
+    it('should fallback to a valid counting question when the model invents visual asset ids', async () => {
       mockAxios.post.mockResolvedValue({
         data: {
           response: JSON.stringify({
@@ -299,12 +298,110 @@ describe('OllamaService', () => {
       const postBody = mockAxios.post.mock.calls[0][1];
       expect(postBody.prompt).toContain('APPROVED VISUAL ASSET CATALOG');
       expect(postBody.prompt).toContain(
-        'For counting topics, the JSON "visuals" array must not be empty.'
+        'For counting topics, the JSON "visualSelections" array must not be empty.'
       );
-      expect(result.visuals).toEqual([
-        expect.objectContaining({ assetId: 'pattern.circle.empty' }),
-        expect.objectContaining({ assetId: 'pattern.circle.full' }),
-      ]);
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.answer).toBe(4);
+      expect(result.visualSelections).toHaveLength(4);
+      expect(result.visuals).toHaveLength(4);
+      expect(result.question).toContain(
+        'How many shapes are there altogether?'
+      );
+    });
+
+    it('should preserve ordered repeated visual selections for counting questions', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the shapes shown. How many shapes are there altogether?',
+            answer: 3,
+            explanation:
+              'Count each shown shape once to find there are 3 shapes.',
+            visualSelections: [
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.visualSelections).toHaveLength(3);
+      expect(result.visuals).toHaveLength(3);
+      expect(
+        result.visuals.every(
+          (visual) => visual.assetId === 'pattern.square.full'
+        )
+      ).toBe(true);
+    });
+
+    it('should reject counting questions that drift into pattern language and use counting fallback', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the repeating pattern: empty circle, full circle, empty circle, full circle. How many shapes are in the repeating part?',
+            answer: 2,
+            explanation: 'The repeating part has 2 shapes.',
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.answer).toBe(4);
+      expect(result.visualSelections).toHaveLength(4);
+      expect(result.question).toContain(
+        'How many shapes are there altogether?'
+      );
+    });
+
+    it('should reject counting questions that name unseen objects and use counting fallback', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'In the picture, there are 2 kiwi birds. Can you count them and tell me how many there are?',
+            answer: 2,
+            explanation: 'Count the kiwi birds one by one.',
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.answer).toBe(4);
+      expect(result.visualSelections).toHaveLength(4);
+      expect(result.question).toContain('Look at the shapes shown.');
+      expect(result.question).not.toContain('kiwi birds');
     });
   });
   describe('validateMathematicalAccuracy', () => {

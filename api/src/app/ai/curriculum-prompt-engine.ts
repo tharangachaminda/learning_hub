@@ -513,10 +513,12 @@ Use $...$ ONLY around mathematical expressions and operators — NOT around plai
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
-{"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation in plain English>", "visuals": [{"assetId": "<approved visual asset id>", "role": "inline-symbol|prompt-illustration|answer-option|explanation-aid"}]}
+{"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation in plain English>", "visualSelections": [{"assetId": "<approved visual asset id>", "role": "inline-symbol|prompt-illustration|answer-option|explanation-aid", "placement": "before-question|after-question|inline|explanation"}]}
 
-- For pattern-related topics, if an approved visual asset catalog is supplied later in the prompt, you MUST use approved asset IDs and "visuals" must contain 2 to 4 items.
-- Only return "visuals": [] when no approved visual asset catalog is supplied or the topic is not visual by nature.
+- If an approved visual asset catalog is supplied later in the prompt, you MUST use approved asset IDs in "visualSelections".
+- "visualSelections" must list the visuals in display order.
+- If the question shows repeated images, include one visualSelections entry per displayed image. Do not collapse repeated images into a single item.
+- Only return "visualSelections": [] when no approved visual asset catalog is supplied or the topic is not visual by nature.
 - Never invent asset IDs.
 - Never output SVG markup.
 
@@ -564,8 +566,9 @@ Do NOT turn this into a plain symbolic equation with no shown objects.
     if (isPatternTopic) {
       return `QUESTION FORMAT STYLE:
 Generate a pattern question, not a standalone arithmetic computation.
-Use the approved visual labels in the prompt such as empty circle, full circle, or full triangle.
-Ask the student to identify the repeating unit, continue the pattern, or count a named shape within a shown pattern.
+Ask the student to identify the repeating unit, continue the pattern, or count shapes in a shown pattern.
+Keep the wording plain and generic, for example "Look at the shapes shown. What comes next in the pattern?"
+Do NOT mention visual asset IDs or labels such as empty circle, full circle, or full triangle in the question text.
 Keep the wording short and direct for Year ${request.grade}, but the mathematics must stay about patterns.
 Do NOT turn this into a plain addition, subtraction, multiplication, or division equation unless the pattern itself is central to the question.
 `;

@@ -423,21 +423,19 @@ export class QuestionIndexingService {
     questionText: string,
     explanation: string,
     visuals?: Array<{
-      label?: string;
-      altText?: string;
-      keywords?: string[];
+      assetId?: string;
+      role?: string;
+      placement?: string;
     }>
   ): string {
     const visualText = visuals?.length
       ? `\n\nVisual references: ${visuals
           .map((visual) => {
-            const keywords = visual.keywords?.length
-              ? ` keywords ${visual.keywords.join(', ')}`
-              : '';
-            return `${visual.label || 'visual'} (${
-              visual.altText || 'no alt text'
-            })${keywords}`;
+            return [visual.assetId, visual.role, visual.placement]
+              .filter(Boolean)
+              .join(' ');
           })
+          .filter(Boolean)
           .join('; ')}`
       : '';
 

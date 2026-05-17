@@ -257,6 +257,13 @@ describe('QuestionsController', () => {
         operation: 'MULTIPLICATION',
         difficulty: 'grade_4',
         stepByStepSolution: [`Step for Q${i}`],
+        visualSelections: [
+          {
+            assetId: 'pattern.circle.empty',
+            role: 'prompt-illustration',
+            placement: 'before-question',
+          },
+        ],
         visuals: [
           {
             assetId: 'pattern.circle.empty',
@@ -293,6 +300,12 @@ describe('QuestionsController', () => {
       expect(questionsService.createMany).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
+            visualSelections: [
+              expect.objectContaining({
+                assetId: 'pattern.circle.empty',
+                placement: 'before-question',
+              }),
+            ],
             visuals: [
               expect.objectContaining({
                 assetId: 'pattern.circle.empty',

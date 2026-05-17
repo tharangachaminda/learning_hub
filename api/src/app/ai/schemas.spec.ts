@@ -201,4 +201,29 @@ describe('parseLLMResponse', () => {
     expect(result).not.toBeNull();
     expect(result?.question).toContain('frac');
   });
+
+  it('should parse ordered visualSelections and normalize malformed role strings', () => {
+    const raw = JSON.stringify({
+      question: 'Count the full squares shown.',
+      answer: 3,
+      explanation: 'Count each full square once.',
+      visualSelections: [
+        {
+          assetId: 'pattern.square.full',
+          role: 'inline-symbol|prompt-illustration',
+        },
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+      ],
+    });
+
+    const result = parseLLMResponse(raw);
+
+    expect(result).not.toBeNull();
+    expect(result?.visualSelections).toHaveLength(3);
+    expect(result?.visualSelections[0]).toEqual({
+      assetId: 'pattern.square.full',
+      role: 'inline-symbol',
+    });
+  });
 });

@@ -280,6 +280,19 @@ export class QuestionsController {
       category: this.topicToCategory(dto.topic, resolvedTopic),
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       stepByStepSolution: q.stepByStepSolution || [],
+      visualSelections: (q.visualSelections || []).flatMap((selection) => {
+        if (!selection.assetId || !selection.role) {
+          return [];
+        }
+
+        return [
+          {
+            assetId: selection.assetId,
+            role: selection.role,
+            placement: selection.placement,
+          },
+        ];
+      }),
       visuals: q.visuals || [],
       generatedByUser,
       metadata: {
