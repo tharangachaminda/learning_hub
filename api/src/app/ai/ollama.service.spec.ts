@@ -334,6 +334,13 @@ describe('OllamaService', () => {
         country: 'NZ',
       });
 
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.question).toBe(
+        'Look at the shapes shown. How many shapes are there altogether?'
+      );
+      expect(result.explanation).toBe(
+        'Count each shown shape once. There are 3 shapes altogether.'
+      );
       expect(result.visualSelections).toHaveLength(3);
       expect(result.visuals).toHaveLength(3);
       expect(
@@ -343,7 +350,7 @@ describe('OllamaService', () => {
       ).toBe(true);
     });
 
-    it('should reject counting questions that drift into pattern language and use counting fallback', async () => {
+    it('should normalize counting questions that drift into pattern language when visuals are usable', async () => {
       mockAxios.post.mockResolvedValue({
         data: {
           response: JSON.stringify({
@@ -366,15 +373,15 @@ describe('OllamaService', () => {
         country: 'NZ',
       });
 
-      expect(result.metadata.fallback_used).toBe(true);
-      expect(result.answer).toBe(4);
-      expect(result.visualSelections).toHaveLength(4);
-      expect(result.question).toContain(
-        'How many shapes are there altogether?'
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.answer).toBe(2);
+      expect(result.visualSelections).toHaveLength(2);
+      expect(result.question).toBe(
+        'Look at the shapes shown. How many shapes are there altogether?'
       );
     });
 
-    it('should reject counting questions that name unseen objects and use counting fallback', async () => {
+    it('should normalize counting questions that name unseen objects when visuals are usable', async () => {
       mockAxios.post.mockResolvedValue({
         data: {
           response: JSON.stringify({
@@ -397,11 +404,34 @@ describe('OllamaService', () => {
         country: 'NZ',
       });
 
-      expect(result.metadata.fallback_used).toBe(true);
-      expect(result.answer).toBe(4);
-      expect(result.visualSelections).toHaveLength(4);
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.answer).toBe(2);
+      expect(result.visualSelections).toHaveLength(2);
       expect(result.question).toContain('Look at the shapes shown.');
       expect(result.question).not.toContain('kiwi birds');
+      expect(result.explanation).toBe(
+        'Count each shown shape once. There are 2 shapes altogether.'
+      );
+    });
+
+    it('should vary counting fallback wording across existing questions to avoid duplicates', async () => {
+      mockAxios.post.mockRejectedValue(
+        new Error('timeout of 30000ms exceeded')
+      );
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+        existingQuestions: ['Q1', 'Q2', 'Q3'],
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.question).toBe(
+        'Look at the picture. How many shapes are shown?'
+      );
+      expect(result.visualSelections.length).toBeGreaterThanOrEqual(4);
     });
   });
   describe('validateMathematicalAccuracy', () => {
