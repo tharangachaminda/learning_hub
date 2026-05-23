@@ -19,7 +19,7 @@ export interface SearchFilters {
 export interface SearchResult {
   id: string;
   questionText: string;
-  answer: number;
+  answer: number | string;
   similarityScore: number;
   metadata: {
     grade: string;
@@ -65,6 +65,7 @@ interface RawSearchHit {
   _source: {
     questionText: string;
     answer: number;
+    answerText?: string;
     metadata: SearchResult['metadata'];
   };
 }
@@ -350,7 +351,7 @@ export class SemanticSearchService {
     return searchResults.hits.hits.map((hit) => ({
       id: hit._id,
       questionText: hit._source.questionText,
-      answer: hit._source.answer,
+      answer: hit._source.answerText ?? hit._source.answer,
       similarityScore: hit._score,
       metadata: hit._source.metadata,
     }));

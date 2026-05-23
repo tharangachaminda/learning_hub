@@ -258,7 +258,8 @@ export class QuestionsController {
         dto.topic,
         false,
         dto.difficulty ?? 'medium',
-        dto.grade
+        dto.grade,
+        dto.format ?? QuestionFormat.OPEN_ENDED
       );
     } catch (error) {
       const message =
@@ -274,11 +275,13 @@ export class QuestionsController {
     const questionDtos = generated.map((q) => ({
       questionText: q.question,
       answer: q.answer,
+      answerAssetId: q.answerAssetId,
       explanation: q.stepByStepSolution?.join('\n') || '',
       grade: dto.grade,
       topic: dto.topic,
       category: this.topicToCategory(dto.topic, resolvedTopic),
-      format: dto.format ?? QuestionFormat.OPEN_ENDED,
+      format: q.format ?? dto.format ?? QuestionFormat.OPEN_ENDED,
+      options: q.options ?? [],
       stepByStepSolution: q.stepByStepSolution || [],
       visualSelections: (q.visualSelections || []).flatMap((selection) => {
         if (!selection.assetId || !selection.role) {
@@ -290,10 +293,13 @@ export class QuestionsController {
             assetId: selection.assetId,
             role: selection.role,
             placement: selection.placement,
+            render: selection.render,
+            layout: selection.layout,
           },
         ];
       }),
       visuals: q.visuals || [],
+      visualLayout: q.visualLayout,
       generatedByUser,
       metadata: {
         generatedBy: 'falcon3:latest',
@@ -464,9 +470,12 @@ export class QuestionsController {
     body: {
       questionText: string;
       answer: number | string;
+      answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
-      options?: string[];
+      options?: Array<
+        string | { value: string; assetId?: string; svgPath?: string }
+      >;
       instruction: string;
     },
     @Request() req: { user?: { email?: string; userId?: string } }
@@ -477,6 +486,7 @@ export class QuestionsController {
       {
         questionText: body.questionText,
         answer: body.answer,
+        answerAssetId: body.answerAssetId,
         explanation: body.explanation,
         stepByStepSolution: body.stepByStepSolution,
         options: body.options,
@@ -562,7 +572,15 @@ CURRENT QUESTION:
 - Format: ${question.format}`;
 
     if (question.options?.length) {
-      prompt += `\n- Options: ${question.options.join(', ')}`;
+      prompt += `\n- Options: ${question.options
+        .map((option) =>
+          typeof option === 'string'
+            ? option
+            : option.assetId
+            ? `${option.value} [asset:${option.assetId}]`
+            : option.value
+        )
+        .join(', ')}`;
     }
     if (question.stepByStepSolution?.length) {
       prompt += `\n- Step-by-step: ${question.stepByStepSolution.join(' | ')}`;
@@ -649,9 +667,12 @@ IMPORTANT LaTeX rules:
   private parseRefinementResponse(response: string): {
     questionText: string;
     answer: number | string;
+    answerAssetId?: string;
     explanation: string;
     stepByStepSolution: string[];
-    options: string[];
+    options: Array<
+      string | { value: string; assetId?: string; svgPath?: string }
+    >;
   } {
     this.logger.debug(
       `Raw LLM refinement response (first 500 chars): ${response.substring(

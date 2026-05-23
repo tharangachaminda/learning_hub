@@ -14,6 +14,24 @@ type QuestionVisual = {
   svgPath?: string;
   templateId?: string;
   placement?: VisualAssetPlacement;
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+};
+type QuestionVisualContainerLayout = {
+  container?: 'grid';
+  rows?: number;
+  columns?: number;
+};
+type QuestionAnswerOption = {
+  value: string;
+  assetId?: string;
+  svgPath?: string;
 };
 type VisualAssetRole =
   | 'inline-symbol'
@@ -95,6 +113,14 @@ type SeedVisualSelection = {
   assetId: string;
   role?: VisualAssetRole;
   placement?: VisualAssetPlacement;
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
 };
 
 type SeedQuestionEntry = {
@@ -104,11 +130,13 @@ type SeedQuestionEntry = {
   difficulty: DifficultyName;
   questionText: string;
   answer: number | string;
+  answerAssetId?: string;
   explanation: string;
   stepByStepSolution?: string[];
   format?: QuestionFormatName;
-  options?: string[];
+  options?: Array<string | QuestionAnswerOption>;
   visualSelections?: SeedVisualSelection[];
+  visualLayout?: QuestionVisualContainerLayout;
 };
 
 type SeedQuestionBank = {
@@ -308,6 +336,8 @@ async function resolveSeedVisuals(
       visualAssetRegistryService.toQuestionVisual(selection.assetId, {
         role: selection.role ?? 'prompt-illustration',
         placement: selection.placement ?? 'before-question',
+        render: selection.render,
+        layout: selection.layout,
       })
     )
   );
@@ -334,18 +364,41 @@ async function buildQuestionDto(
     question,
     visualAssetRegistryService
   );
+  const options = await Promise.all(
+    (question.options ?? []).map(async (option) => {
+      if (typeof option === 'string' || !option.assetId || option.svgPath) {
+        return option;
+      }
+
+      const visual = await visualAssetRegistryService.toQuestionVisual(
+        option.assetId,
+        {
+          role: 'answer-option',
+          placement: 'after-question',
+        }
+      );
+
+      return {
+        value: option.value,
+        assetId: option.assetId,
+        svgPath: visual?.svgPath,
+      };
+    })
+  );
 
   return {
     questionText: question.questionText,
     answer: question.answer,
+    answerAssetId: question.answerAssetId,
     explanation: question.explanation,
     grade: question.grade,
     topic: question.topic,
     category: topicToCategory(question.topic, resolvedTopic),
     format: question.format ?? 'open-ended',
-    options: question.options ?? [],
+    options,
     stepByStepSolution: question.stepByStepSolution ?? [question.explanation],
     visuals,
+    visualLayout: question.visualLayout,
     generatedByUser,
     metadata: {
       generatedBy: 'gpt-5.4-seed',

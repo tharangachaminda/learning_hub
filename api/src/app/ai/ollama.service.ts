@@ -179,6 +179,7 @@ export class OllamaService {
     grade: number;
     topic: string;
     difficulty: string;
+    format?: 'open-ended' | 'multiple-choice';
     country?: string;
     context?: string;
     contextPlan?: QuestionGenerationRequest['contextPlan'];
@@ -190,6 +191,7 @@ export class OllamaService {
       // Validate and parse request using Zod schema
       const request = QuestionGenerationRequestSchema.parse({
         ...requestData,
+        format: requestData.format || 'open-ended',
         country: requestData.country || 'NZ',
       });
 
@@ -199,6 +201,7 @@ export class OllamaService {
           grade: request.grade,
           topic: request.topic.toUpperCase(),
           difficulty: request.difficulty,
+          format: request.format,
           country: request.country,
           contextPlan: request.contextPlan,
         });
@@ -317,7 +320,9 @@ export class OllamaService {
       const result = {
         question: normalizedQuestion.question,
         answer: normalizedQuestion.answer,
+        answerAssetId: normalizedQuestion.answerAssetId,
         explanation: normalizedQuestion.explanation,
+        options: normalizedQuestion.options ?? [],
         visualSelections,
         visuals,
         metadata: {
@@ -342,6 +347,7 @@ export class OllamaService {
 
       const request = QuestionGenerationRequestSchema.parse({
         ...requestData,
+        format: requestData.format || 'open-ended',
         country: requestData.country || 'NZ',
       });
       const fallbackVisualSelections = await this.buildFallbackVisualSelections(
@@ -370,6 +376,7 @@ export class OllamaService {
       return GeneratedQuestionSchema.parse({
         question: fallbackQuestion.question,
         answer: fallbackQuestion.answer,
+        options: [],
         explanation: fallbackExplanation,
         visualSelections: fallbackVisualSelections,
         visuals: fallbackVisuals,
@@ -633,7 +640,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   private validateVisualQuestionConsistency(
     request: QuestionGenerationRequest,
     question: string,
-    answer: number,
+    answer: number | string,
     visualSelections: LLMSelectedVisual[],
     visuals: GeneratedQuestion['visuals']
   ): void {
@@ -649,6 +656,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
     if (
       request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
+      typeof answer === 'number' &&
       answer !== visuals.length
     ) {
       throw new Error(
@@ -673,8 +681,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     request: QuestionGenerationRequest,
     parsedQuestion: {
       question: string;
-      answer: number;
+      answer: number | string;
+      answerAssetId?: string;
       explanation: string;
+      options?: Array<{ value: string; assetId?: string; svgPath?: string }>;
       visualSelections: LLMSelectedVisual[];
     },
     visuals: GeneratedQuestion['visuals']
@@ -693,6 +703,8 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         'Look at the shapes shown. How many shapes are there altogether?',
       answer,
       explanation: `Count each shown shape once. There are ${answer} shapes altogether.`,
+      options: parsedQuestion.options ?? [],
+      answerAssetId: parsedQuestion.answerAssetId,
       visualSelections: parsedQuestion.visualSelections,
     };
   }
@@ -705,8 +717,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     request: QuestionGenerationRequest
   ): {
     question: string;
-    answer: number;
+    answer: number | string;
+    answerAssetId?: string;
     explanation: string;
+    options: Array<{ value: string; assetId?: string; svgPath?: string }>;
     visualSelections: LLMSelectedVisual[];
   } {
     // First try structured parsing with Zod validation
@@ -717,7 +731,28 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
           this.formatQuestionForMath(structured.question, request.topic)
         ),
         answer: structured.answer,
+        answerAssetId: structured.answerAssetId,
         explanation: this.stripLatex(structured.explanation),
+        options: (structured.options ?? []).reduce<
+          Array<{ value: string; assetId?: string; svgPath?: string }>
+        >((acc, option) => {
+          if (typeof option === 'string') {
+            acc.push({ value: option });
+            return acc;
+          }
+
+          if (!option?.value) {
+            return acc;
+          }
+
+          acc.push({
+            value: option.value,
+            assetId: option.assetId,
+            svgPath: option.svgPath,
+          });
+
+          return acc;
+        }, []),
         visualSelections:
           structured.visualSelections?.length > 0
             ? structured.visualSelections
@@ -729,7 +764,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const questionMatch = aiResponse.match(
       /QUESTION:\s*([\s\S]+?)(?=\nANSWER:|$)/
     );
-    const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
+    const answerMatch = aiResponse.match(/ANSWER:\s*(.+?)(?=\n[A-Z_]+:|$)/);
     const explanationMatch = aiResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);
 
     if (!questionMatch || !answerMatch) {
@@ -742,7 +777,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
 
     let question = questionMatch[1].trim();
-    const answer = parseInt(answerMatch[1], 10);
+    const rawAnswer = answerMatch[1].trim();
+    const answer = /^-?\d+(?:\.\d+)?$/.test(rawAnswer)
+      ? Number(rawAnswer)
+      : rawAnswer.replace(/^"|"$/g, '');
     const explanation = explanationMatch?.[1]?.trim() || 'Solve step by step.';
 
     // Ensure question contains proper math format
@@ -752,6 +790,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       question: this.normalizeLatexDelimiters(question),
       answer,
       explanation: this.stripLatex(explanation),
+      options: [],
       visualSelections: [],
     };
   }

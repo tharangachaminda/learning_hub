@@ -99,6 +99,30 @@ describe('VisualAssetRegistryService', () => {
     );
   });
 
+  it('should expose approved visuals for Year 0 measuring and shapes topics', async () => {
+    const measuringAssets = await service.getGenerationCatalog({
+      grade: 0,
+      topic: 'COMPARING_AND_MEASURING',
+    });
+    const shapeAssets = await service.getGenerationCatalog({
+      grade: 0,
+      topic: 'SHAPES_AND_POSITION',
+    });
+
+    expect(measuringAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ assetId: 'measurement.cube.unit' }),
+        expect.objectContaining({ assetId: 'measurement.scoop.unit' }),
+      ])
+    );
+    expect(shapeAssets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ assetId: 'pattern.circle.full' }),
+        expect.objectContaining({ assetId: 'pattern.square.full' }),
+      ])
+    );
+  });
+
   it('should preserve duplicate ordered selections for counting visuals', async () => {
     const visuals = await service.resolveSelectedVisuals(
       { grade: 0, topic: 'COUNTING_AND_QUANTITY' },

@@ -136,6 +136,51 @@ describe('OllamaService', () => {
       expect(generationTime).toBeLessThan(3000); // <3 seconds requirement
     });
 
+    it('should preserve structured multiple-choice options and answerAssetId from the LLM response', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: 'Look at the shapes shown. What comes next?',
+            answer: 'full circle',
+            answerAssetId: 'pattern.circle.full',
+            explanation: 'The pattern alternates empty and full circles.',
+            options: [
+              { value: 'empty circle', assetId: 'pattern.circle.empty' },
+              { value: 'full circle', assetId: 'pattern.circle.full' },
+              { value: 'empty square', assetId: 'pattern.square.empty' },
+              { value: 'full square', assetId: 'pattern.square.full' },
+            ],
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        format: 'multiple-choice',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+
+      expect(postBody.prompt).toContain(
+        'Return exactly 4 options in "options"'
+      );
+      expect(postBody.prompt).toContain('answerAssetId');
+      expect(result.answer).toBe('full circle');
+      expect(result.answerAssetId).toBe('pattern.circle.full');
+      expect(result.options).toHaveLength(4);
+      expect(result.options[1]).toEqual({
+        value: 'full circle',
+        assetId: 'pattern.circle.full',
+      });
+    });
+
     it('should include planner-directed context instructions in the generated prompt', async () => {
       mockAxios.post.mockResolvedValue({
         data: {

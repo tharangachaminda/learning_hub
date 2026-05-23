@@ -116,7 +116,13 @@
                 @for (visual of q.visuals; track $index) { @if (visual.svgPath)
                 {
                 <div class="q-visual-chip">
-                  <img [src]="visual.svgPath" alt="" loading="lazy" />
+                  <img
+                    [src]="visual.svgPath"
+                    [style.width]="visual.render?.width ? visual.render.width + 'px' : visual.render?.height ? 'auto' : null"
+                    [style.height]="visual.render?.height ? visual.render.height + 'px' : visual.render?.width ? 'auto' : null"
+                    alt=""
+                    loading="lazy"
+                  />
                 </div>
                 } }
               </div>

@@ -52,6 +52,10 @@ describe('VectorIndexService', () => {
         type: 'text',
         analyzer: 'standard',
       });
+      expect(mapping.properties.answerText).toEqual({
+        type: 'keyword',
+        ignore_above: 256,
+      });
       expect(mapping.properties.embedding).toBeDefined();
       expect(mapping.properties.embedding.type).toBe('knn_vector');
       expect(mapping.properties.embedding.dimension).toBe(768);
@@ -216,6 +220,7 @@ describe('VectorIndexService', () => {
         questionText,
         explanation,
         answer,
+        undefined,
         embedding,
         metadata
       );

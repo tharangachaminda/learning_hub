@@ -226,6 +226,8 @@
                   <img
                     *ngIf="visual.svgPath"
                     [src]="visual.svgPath"
+                    [style.width]="visual.render && visual.render.width ? visual.render.width + 'px' : visual.render && visual.render.height ? 'auto' : null"
+                    [style.height]="visual.render && visual.render.height ? visual.render.height + 'px' : visual.render && visual.render.width ? 'auto' : null"
                     alt=""
                     loading="lazy"
                   />

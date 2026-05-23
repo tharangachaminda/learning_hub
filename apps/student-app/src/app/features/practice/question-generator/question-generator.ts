@@ -32,6 +32,7 @@ import {
 } from './models/answer-submission.model';
 import { generateDistractors } from './utils/distractor-generator';
 import { scoreAnswers } from './utils/scoring';
+import { QuestionAnswerOption } from './models/question.model';
 import { SubmitSummaryComponent } from './components/submit-summary/submit-summary';
 import {
   AuthService,
@@ -167,7 +168,7 @@ export class QuestionGeneratorComponent implements OnInit {
   currentAnswer = computed(() => this.answers().get(this.currentIndex()));
 
   /** Pre-generated multiple-choice options per question index. */
-  questionOptions = signal<Map<number, string[]>>(new Map());
+  questionOptions = signal<Map<number, QuestionAnswerOption[]>>(new Map());
 
   /** Options for the currently displayed question (empty if open-ended). */
   currentOptions = computed(
@@ -543,6 +544,10 @@ export class QuestionGeneratorComponent implements OnInit {
         index,
         answer.selectedOption
       );
+      const selectedOption = this.resolveSelectedOption(
+        index,
+        answer.selectedOption
+      );
 
       return [
         {
@@ -553,7 +558,9 @@ export class QuestionGeneratorComponent implements OnInit {
             | 'easy'
             | 'medium'
             | 'hard',
-          isCorrect: selectedValue === String(question.answer),
+          isCorrect: question.answerAssetId
+            ? selectedOption?.assetId === question.answerAssetId
+            : selectedValue === String(question.answer),
           timeSpentSeconds: answer.timeSpent,
           sessionId,
         },
@@ -561,10 +568,10 @@ export class QuestionGeneratorComponent implements OnInit {
     });
   }
 
-  private resolveSelectedValue(
+  private resolveSelectedOption(
     questionIndex: number,
     selectedOption: string
-  ): string {
+  ): QuestionAnswerOption | null {
     const optionIndex: Record<string, number> = {
       A: 0,
       B: 1,
@@ -577,6 +584,19 @@ export class QuestionGeneratorComponent implements OnInit {
 
     if (options && resolvedIndex !== undefined && options[resolvedIndex]) {
       return options[resolvedIndex];
+    }
+
+    return null;
+  }
+
+  private resolveSelectedValue(
+    questionIndex: number,
+    selectedOption: string
+  ): string {
+    const option = this.resolveSelectedOption(questionIndex, selectedOption);
+
+    if (option) {
+      return option.value;
     }
 
     return selectedOption;
@@ -614,9 +634,22 @@ export class QuestionGeneratorComponent implements OnInit {
       return;
     }
 
-    const optionsMap = new Map<number, string[]>();
+    const optionsMap = new Map<number, QuestionAnswerOption[]>();
     questions.forEach((q, index) => {
-      optionsMap.set(index, generateDistractors(q.answer));
+      if (q.options?.length) {
+        optionsMap.set(index, q.options);
+        return;
+      }
+
+      if (typeof q.answer === 'number') {
+        optionsMap.set(
+          index,
+          generateDistractors(q.answer).map((value) => ({ value }))
+        );
+        return;
+      }
+
+      optionsMap.set(index, []);
     });
     this.questionOptions.set(optionsMap);
   }

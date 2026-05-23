@@ -226,6 +226,8 @@ export class VisualAssetRegistryService {
       svgPath: overrides.svgPath ?? asset.source.svgPath,
       templateId: overrides.templateId ?? asset.source.templateId,
       placement: overrides.placement,
+      render: overrides.render,
+      layout: overrides.layout,
     };
   }
 

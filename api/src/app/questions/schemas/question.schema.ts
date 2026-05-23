@@ -1,8 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema } from 'mongoose';
 import type {
   LLMSelectedVisual,
   QuestionVisual as GeneratedQuestionVisual,
+  QuestionVisualContainerLayout as GeneratedQuestionVisualContainerLayout,
   VisualAssetPlacement,
   VisualAssetRole,
 } from '../../ai/schemas';
@@ -235,6 +236,30 @@ export class QuestionVisual implements GeneratedQuestionVisual {
     enum: Object.values(QuestionVisualPlacement),
   })
   placement?: VisualAssetPlacement;
+
+  @Prop({
+    type: {
+      width: { type: Number },
+      height: { type: Number },
+    },
+    _id: false,
+  })
+  render?: {
+    width?: number;
+    height?: number;
+  };
+
+  @Prop({
+    type: {
+      row: { type: Number },
+      column: { type: Number },
+    },
+    _id: false,
+  })
+  layout?: {
+    row?: number;
+    column?: number;
+  };
 }
 
 @Schema({ _id: false })
@@ -254,6 +279,56 @@ export class QuestionVisualSelection implements LLMSelectedVisual {
     enum: Object.values(QuestionVisualPlacement),
   })
   placement?: VisualAssetPlacement;
+
+  @Prop({
+    type: {
+      width: { type: Number },
+      height: { type: Number },
+    },
+    _id: false,
+  })
+  render?: {
+    width?: number;
+    height?: number;
+  };
+
+  @Prop({
+    type: {
+      row: { type: Number },
+      column: { type: Number },
+    },
+    _id: false,
+  })
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+@Schema({ _id: false })
+export class QuestionVisualContainerLayout
+  implements GeneratedQuestionVisualContainerLayout
+{
+  @Prop({ type: String })
+  container?: 'grid';
+
+  @Prop({ type: Number })
+  rows?: number;
+
+  @Prop({ type: Number })
+  columns?: number;
+}
+
+@Schema({ _id: false })
+export class QuestionAnswerOption {
+  @Prop({ type: String, required: true })
+  value: string;
+
+  @Prop({ type: String })
+  assetId?: string;
+
+  @Prop({ type: String })
+  svgPath?: string;
 }
 
 /** Mongoose hydrated document type for the Question schema */
@@ -327,12 +402,16 @@ export class Question {
   })
   format: QuestionFormat;
 
+  /** Optional visual asset id for the correct answer when the answer is image-based. */
+  @Prop({ type: String })
+  answerAssetId?: string;
+
   /**
    * Answer options for multiple-choice questions.
    * Empty array for open-ended questions.
    */
-  @Prop({ type: [String], default: [] })
-  options: string[];
+  @Prop({ type: [MongooseSchema.Types.Mixed], default: [] })
+  options: Array<string | QuestionAnswerOption>;
 
   /**
    * Review workflow status. Defaults to `pending`.
@@ -358,6 +437,10 @@ export class Question {
   /** Structured SVG-backed visuals associated with the question. */
   @Prop({ type: [QuestionVisual], default: [] })
   visuals: QuestionVisual[];
+
+  /** Shared layout metadata for the question's visual container. */
+  @Prop({ type: QuestionVisualContainerLayout, _id: false })
+  visualLayout?: QuestionVisualContainerLayout;
 
   /**
    * AI generation metadata including model, timing, and quality info.

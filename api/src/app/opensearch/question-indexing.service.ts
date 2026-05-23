@@ -17,6 +17,7 @@ interface PreparedQuestionDocument {
   questionText: string;
   explanation: string;
   answer: number;
+  answerText?: string;
   embeddingSourceText: string;
   metadata: {
     grade: string;
@@ -87,6 +88,7 @@ export class QuestionIndexingService {
         prepared.questionText,
         prepared.explanation,
         prepared.answer,
+        prepared.answerText,
         embedding,
         prepared.metadata
       );
@@ -146,6 +148,7 @@ export class QuestionIndexingService {
         questionText: question.questionText,
         explanation: question.explanation,
         answer: question.answer,
+        answerText: question.answerText,
         embedding: embeddings[index],
         metadata: question.metadata,
       }));
@@ -200,6 +203,7 @@ export class QuestionIndexingService {
         prepared.questionText,
         prepared.explanation,
         prepared.answer,
+        prepared.answerText,
         embedding,
         prepared.metadata
       );
@@ -305,6 +309,10 @@ export class QuestionIndexingService {
       questionText: question.questionText,
       explanation,
       answer: this.normalizeAnswer(question.answer),
+      answerText:
+        typeof question.answer === 'string'
+          ? question.answer.trim()
+          : undefined,
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.questionText,
         explanation,
@@ -395,7 +403,11 @@ export class QuestionIndexingService {
       id: question.id || this.generateQuestionId(question),
       questionText: question.question,
       explanation,
-      answer: question.answer,
+      answer: this.normalizeAnswer(question.answer),
+      answerText:
+        typeof question.answer === 'string'
+          ? question.answer.trim() || undefined
+          : undefined,
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.question,
         explanation,

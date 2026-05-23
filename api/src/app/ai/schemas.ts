@@ -27,6 +27,7 @@ export const QuestionGenerationRequestSchema = z.object({
   grade: z.number().int().min(0).max(12),
   topic: z.string().min(1),
   difficulty: z.enum(['easy', 'medium', 'hard']),
+  format: z.enum(['open-ended', 'multiple-choice']).default('open-ended'),
   country: CountrySchema.default('NZ'),
   context: z.string().optional(),
   contextPlan: z
@@ -78,9 +79,45 @@ export const LLMSelectedVisualSchema = z.object({
   assetId: z.string().min(1),
   role: VisualAssetRoleSchema,
   placement: VisualAssetPlacementSchema.optional(),
+  render: z
+    .object({
+      width: z.number().positive().optional(),
+      height: z.number().positive().optional(),
+    })
+    .optional(),
+  layout: z
+    .object({
+      row: z.number().int().positive().optional(),
+      column: z.number().int().positive().optional(),
+    })
+    .optional(),
 });
 
 export type LLMSelectedVisual = z.infer<typeof LLMSelectedVisualSchema>;
+
+export type QuestionVisualRender = {
+  width?: number;
+  height?: number;
+};
+
+export type QuestionVisualLayout = {
+  row?: number;
+  column?: number;
+};
+
+export type QuestionVisualContainerLayout = {
+  container?: 'grid';
+  rows?: number;
+  columns?: number;
+};
+
+export const QuestionVisualContainerLayoutSchema = z
+  .object({
+    container: z.literal('grid').optional(),
+    rows: z.number().int().positive().optional(),
+    columns: z.number().int().positive().optional(),
+  })
+  .optional();
 
 export type QuestionVisual = {
   assetId: string;
@@ -88,6 +125,8 @@ export type QuestionVisual = {
   svgPath?: string;
   templateId?: string;
   placement?: VisualAssetPlacement;
+  render?: QuestionVisualRender;
+  layout?: QuestionVisualLayout;
 };
 
 export const QuestionVisualSchema = z
@@ -97,6 +136,18 @@ export const QuestionVisualSchema = z
     svgPath: z.string().min(1).optional(),
     templateId: z.string().min(1).optional(),
     placement: VisualAssetPlacementSchema.optional(),
+    render: z
+      .object({
+        width: z.number().positive().optional(),
+        height: z.number().positive().optional(),
+      })
+      .optional(),
+    layout: z
+      .object({
+        row: z.number().int().positive().optional(),
+        column: z.number().int().positive().optional(),
+      })
+      .optional(),
   })
   .refine((value) => value.svgPath || value.templateId, {
     message: 'Question visuals require either svgPath or templateId',
@@ -169,8 +220,21 @@ export const CONTEXT_BUCKET_IDS = [
  */
 export const LLMQuestionResponseSchema = z.object({
   question: z.string().min(5),
-  answer: z.coerce.number(),
+  answer: z.union([z.coerce.number(), z.string().min(1)]),
+  answerAssetId: z.string().min(1).optional(),
   explanation: z.string().min(10),
+  options: z
+    .array(
+      z.union([
+        z.string().min(1),
+        z.object({
+          value: z.string().min(1),
+          assetId: z.string().min(1).optional(),
+          svgPath: z.string().min(1).optional(),
+        }),
+      ])
+    )
+    .default([]),
   visualSelections: z.array(LLMSelectedVisualSchema).default([]),
   visuals: z.array(LLMSelectedVisualSchema).default([]),
   context_elements: z
@@ -189,10 +253,21 @@ export type LLMQuestionResponse = z.infer<typeof LLMQuestionResponseSchema>;
  */
 export const GeneratedQuestionSchema = z.object({
   question: z.string(),
-  answer: z.number(),
+  answer: z.union([z.number(), z.string()]),
+  answerAssetId: z.string().min(1).optional(),
   explanation: z.string(),
+  options: z
+    .array(
+      z.object({
+        value: z.string().min(1),
+        assetId: z.string().min(1).optional(),
+        svgPath: z.string().min(1).optional(),
+      })
+    )
+    .default([]),
   visualSelections: z.array(LLMSelectedVisualSchema).default([]),
   visuals: z.array(QuestionVisualSchema).default([]),
+  visualLayout: QuestionVisualContainerLayoutSchema,
   metadata: z.object({
     grade: z.number(),
     topic: z.string(),
@@ -353,9 +428,51 @@ function normalizeParsedLLMQuestionResponse(parsed: unknown): unknown {
   const visualSelections = normalizeLLMSelectedVisuals(
     rawResponse.visualSelections ?? rawResponse.visuals
   );
+  const rawOptions = Array.isArray(rawResponse.options)
+    ? rawResponse.options
+    : [];
+  const options: Array<
+    string | { value: string; assetId?: string; svgPath?: string }
+  > = [];
+
+  for (const option of rawOptions) {
+    if (typeof option === 'string') {
+      const normalized = option.trim();
+
+      if (normalized.length > 0) {
+        options.push(normalized);
+      }
+
+      continue;
+    }
+
+    if (!option || typeof option !== 'object') {
+      continue;
+    }
+
+    const value =
+      typeof option.value === 'string' ? option.value.trim() : undefined;
+
+    if (!value) {
+      continue;
+    }
+
+    options.push({
+      value,
+      assetId:
+        typeof option.assetId === 'string' && option.assetId.trim().length > 0
+          ? option.assetId.trim()
+          : undefined,
+      svgPath:
+        typeof option.svgPath === 'string' && option.svgPath.trim().length > 0
+          ? option.svgPath.trim()
+          : undefined,
+    });
+  }
 
   return {
     ...rawResponse,
+    options,
     visualSelections,
     visuals: visualSelections,
   };

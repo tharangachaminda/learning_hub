@@ -113,7 +113,9 @@
                 >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1
                 }}.</span
               >
-              <app-katex-render [content]="option"></app-katex-render>
+              <app-katex-render
+                [content]="typeof option === 'string' ? option : option.value"
+              ></app-katex-render>
             </div>
             }
           </div>
@@ -302,7 +304,9 @@
             <span
               >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1 }}.</span
             >
-            <app-katex-render [content]="option"></app-katex-render>
+            <app-katex-render
+              [content]="typeof option === 'string' ? option : option.value"
+            ></app-katex-render>
           </div>
           }
         </div>

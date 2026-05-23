@@ -72,14 +72,23 @@
         </div>
 
         <div class="field-group" *ngIf="question.visuals?.length">
-          <div class="detail-visual-grid">
+          <div
+            class="detail-visual-grid"
+            [class.detail-visual-grid--positioned]="question.visualLayout?.container === 'grid' || $any(question.visuals?.[0]?.layout)?.container === 'grid'"
+            [style.grid-template-columns]="(question.visualLayout?.container === 'grid' || $any(question.visuals?.[0]?.layout)?.container === 'grid') ? 'repeat(' + (question.visualLayout?.columns || $any(question.visuals?.[0]?.layout)?.columns || 1) + ', minmax(88px, 1fr))' : null"
+          >
             <div
               class="detail-visual-preview"
+              [class.detail-visual-preview--positioned]="question.visualLayout?.container === 'grid' || $any(question.visuals?.[0]?.layout)?.container === 'grid'"
+              [style.grid-column]="visual.layout?.column || null"
+              [style.grid-row]="visual.layout?.row || null"
               *ngFor="let visual of question.visuals"
             >
               <img
                 *ngIf="visual.svgPath"
                 [src]="visual.svgPath"
+                [style.width]="visual.render?.width != null ? visual.render?.width + 'px' : visual.render?.height != null ? 'auto' : null"
+                [style.height]="visual.render?.height != null ? visual.render?.height + 'px' : visual.render?.width != null ? 'auto' : null"
                 alt=""
                 loading="lazy"
               />
@@ -101,7 +110,9 @@
             <span class="field-label">Options</span>
             <ul class="options-list">
               <li *ngFor="let opt of question.options">
-                <app-katex-render [content]="opt" />
+                <app-katex-render
+                  [content]="typeof opt === 'string' ? opt : $any(opt).value"
+                />
               </li>
             </ul>
           </div>

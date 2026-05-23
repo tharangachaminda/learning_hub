@@ -124,6 +124,42 @@ describe('SemanticSearchService', () => {
       });
     });
 
+    it('should prefer answerText when present in indexed documents', async () => {
+      const questionText = 'What shape comes next?';
+      const textAnswerResults = {
+        hits: {
+          hits: [
+            {
+              _id: 'q-100',
+              _score: 0.91,
+              _source: {
+                questionText: 'Look at the pattern. What comes next?',
+                answer: 0,
+                answerText: 'full circle',
+                metadata: {
+                  grade: '0',
+                  topic: 'EARLY_PATTERNING',
+                  operation: 'EARLY_PATTERNING',
+                  difficulty: 'easy',
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding384);
+      jest
+        .spyOn(openSearchService, 'search')
+        .mockResolvedValue(textAnswerResults as any);
+
+      const results = await service.findSimilar(questionText);
+
+      expect(results[0]?.answer).toBe('full circle');
+    });
+
     it('should filter by grade level', async () => {
       const questionText = 'What is 5 + 3?';
 
