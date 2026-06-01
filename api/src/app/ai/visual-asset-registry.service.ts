@@ -131,10 +131,20 @@ export class VisualAssetRegistryService {
       const asset = approvedById.get(visual.assetId);
 
       if (!asset) {
+        this.logger.warn(
+          `resolveSelectedVisuals: assetId "${visual.assetId}" not found in approved catalog (grade=${request.grade}, topic=${request.topic})`
+        );
         continue;
       }
 
       if (!asset.roles.includes(visual.role)) {
+        this.logger.warn(
+          `resolveSelectedVisuals: assetId "${
+            visual.assetId
+          }" does not support role "${
+            visual.role
+          }" (allowed: ${asset.roles.join(', ')})`
+        );
         continue;
       }
 
@@ -311,13 +321,10 @@ export class VisualAssetRegistryService {
     const normalizedTopic = topic.toUpperCase();
     const supportedTopics = new Set<string>([normalizedTopic]);
 
-    if (
-      normalizedTopic === 'COUNTING_AND_QUANTITY' ||
-      normalizedTopic === 'EARLY_OPERATIONS'
-    ) {
-      supportedTopics.add('EARLY_PATTERNING');
-      supportedTopics.add('PATTERN_RECOGNITION');
-    }
+    // Both COUNTING_AND_QUANTITY and EARLY_OPERATIONS use only dedicated counting
+    // objects (apples, balls, etc.). Adding pattern shape topics would flood the
+    // catalog with circles/squares/triangles and bias the LLM toward generic shapes
+    // instead of meaningful real-world objects.
 
     return supportedTopics;
   }

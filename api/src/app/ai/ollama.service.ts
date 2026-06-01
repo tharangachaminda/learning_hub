@@ -45,11 +45,11 @@ import { VisualAssetRegistryService } from './visual-asset-registry.service';
 @Injectable()
 export class OllamaService {
   private readonly ollamaUrl: string;
-  private readonly defaultModel = 'falcon3:latest';
+  private readonly defaultModel: string;
   private readonly curriculumPromptEngine: CurriculumPromptEngine;
 
   /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */
-  private readonly generationTimeout = 30000;
+  private readonly generationTimeout: number;
 
   /** Similarity threshold above which a question is considered a duplicate */
   private readonly ragDuplicateThreshold = 0.95;
@@ -68,6 +68,14 @@ export class OllamaService {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
       'http://localhost:11434'
+    );
+    this.defaultModel = this.configService.get<string>(
+      'OLLAMA_MODEL',
+      'llama3.1:latest'
+    );
+    this.generationTimeout = this.configService.get<number>(
+      'OLLAMA_GENERATION_TIMEOUT',
+      90000
     );
     this.curriculumPromptEngine = new CurriculumPromptEngine();
   }
@@ -538,7 +546,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
     if (this.shouldUseVisualCatalog(topicUpper)) {
       const hasVisualLanguage =
-        /picture|shown|showing|visual|count|group|objects|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
+        /picture|shown|showing|visual|count|group|objects|altogether|left|remain|join|take away|more|fewer|less|longer|shorter|heavier|lighter|compare|which|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
           question
         );
 
@@ -591,6 +599,19 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
         if (!hasGroupLanguage) {
           throw new Error(
             'Generated question does not match requested early operations topic. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'COMPARING_AND_MEASURING') {
+        const hasComparisonLanguage =
+          /more|fewer|less|longer|shorter|heavier|lighter|compare|which|same|different|how many|measure|unit/i.test(
+            question
+          );
+
+        if (!hasComparisonLanguage) {
+          throw new Error(
+            'Generated question does not match requested comparing/measuring topic. Retrying.'
           );
         }
       }
@@ -654,13 +675,16 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       );
     }
 
+    // Answer-count consistency for COUNTING_AND_QUANTITY is handled by
+    // normalizeVisualQuestionResponse (sets answer = visuals.length), so no
+    // throw here. Log a warning if the LLM's original count was far off.
     if (
       request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
       typeof answer === 'number' &&
       answer !== visuals.length
     ) {
-      throw new Error(
-        'Generated counting question answer does not match the displayed objects. Retrying.'
+      console.warn(
+        `[OllamaService] Counting answer adjusted: LLM said ${answer}, showing ${visuals.length} objects (selections=${visualSelections.length})`
       );
     }
   }
@@ -689,24 +713,19 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     },
     visuals: GeneratedQuestion['visuals']
   ) {
+    // Keep the LLM's question text for diversity, but set the answer to the
+    // actual resolved visual count so it is always truthful.
+    // The LLM often miscounts in its narrative; the visuals array is ground truth.
     if (
-      request.topic.toUpperCase() !== 'COUNTING_AND_QUANTITY' ||
-      visuals.length === 0
+      request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
+      visuals.length > 0
     ) {
-      return parsedQuestion;
+      return {
+        ...parsedQuestion,
+        answer: visuals.length,
+      };
     }
-
-    const answer = visuals.length;
-
-    return {
-      question:
-        'Look at the shapes shown. How many shapes are there altogether?',
-      answer,
-      explanation: `Count each shown shape once. There are ${answer} shapes altogether.`,
-      options: parsedQuestion.options ?? [],
-      answerAssetId: parsedQuestion.answerAssetId,
-      visualSelections: parsedQuestion.visualSelections,
-    };
+    return parsedQuestion;
   }
 
   /**
@@ -895,6 +914,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     return (
       normalizedTopic === 'COUNTING_AND_QUANTITY' ||
       normalizedTopic === 'EARLY_OPERATIONS' ||
+      normalizedTopic === 'COMPARING_AND_MEASURING' ||
       normalizedTopic === 'PATTERN_RECOGNITION' ||
       normalizedTopic.includes('PATTERN')
     );
@@ -919,25 +939,95 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const topicRules =
       topicUpper === 'COUNTING_AND_QUANTITY'
         ? `Use these approved SVG assets as the visible objects the student counts.
-The question MUST refer to objects that are shown, such as circles, squares, or triangles.
-Do NOT invent unseen scenes, animals, beaches, forests, mountains, or number lines.
-    For counting topics, the JSON "visualSelections" array must not be empty.
-    Return one visualSelections entry for each displayed image in left-to-right, top-to-bottom order, so repeated shapes are preserved.`
+The question text must ask generically, e.g. "How many [objects] are shown altogether?" — do NOT embed specific counts in the question text.
+Do NOT invent unseen scenes or use assets not in the catalog below.
+
+CRITICAL JSON RULES:
+- The "answer" value MUST equal the EXACT number of entries in "visualSelections" (one entry = one object shown on screen).
+- To show multiple copies of the same object, repeat its assetId. Example — to show 3 kiwi birds:
+  [{"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"},
+   {"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"},
+   {"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"}]
+- Use ONLY role "inline-symbol" for every counting visual entry. Never use "answer-option" or "prompt-illustration".
+- For easy difficulty: include exactly 2–5 total entries; for medium: 5–8; for hard: 8–12.
+- "visualSelections" MUST NOT be empty.`
         : topicUpper === 'EARLY_OPERATIONS'
-        ? `Use these approved SVG assets as the visible groups that are joined or taken away.
-The question MUST talk about the shown groups, not a made-up story scene.
-For early operations topics, the JSON "visualSelections" array must not be empty.
-Return one visualSelections entry for each displayed image in order so the frontend can show the exact groups.`
-        : `Use only these approved SVG assets when a visual helps the student recognise or continue a pattern.
-For pattern topics, you MUST choose between 2 and 4 visuals from this list and the JSON "visualSelections" array must not be empty.
+        ? `Use these approved SVG assets as the visible objects the student joins or takes away.
+The question MUST describe what is shown — do NOT invent a scene that contradicts the visuals.
+
+CRITICAL JSON RULES:
+- Each entry in "visualSelections" represents ONE visible object on screen.
+- To show a group, repeat the assetId. Example — joining 3 apples and 2 bananas:
+  [{"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.banana.yellow", "role": "inline-symbol"},
+   {"assetId": "counting.banana.yellow", "role": "inline-symbol"}]
+- For joining (addition): total "visualSelections" entries MUST equal the answer.
+- For taking-away (subtraction): show only the starting group; "answer" is the count remaining after removal.
+- Use ONLY role "inline-symbol" for every entry. Never use "answer-option" or "prompt-illustration".
+- Include 2–8 total entries for easy/medium; up to 12 for hard.
+- "visualSelections" MUST NOT be empty.`
+        : topicUpper === 'COMPARING_AND_MEASURING'
+        ? `Use these approved SVG assets to show the objects being compared or measured.
+
+QUESTION TYPES you can generate:
+1. Compare two groups: Show Group A (repeat one assetId N times) then Group B (repeat another assetId M times).
+   - The question should ask which group has more/fewer, or how many more/less.
+   - Example — 3 apples vs 5 oranges:
+     [{"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"}]
+   - Answer: the count of the larger group, or the difference between the two groups.
+2. Informal measurement: Show a row of unit objects (measurement.paperclip.unit, measurement.cube.unit, etc.).
+   - Answer: the count of units shown.
+
+CRITICAL JSON RULES:
+- Each entry in "visualSelections" represents ONE visible object on screen.
+- To show a group, repeat the assetId.
+- Use ONLY role "inline-symbol" for every entry. Never use "answer-option" or "prompt-illustration".
+- Show between 4 and 12 total entries across both groups.
+- "visualSelections" MUST NOT be empty.
+- Do NOT invent assetIds (like "kiwi-feathers", "crayon-box", "skis-01"). Use ONLY catalog assets below.
+
+CRITICAL QUESTION TEXT RULES:
+- The question text MUST describe the objects shown, e.g. "There are 3 apples and 5 oranges shown. Which group has more?"
+- Do NOT reference objects or scenes that are not in the catalog.`
+        : topicUpper === 'EARLY_PATTERNING'
+        ? `Use these approved SVG assets to show the repeating pattern sequence.
+Each entry in "visualSelections" represents ONE shape in the sequence, listed in display order.
+
+CRITICAL JSON RULES:
+- Repeat assetIds to build the pattern. Example — an AB pattern of 4 elements:
+  [{"assetId": "pattern.circle.full", "role": "inline-symbol"},
+   {"assetId": "pattern.square.full", "role": "inline-symbol"},
+   {"assetId": "pattern.circle.full", "role": "inline-symbol"},
+   {"assetId": "pattern.square.full", "role": "inline-symbol"}]
+- Use role "inline-symbol" for every element shown in the sequence.
+- Show between 4 and 6 elements so the student can see the pattern clearly (do NOT stop at 2).
+- The "answer" should be the visual description of the shape that comes next (e.g. "full circle", "empty square").
+- "visualSelections" MUST NOT be empty.
+
+CRITICAL QUESTION TEXT RULES:
+- Keep the question text SHORT and GENERIC: e.g. "Look at the pattern of shapes. What shape comes next?" — do NOT list or spell out the individual shapes in the question text.
+- The student sees the SVG shapes directly; the question only needs to ask what comes next.
+- Do NOT invent unrelated scenes, stories, or objects. Never say "on the beach", "snow-covered mountains", "rugby balls", or any non-geometric context.
+- The shapes ARE geometric (circle, square, triangle). If you must name a shape, use ONLY its correct geometric name matching the assetId (e.g. pattern.circle.full → "full circle", not "rugby ball").`
+        : `Use only these approved SVG assets to show the pattern sequence.
+Each "visualSelections" entry represents ONE shape in the sequence. Repeat assetIds to build the repeating pattern.
+You MUST include between 4 and 8 entries so the pattern is visible. The JSON "visualSelections" array must not be empty.
+Use role "inline-symbol" for sequence shapes.
 Return the visualSelections in display order.`;
 
     return `\n\nAPPROVED VISUAL ASSET CATALOG:
 ${topicRules}
 Do not invent asset IDs, do not output raw SVG, and do not choose assets outside this list.
-The student-facing question text must stay plain and generic, such as "Look at the shapes shown. How many shapes are there altogether?"
-Do NOT mention asset IDs or visual labels such as "empty circle" or "full square" in the question text.
-Choose at most 12 visual selections for counting and early operations, and at most 4 for patterns.
+Do NOT embed asset IDs (e.g. "counting.apple.red") in the question text. Follow the per-topic count limits above.
 
 AVAILABLE VISUALS:
 ${catalogEntries}`;

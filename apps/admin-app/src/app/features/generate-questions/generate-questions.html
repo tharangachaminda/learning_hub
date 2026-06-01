@@ -118,8 +118,8 @@
                 <div class="q-visual-chip">
                   <img
                     [src]="visual.svgPath"
-                    [style.width]="visual.render?.width ? visual.render.width + 'px' : visual.render?.height ? 'auto' : null"
-                    [style.height]="visual.render?.height ? visual.render.height + 'px' : visual.render?.width ? 'auto' : null"
+                    [style.width]="visual.render && visual.render.width !== null ? visual.render.width + 'px' : (visual.render && visual.render.height !== null ? 'auto' : null)"
+                    [style.height]="visual.render && visual.render.height !== null ? visual.render.height + 'px' : (visual.render && visual.render.width !== null ? 'auto' : null)"
                     alt=""
                     loading="lazy"
                   />

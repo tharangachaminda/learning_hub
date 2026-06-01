@@ -48,7 +48,7 @@ describe('OllamaService', () => {
       // Mock successful Ollama response
       mockAxios.get.mockResolvedValue({
         data: {
-          models: [{ name: 'falcon3:latest' }, { name: 'qwen3:14b' }],
+          models: [{ name: 'falcon3:latest' }, { name: 'falcon3:latest' }],
         },
       });
 

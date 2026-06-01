@@ -78,7 +78,7 @@ export enum VectorSyncStatus {
  */
 @Schema({ _id: false })
 export class QuestionMetadata {
-  /** LLM model identifier used for generation (e.g. 'falcon3:latest') */
+  /** LLM model identifier used for generation (e.g. 'qwen3:14b') */
   @Prop({ type: String })
   generatedBy: string;
 
