@@ -156,6 +156,18 @@ describe('request schemas', () => {
     expect(parsed.grade).toBe(0);
   });
 
+  it('should allow multiple-choice generation requests', () => {
+    const parsed = QuestionGenerationRequestSchema.parse({
+      grade: 1,
+      topic: 'EARLY_PATTERNING',
+      difficulty: 'easy',
+      format: 'multiple-choice',
+      country: 'NZ',
+    });
+
+    expect(parsed.format).toBe('multiple-choice');
+  });
+
   it('should allow Year 0 explanation requests', () => {
     const parsed = ExplanationRequestSchema.parse({
       question: 'What is $2 + 1$?',
@@ -200,5 +212,61 @@ describe('parseLLMResponse', () => {
     const result = parseLLMResponse(raw);
     expect(result).not.toBeNull();
     expect(result?.question).toContain('frac');
+  });
+
+  it('should parse ordered visualSelections and normalize malformed role strings', () => {
+    const raw = JSON.stringify({
+      question: 'Count the full squares shown.',
+      answer: 3,
+      explanation: 'Count each full square once.',
+      visualSelections: [
+        {
+          assetId: 'pattern.square.full',
+          role: 'inline-symbol|prompt-illustration',
+        },
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+        { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+      ],
+    });
+
+    const result = parseLLMResponse(raw);
+
+    expect(result).not.toBeNull();
+    expect(result?.visualSelections).toHaveLength(3);
+    expect(result?.visualSelections[0]).toEqual({
+      assetId: 'pattern.square.full',
+      role: 'inline-symbol',
+    });
+  });
+
+  it('should parse structured multiple-choice options with answerAssetId', () => {
+    const raw = JSON.stringify({
+      question: 'Look at the shapes shown. What comes next?',
+      answer: 'full circle',
+      answerAssetId: 'pattern.circle.full',
+      explanation: 'The pattern alternates empty and full circles.',
+      options: [
+        { value: 'empty circle', assetId: 'pattern.circle.empty' },
+        { value: 'full circle', assetId: 'pattern.circle.full' },
+        { value: 'empty square', assetId: 'pattern.square.empty' },
+        { value: 'full square', assetId: 'pattern.square.full' },
+      ],
+      visualSelections: [
+        { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+        { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+      ],
+    });
+
+    const result = parseLLMResponse(raw);
+
+    expect(result).not.toBeNull();
+    expect(result?.answer).toBe('full circle');
+    expect(result?.answerAssetId).toBe('pattern.circle.full');
+    expect(result?.options).toHaveLength(4);
+    expect(result?.options[1]).toEqual({
+      value: 'full circle',
+      assetId: 'pattern.circle.full',
+      svgPath: undefined,
+    });
   });
 });

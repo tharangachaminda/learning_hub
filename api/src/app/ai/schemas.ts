@@ -27,6 +27,7 @@ export const QuestionGenerationRequestSchema = z.object({
   grade: z.number().int().min(0).max(12),
   topic: z.string().min(1),
   difficulty: z.enum(['easy', 'medium', 'hard']),
+  format: z.enum(['open-ended', 'multiple-choice']).default('open-ended'),
   country: CountrySchema.default('NZ'),
   context: z.string().optional(),
   contextPlan: z
@@ -56,6 +57,150 @@ export type QuestionContextPlan = NonNullable<
   QuestionGenerationRequest['contextPlan']
 >;
 
+export const VisualAssetRoleSchema = z.enum([
+  'inline-symbol',
+  'prompt-illustration',
+  'answer-option',
+  'explanation-aid',
+]);
+
+export type VisualAssetRole = z.infer<typeof VisualAssetRoleSchema>;
+
+export const VisualAssetPlacementSchema = z.enum([
+  'before-question',
+  'after-question',
+  'inline',
+  'explanation',
+]);
+
+export type VisualAssetPlacement = z.infer<typeof VisualAssetPlacementSchema>;
+
+export const LLMSelectedVisualSchema = z.object({
+  assetId: z.string().min(1),
+  role: VisualAssetRoleSchema,
+  placement: VisualAssetPlacementSchema.optional(),
+  render: z
+    .object({
+      width: z.number().positive().optional(),
+      height: z.number().positive().optional(),
+    })
+    .optional(),
+  layout: z
+    .object({
+      row: z.number().int().positive().optional(),
+      column: z.number().int().positive().optional(),
+    })
+    .optional(),
+});
+
+export type LLMSelectedVisual = z.infer<typeof LLMSelectedVisualSchema>;
+
+export type QuestionVisualRender = {
+  width?: number;
+  height?: number;
+};
+
+export type QuestionVisualLayout = {
+  row?: number;
+  column?: number;
+};
+
+export type QuestionVisualContainerLayout = {
+  container?: 'grid';
+  rows?: number;
+  columns?: number;
+};
+
+export const QuestionVisualContainerLayoutSchema = z
+  .object({
+    container: z.literal('grid').optional(),
+    rows: z.number().int().positive().optional(),
+    columns: z.number().int().positive().optional(),
+  })
+  .optional();
+
+export type QuestionVisual = {
+  assetId: string;
+  role: VisualAssetRole;
+  svgPath?: string;
+  templateId?: string;
+  placement?: VisualAssetPlacement;
+  render?: QuestionVisualRender;
+  layout?: QuestionVisualLayout;
+};
+
+export const QuestionVisualSchema = z
+  .object({
+    assetId: z.string().min(1),
+    role: VisualAssetRoleSchema,
+    svgPath: z.string().min(1).optional(),
+    templateId: z.string().min(1).optional(),
+    placement: VisualAssetPlacementSchema.optional(),
+    render: z
+      .object({
+        width: z.number().positive().optional(),
+        height: z.number().positive().optional(),
+      })
+      .optional(),
+    layout: z
+      .object({
+        row: z.number().int().positive().optional(),
+        column: z.number().int().positive().optional(),
+      })
+      .optional(),
+  })
+  .refine((value) => value.svgPath || value.templateId, {
+    message: 'Question visuals require either svgPath or templateId',
+    path: ['svgPath'],
+  });
+
+export const VisualAssetRegistryEntrySchema = z
+  .object({
+    assetId: z.string().min(1),
+    displayName: z.string().min(1),
+    altText: z.string().min(1),
+    semanticText: z.string().min(1),
+    subjects: z.array(z.string().min(1)).min(1),
+    categories: z.array(z.string().min(1)).min(1),
+    supportedTopics: z.array(z.string().min(1)).default([]),
+    yearLevels: z.array(z.number().int().min(0).max(12)).default([]),
+    keywords: z.array(z.string().min(1)).default([]),
+    roles: z.array(VisualAssetRoleSchema).min(1),
+    format: z.literal('svg'),
+    source: z
+      .object({
+        kind: z.enum(['file', 'template']),
+        svgPath: z.string().min(1).optional(),
+        templateId: z.string().min(1).optional(),
+        legacySymbol: z.string().min(1).optional(),
+        templateData: z
+          .record(z.string(), z.union([z.string(), z.number()]))
+          .optional(),
+      })
+      .refine((source) => source.svgPath || source.templateId, {
+        message: 'Visual asset sources require either svgPath or templateId',
+        path: ['svgPath'],
+      }),
+  })
+  .strict();
+
+export type VisualAssetRegistryEntry = z.infer<
+  typeof VisualAssetRegistryEntrySchema
+>;
+
+export const VisualAssetRegistryManifestSchema = z.object({
+  metadata: z.object({
+    version: z.string().min(1),
+    source: z.string().min(1),
+    generatedAt: z.string().min(1).optional(),
+  }),
+  assets: z.array(VisualAssetRegistryEntrySchema),
+});
+
+export type VisualAssetRegistryManifest = z.infer<
+  typeof VisualAssetRegistryManifestSchema
+>;
+
 export const CONTEXT_BUCKET_IDS = [
   'nature-wildlife',
   'beaches-ocean',
@@ -75,8 +220,23 @@ export const CONTEXT_BUCKET_IDS = [
  */
 export const LLMQuestionResponseSchema = z.object({
   question: z.string().min(5),
-  answer: z.coerce.number(),
+  answer: z.union([z.coerce.number(), z.string().min(1)]),
+  answerAssetId: z.string().min(1).optional(),
   explanation: z.string().min(10),
+  options: z
+    .array(
+      z.union([
+        z.string().min(1),
+        z.object({
+          value: z.string().min(1),
+          assetId: z.string().min(1).optional(),
+          svgPath: z.string().min(1).optional(),
+        }),
+      ])
+    )
+    .default([]),
+  visualSelections: z.array(LLMSelectedVisualSchema).default([]),
+  visuals: z.array(LLMSelectedVisualSchema).default([]),
   context_elements: z
     .object({
       names: z.array(z.string()).optional(),
@@ -93,8 +253,21 @@ export type LLMQuestionResponse = z.infer<typeof LLMQuestionResponseSchema>;
  */
 export const GeneratedQuestionSchema = z.object({
   question: z.string(),
-  answer: z.number(),
+  answer: z.union([z.number(), z.string()]),
+  answerAssetId: z.string().min(1).optional(),
   explanation: z.string(),
+  options: z
+    .array(
+      z.object({
+        value: z.string().min(1),
+        assetId: z.string().min(1).optional(),
+        svgPath: z.string().min(1).optional(),
+      })
+    )
+    .default([]),
+  visualSelections: z.array(LLMSelectedVisualSchema).default([]),
+  visuals: z.array(QuestionVisualSchema).default([]),
+  visualLayout: QuestionVisualContainerLayoutSchema,
   metadata: z.object({
     grade: z.number(),
     topic: z.string(),
@@ -190,6 +363,120 @@ export const HealthCheckSchema = z.object({
 });
 
 export type HealthCheck = z.infer<typeof HealthCheckSchema>;
+
+const VISUAL_ASSET_ROLES = VisualAssetRoleSchema.options;
+const VISUAL_ASSET_PLACEMENTS = VisualAssetPlacementSchema.options;
+
+function extractFirstKnownValue(
+  rawValue: unknown,
+  knownValues: readonly string[]
+): string | undefined {
+  if (typeof rawValue !== 'string') {
+    return undefined;
+  }
+
+  const candidates = rawValue
+    .split(/[|,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return candidates.find((candidate) => knownValues.includes(candidate));
+}
+
+function normalizeLLMSelectedVisuals(value: unknown): LLMSelectedVisual[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const rawEntry = entry as Record<string, unknown>;
+    const assetId =
+      typeof rawEntry.assetId === 'string' ? rawEntry.assetId.trim() : '';
+
+    if (!assetId) {
+      return [];
+    }
+
+    const role =
+      extractFirstKnownValue(rawEntry.role, VISUAL_ASSET_ROLES) ??
+      'prompt-illustration';
+    const placement = extractFirstKnownValue(
+      rawEntry.placement,
+      VISUAL_ASSET_PLACEMENTS
+    );
+
+    return [
+      LLMSelectedVisualSchema.parse({
+        assetId,
+        role,
+        placement,
+      }),
+    ];
+  });
+}
+
+function normalizeParsedLLMQuestionResponse(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== 'object') {
+    return parsed;
+  }
+
+  const rawResponse = parsed as Record<string, unknown>;
+  const visualSelections = normalizeLLMSelectedVisuals(
+    rawResponse.visualSelections ?? rawResponse.visuals
+  );
+  const rawOptions = Array.isArray(rawResponse.options)
+    ? rawResponse.options
+    : [];
+  const options: Array<
+    string | { value: string; assetId?: string; svgPath?: string }
+  > = [];
+
+  for (const option of rawOptions) {
+    if (typeof option === 'string') {
+      const normalized = option.trim();
+
+      if (normalized.length > 0) {
+        options.push(normalized);
+      }
+
+      continue;
+    }
+
+    if (!option || typeof option !== 'object') {
+      continue;
+    }
+
+    const value =
+      typeof option.value === 'string' ? option.value.trim() : undefined;
+
+    if (!value) {
+      continue;
+    }
+
+    options.push({
+      value,
+      assetId:
+        typeof option.assetId === 'string' && option.assetId.trim().length > 0
+          ? option.assetId.trim()
+          : undefined,
+      svgPath:
+        typeof option.svgPath === 'string' && option.svgPath.trim().length > 0
+          ? option.svgPath.trim()
+          : undefined,
+    });
+  }
+
+  return {
+    ...rawResponse,
+    options,
+    visualSelections,
+    visuals: visualSelections,
+  };
+}
 
 /**
  * Country-specific context data for prompts
@@ -616,12 +903,16 @@ export function parseLLMResponse(
       const sanitized = jsonStr.replace(/(?<!\\)\\([a-zA-Z]{2,})/g, '\\\\$1');
 
       try {
-        const parsed = JSON.parse(sanitized);
+        const parsed = normalizeParsedLLMQuestionResponse(
+          JSON.parse(sanitized)
+        );
         return LLMQuestionResponseSchema.parse(parsed);
       } catch {
         // Sanitized parse failed — try original as last resort
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed = normalizeParsedLLMQuestionResponse(
+            JSON.parse(jsonStr)
+          );
           return LLMQuestionResponseSchema.parse(parsed);
         } catch {
           // Still failed — try field-level regex extraction from JSON-like text
@@ -643,6 +934,23 @@ export function parseLLMResponse(
         question: jsonQuestion[1].trim(),
         answer: parseInt(jsonAnswer[1], 10),
         explanation: jsonExplanation?.[1]?.trim() || 'Solve step by step.',
+        visualSelections: normalizeLLMSelectedVisuals(
+          (() => {
+            const visualMatch = rawResponse.match(
+              /"(?:visualSelections|visuals)"\s*:\s*(\[[\s\S]*?\])(?=\s*[,}])/
+            );
+
+            if (!visualMatch) {
+              return [];
+            }
+
+            try {
+              return JSON.parse(visualMatch[1]);
+            } catch {
+              return [];
+            }
+          })()
+        ),
       };
       try {
         return LLMQuestionResponseSchema.parse(response);

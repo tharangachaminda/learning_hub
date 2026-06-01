@@ -178,6 +178,35 @@ describe('QuestionCardComponent', () => {
       expect(katexEl).toBeTruthy();
       expect(katexEl.textContent).toContain('What is 5 + 3?');
     });
+
+    it('should render question visuals below the question text when present', () => {
+      const visualQuestion = {
+        ...mockQuestion,
+        visuals: [
+          {
+            assetId: 'pattern.circle.full',
+            role: 'prompt-illustration' as const,
+            svgPath: '/assets/question-visuals/patterns/full-circle.svg',
+            placement: 'before-question' as const,
+          },
+        ],
+      };
+
+      fixture.componentRef.setInput('question', visualQuestion);
+      fixture.componentRef.setInput('questionNumber', 1);
+      fixture.componentRef.setInput('totalQuestions', 10);
+      fixture.detectChanges();
+
+      const visuals = fixture.nativeElement.querySelector(
+        '[data-testid="question-visuals"]'
+      ) as HTMLElement;
+      const image = visuals.querySelector('img') as HTMLImageElement;
+
+      expect(visuals).toBeTruthy();
+      expect(image).toBeTruthy();
+      expect(image.getAttribute('src')).toContain('full-circle.svg');
+      expect(visuals.textContent?.trim()).toBe('');
+    });
   });
 
   describe('Card Styling (AC-2)', () => {

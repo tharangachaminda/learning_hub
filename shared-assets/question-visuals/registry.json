@@ -1,0 +1,824 @@
+{
+  "metadata": {
+    "version": "1.3.0",
+    "source": "question-visual-registry",
+    "generatedAt": "2026-05-23T00:00:00.000Z"
+  },
+  "assets": [
+    {
+      "assetId": "pattern.circle.empty",
+      "displayName": "empty circle",
+      "altText": "empty circle",
+      "semanticText": "empty circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["circle", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.full",
+      "displayName": "full circle",
+      "altText": "full circle",
+      "semanticText": "full circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["circle", "filled", "solid", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.half-left",
+      "displayName": "left half circle",
+      "altText": "circle filled on the left half",
+      "semanticText": "left half circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["circle", "half", "left", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-left-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.circle.half-right",
+      "displayName": "right half circle",
+      "altText": "circle filled on the right half",
+      "semanticText": "right half circle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "circle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "PATTERNS_AND_RELATIONSHIPS",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["circle", "half", "right", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-right-circle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.empty",
+      "displayName": "empty square",
+      "altText": "empty square",
+      "semanticText": "empty square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["square", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.full",
+      "displayName": "full square",
+      "altText": "full square",
+      "semanticText": "full square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING",
+        "PATTERNS_AND_EQUALITY"
+      ],
+      "yearLevels": [0, 1, 3, 4, 5],
+      "keywords": ["square", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.half-left",
+      "displayName": "left half square",
+      "altText": "square filled on the left half",
+      "semanticText": "left half square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["square", "half", "left", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-left-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.square.half-right",
+      "displayName": "right half square",
+      "altText": "square filled on the right half",
+      "semanticText": "right half square pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "square"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["square", "half", "right", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/half-right-square.svg"
+      }
+    },
+    {
+      "assetId": "pattern.triangle.empty",
+      "displayName": "empty triangle",
+      "altText": "empty triangle",
+      "semanticText": "empty triangle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "triangle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING"
+      ],
+      "yearLevels": [0, 1, 3, 4],
+      "keywords": ["triangle", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-triangle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.triangle.full",
+      "displayName": "full triangle",
+      "altText": "full triangle",
+      "semanticText": "full triangle pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "triangle"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "EARLY_PATTERNING"
+      ],
+      "yearLevels": [0, 1, 3, 4],
+      "keywords": ["triangle", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-triangle.svg"
+      }
+    },
+    {
+      "assetId": "pattern.diamond.empty",
+      "displayName": "empty diamond",
+      "altText": "empty diamond",
+      "semanticText": "empty diamond pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "diamond"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["diamond", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-diamond.svg"
+      }
+    },
+    {
+      "assetId": "pattern.diamond.full",
+      "displayName": "full diamond",
+      "altText": "full diamond",
+      "semanticText": "full diamond pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "diamond"],
+      "supportedTopics": [
+        "PATTERN_RECOGNITION",
+        "SHAPE_AND_PATTERNS",
+        "SHAPES_AND_POSITION",
+        "ALGEBRAIC_THINKING"
+      ],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["diamond", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-diamond.svg"
+      }
+    },
+    {
+      "assetId": "pattern.star.empty",
+      "displayName": "empty star",
+      "altText": "empty star",
+      "semanticText": "empty star pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "star"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["star", "empty", "outline", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/empty-star.svg"
+      }
+    },
+    {
+      "assetId": "pattern.star.full",
+      "displayName": "full star",
+      "altText": "full star",
+      "semanticText": "full star pattern shape",
+      "subjects": ["mathematics"],
+      "categories": ["pattern-recognition", "star"],
+      "supportedTopics": ["PATTERN_RECOGNITION", "SHAPE_AND_PATTERNS"],
+      "yearLevels": [3, 4, 5],
+      "keywords": ["star", "filled", "pattern"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/patterns/full-star.svg"
+      }
+    },
+    {
+      "assetId": "counting.apple.red",
+      "displayName": "apple",
+      "altText": "apple",
+      "semanticText": "red apple counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "fruit", "apple"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["apple", "fruit", "counting", "red"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/apple.svg"
+      }
+    },
+    {
+      "assetId": "counting.banana.yellow",
+      "displayName": "banana",
+      "altText": "banana",
+      "semanticText": "banana counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "fruit", "banana"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["banana", "fruit", "counting", "yellow"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/banana.svg"
+      }
+    },
+    {
+      "assetId": "counting.seashell.fan",
+      "displayName": "sea shell",
+      "altText": "sea shell",
+      "semanticText": "sea shell counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "nature", "sea-shell"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["sea shell", "shell", "beach", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/sea-shell.svg"
+      }
+    },
+    {
+      "assetId": "counting.orange.fruit",
+      "displayName": "orange",
+      "altText": "orange",
+      "semanticText": "orange fruit counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "fruit", "orange"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["orange", "fruit", "counting", "round"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/orange.svg"
+      }
+    },
+    {
+      "assetId": "counting.kiwi-bird.standing",
+      "displayName": "kiwi bird",
+      "altText": "kiwi bird",
+      "semanticText": "kiwi bird counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "animal", "kiwi-bird"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["kiwi", "bird", "animal", "counting", "nz"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/kiwi-bird.svg"
+      }
+    },
+    {
+      "assetId": "counting.rugby-ball.classic",
+      "displayName": "rugby ball",
+      "altText": "rugby ball",
+      "semanticText": "rugby ball counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "sports", "rugby-ball"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["rugby", "ball", "sports", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/rugby-ball.svg"
+      }
+    },
+    {
+      "assetId": "counting.tennis-ball.classic",
+      "displayName": "tennis ball",
+      "altText": "tennis ball",
+      "semanticText": "tennis ball counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "sports", "tennis-ball"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["tennis", "ball", "sports", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/tennis-ball.svg"
+      }
+    },
+    {
+      "assetId": "counting.cricket-bat.wooden",
+      "displayName": "cricket bat",
+      "altText": "cricket bat",
+      "semanticText": "cricket bat counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "sports", "cricket-bat"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["cricket", "bat", "sports", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/cricket-bat.svg"
+      }
+    },
+    {
+      "assetId": "counting.flower.daisy",
+      "displayName": "daisy flower",
+      "altText": "daisy flower",
+      "semanticText": "daisy flower counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "nature", "flower", "daisy"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["flower", "daisy", "nature", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/flower-daisy.svg"
+      }
+    },
+    {
+      "assetId": "counting.flower.tulip",
+      "displayName": "tulip flower",
+      "altText": "tulip flower",
+      "semanticText": "tulip flower counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "nature", "flower", "tulip"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["flower", "tulip", "nature", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/flower-tulip.svg"
+      }
+    },
+    {
+      "assetId": "counting.flower.sunflower",
+      "displayName": "sunflower",
+      "altText": "sunflower",
+      "semanticText": "sunflower counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "nature", "flower", "sunflower"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["flower", "sunflower", "nature", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/flower-sunflower.svg"
+      }
+    },
+    {
+      "assetId": "counting.pear.green",
+      "displayName": "pear",
+      "altText": "pear",
+      "semanticText": "pear counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "fruit", "pear"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["pear", "fruit", "green", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/pear.svg"
+      }
+    },
+    {
+      "assetId": "counting.carrot.orange",
+      "displayName": "carrot",
+      "altText": "carrot",
+      "semanticText": "carrot counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "vegetable", "carrot"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["carrot", "vegetable", "orange", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/carrot.svg"
+      }
+    },
+    {
+      "assetId": "counting.leaf.green",
+      "displayName": "leaf",
+      "altText": "leaf",
+      "semanticText": "leaf counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "nature", "leaf"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["leaf", "nature", "green", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/leaf.svg"
+      }
+    },
+    {
+      "assetId": "counting.fish.blue",
+      "displayName": "fish",
+      "altText": "fish",
+      "semanticText": "fish counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "animal", "fish"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["fish", "animal", "blue", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/fish.svg"
+      }
+    },
+    {
+      "assetId": "counting.cupcake.pink",
+      "displayName": "cupcake",
+      "altText": "cupcake",
+      "semanticText": "cupcake counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "food", "cupcake"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["cupcake", "food", "pink", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/cupcake.svg"
+      }
+    },
+    {
+      "assetId": "counting.kite.diamond",
+      "displayName": "kite",
+      "altText": "kite",
+      "semanticText": "kite counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "play", "kite"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["kite", "play", "counting", "purple"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/kite.svg"
+      }
+    },
+    {
+      "assetId": "counting.pencil.yellow",
+      "displayName": "pencil",
+      "altText": "pencil",
+      "semanticText": "pencil counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "school", "pencil"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["pencil", "school", "yellow", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/pencil.svg"
+      }
+    },
+    {
+      "assetId": "counting.book.blue",
+      "displayName": "book",
+      "altText": "book",
+      "semanticText": "book counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "school", "book"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["book", "school", "blue", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/book.svg"
+      }
+    },
+    {
+      "assetId": "counting.gumboot.yellow",
+      "displayName": "gumboot",
+      "altText": "gumboot",
+      "semanticText": "gumboot counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "clothing", "gumboot"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["gumboot", "boot", "yellow", "counting", "nz"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/gumboot.svg"
+      }
+    },
+    {
+      "assetId": "counting.ladybug.red",
+      "displayName": "ladybug",
+      "altText": "ladybug",
+      "semanticText": "ladybug counting object",
+      "subjects": ["mathematics"],
+      "categories": ["counting-objects", "animal", "ladybug"],
+      "supportedTopics": [
+        "COUNTING_AND_QUANTITY",
+        "EARLY_OPERATIONS",
+        "COMPARING_AND_MEASURING"
+      ],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["ladybug", "insect", "red", "counting"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/counting/ladybug.svg"
+      }
+    },
+    {
+      "assetId": "measurement.cube.unit",
+      "displayName": "measurement cube",
+      "altText": "measurement cube",
+      "semanticText": "cube unit for early measurement questions",
+      "subjects": ["mathematics"],
+      "categories": ["measurement-units", "cube", "block"],
+      "supportedTopics": ["COMPARING_AND_MEASURING"],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["cube", "block", "unit", "measurement"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/measurement/cube-unit.svg"
+      }
+    },
+    {
+      "assetId": "measurement.scoop.unit",
+      "displayName": "measurement scoop",
+      "altText": "measurement scoop",
+      "semanticText": "scoop unit for early measurement questions",
+      "subjects": ["mathematics"],
+      "categories": ["measurement-units", "scoop"],
+      "supportedTopics": ["COMPARING_AND_MEASURING"],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["scoop", "unit", "measurement"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/measurement/scoop-unit.svg"
+      }
+    },
+    {
+      "assetId": "measurement.paperclip.unit",
+      "displayName": "paper clip",
+      "altText": "paper clip",
+      "semanticText": "paper clip unit for early measurement questions",
+      "subjects": ["mathematics"],
+      "categories": ["measurement-units", "paperclip"],
+      "supportedTopics": ["COMPARING_AND_MEASURING"],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["paper clip", "paperclip", "unit", "measurement"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/measurement/paperclip-unit.svg"
+      }
+    },
+    {
+      "assetId": "measurement.cup.unit",
+      "displayName": "measuring cup",
+      "altText": "measuring cup",
+      "semanticText": "cup unit for early measurement questions",
+      "subjects": ["mathematics"],
+      "categories": ["measurement-units", "cup"],
+      "supportedTopics": ["COMPARING_AND_MEASURING"],
+      "yearLevels": [0, 1, 2],
+      "keywords": ["cup", "unit", "measurement", "water"],
+      "roles": ["inline-symbol", "prompt-illustration"],
+      "format": "svg",
+      "source": {
+        "kind": "file",
+        "svgPath": "/assets/question-visuals/measurement/cup-unit.svg"
+      }
+    }
+  ]
+}

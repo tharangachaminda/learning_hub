@@ -10,6 +10,7 @@ import {
   faClipboardCheck,
   faClock,
   faFileCirclePlus,
+  faLayerGroup,
   faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -41,6 +42,7 @@ export class DashboardComponent implements OnInit {
   protected readonly generateIcon = faFileCirclePlus;
   protected readonly reviewIcon = faClipboardCheck;
   protected readonly exportIcon = faBookOpen;
+  protected readonly visualCatalogIcon = faLayerGroup;
 
   /** Number of grade×topic combos with adequate coverage */
   adequateCoverage = 0;

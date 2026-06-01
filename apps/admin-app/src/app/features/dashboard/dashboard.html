@@ -187,6 +187,24 @@
           >
         </div>
 
+        <div class="action-card">
+          <div class="action-card-title">
+            <span class="action-icon"
+              ><fa-icon [icon]="visualCatalogIcon"></fa-icon
+            ></span>
+            <h4>Visual Catalog</h4>
+          </div>
+          <p>
+            Preview approved SVG shapes, confirm half-fill rendering, and
+            inspect registry metadata used by question generation.
+          </p>
+          <a
+            routerLink="/visual-catalog"
+            class="action-btn admin-btn admin-btn-primary"
+            >Open Visual Catalog</a
+          >
+        </div>
+
         @if (isAdmin) {
         <div class="action-card">
           <div class="action-card-title">

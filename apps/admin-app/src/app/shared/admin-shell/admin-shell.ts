@@ -23,6 +23,7 @@ import {
   faChevronRight,
   faFileCircleCheck,
   faGaugeHigh,
+  faLayerGroup,
   faLightbulb,
   faRobot,
   faUsersGear,
@@ -92,6 +93,12 @@ export class AdminShellComponent implements OnDestroy {
       description: 'Approve, reject, and refine drafts',
       route: '/review',
       icon: faFileCircleCheck,
+    },
+    {
+      label: 'Visual Catalog',
+      description: 'Preview approved SVG assets and metadata',
+      route: '/visual-catalog',
+      icon: faLayerGroup,
     },
     {
       label: 'Lessons Learned',

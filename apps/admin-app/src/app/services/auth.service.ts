@@ -112,7 +112,8 @@ export interface QuestionItem {
   topic: string;
   category: string;
   format: string;
-  options: string[];
+  options: Array<string | QuestionAnswerOption>;
+  answerAssetId?: string;
   status: string;
   stepByStepSolution: string[];
   metadata: {
@@ -133,6 +134,9 @@ export interface QuestionItem {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  visualSelections?: QuestionVisualSelection[];
+  visuals?: QuestionVisual[];
+  visualLayout?: QuestionVisualContainerLayout;
   vectorSync?: {
     status: 'pending' | 'prepared' | 'stored' | 'failed';
     preparedAt?: string;
@@ -146,6 +150,56 @@ export interface QuestionItem {
   refinementHistory?: RefinementEntry[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuestionVisual {
+  assetId: string;
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  svgPath?: string;
+  templateId?: string;
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+export interface QuestionVisualContainerLayout {
+  container?: 'grid';
+  rows?: number;
+  columns?: number;
+}
+
+export interface QuestionAnswerOption {
+  value: string;
+  assetId?: string;
+  svgPath?: string;
+}
+
+export interface QuestionVisualSelection {
+  assetId: string;
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
 }
 
 export interface RefinementEntry {
@@ -185,14 +239,14 @@ export interface RefinementPreview {
     answer: number | string;
     explanation: string;
     stepByStepSolution: string[];
-    options: string[];
+    options: Array<string | QuestionAnswerOption>;
   };
   refined: {
     questionText: string;
     answer: number | string;
     explanation: string;
     stepByStepSolution: string[];
-    options: string[];
+    options: Array<string | QuestionAnswerOption>;
   };
   instruction: string;
 }
@@ -493,7 +547,7 @@ export class AuthService {
       answer: number | string;
       explanation?: string;
       stepByStepSolution?: string[];
-      options?: string[];
+      options?: Array<string | QuestionAnswerOption>;
       instruction: string;
     }
   ): Observable<QuestionItem> {

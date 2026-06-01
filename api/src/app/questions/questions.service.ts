@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   Question,
+  QuestionAnswerOption,
   QuestionDocument,
   QuestionStatus,
   QuestionFormat,
@@ -17,6 +18,7 @@ import {
   getMathematicsTopicCriteria,
   MATHEMATICS_CURRICULUM,
 } from '../ai/mathematics-curriculum.criteria';
+import { VisualAssetRegistryService } from '../ai/visual-asset-registry.service';
 
 export interface GradeTopicCount {
   grade: number;
@@ -94,14 +96,22 @@ export interface PracticeQuestionsResult {
     _id: string;
     questionText: string;
     answer: number | string;
+    answerAssetId?: string;
     explanation: string;
     grade: number;
     topic: string;
     category: string;
     format: string;
-    options: string[];
+    options: Array<{
+      value: string;
+      assetId?: string;
+      svgPath?: string;
+    }>;
     stepByStepSolution: string[];
     difficulty: string;
+    visualSelections?: Question['visualSelections'];
+    visuals?: Question['visuals'];
+    visualLayout?: Question['visualLayout'];
   }>;
   total: number;
   requested: number;
@@ -178,7 +188,8 @@ export class QuestionsService {
     @InjectModel(Question.name)
     private readonly questionModel: Model<QuestionDocument>,
     @InjectModel(LessonLearned.name)
-    private readonly lessonLearnedModel: Model<LessonLearnedDocument>
+    private readonly lessonLearnedModel: Model<LessonLearnedDocument>,
+    private readonly visualAssetRegistryService: VisualAssetRegistryService
   ) {}
 
   /**
@@ -832,20 +843,25 @@ export class QuestionsService {
       ]);
     }
 
-    // Map to student-safe response (exclude internal review fields)
-    const mapped = questions.map((q) => ({
-      _id: (q._id || '').toString(),
-      questionText: q.questionText,
-      answer: q.answer,
-      explanation: q.explanation || '',
-      grade: q.grade,
-      topic: q.topic,
-      category: q.category || '',
-      format: q.format || 'open-ended',
-      options: q.options || [],
-      stepByStepSolution: q.stepByStepSolution || [],
-      difficulty: q.metadata?.difficulty || 'medium',
-    }));
+    const mapped = await Promise.all(
+      questions.map(async (q) => ({
+        _id: (q._id || '').toString(),
+        questionText: q.questionText,
+        answer: q.answer,
+        answerAssetId: q.answerAssetId,
+        explanation: q.explanation || '',
+        grade: q.grade,
+        topic: q.topic,
+        category: q.category || '',
+        format: q.format || 'open-ended',
+        options: await this.resolveQuestionOptions(q.options || []),
+        stepByStepSolution: q.stepByStepSolution || [],
+        difficulty: q.metadata?.difficulty || 'medium',
+        visualSelections: q.visualSelections || [],
+        visuals: q.visuals || [],
+        visualLayout: q.visualLayout,
+      }))
+    );
 
     return {
       questions: mapped,
@@ -1030,6 +1046,19 @@ export class QuestionsService {
     return question;
   }
 
+  async resetAllVectorSyncStatuses(): Promise<number> {
+    const result = await this.questionModel.updateMany(
+      {},
+      {
+        $set: {
+          vectorSync: this.buildPendingVectorSync(),
+        },
+      }
+    );
+
+    return result.modifiedCount ?? 0;
+  }
+
   /**
    * Updates a question's content after refinement.
    */
@@ -1038,9 +1067,10 @@ export class QuestionsService {
     refinedData: {
       questionText: string;
       answer: number | string;
+      answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
-      options?: string[];
+      options?: Array<string | QuestionAnswerOption>;
     },
     instruction: string,
     refinedBy: string
@@ -1067,6 +1097,9 @@ export class QuestionsService {
     // Apply refinement
     question.questionText = refinedData.questionText;
     question.answer = refinedData.answer;
+    if (refinedData.answerAssetId !== undefined) {
+      question.answerAssetId = refinedData.answerAssetId;
+    }
     if (refinedData.explanation !== undefined) {
       question.explanation = refinedData.explanation;
     }
@@ -1084,6 +1117,36 @@ export class QuestionsService {
     await question.save();
     this.logger.log(`Question ${id} refined by ${refinedBy}`);
     return question;
+  }
+
+  private async resolveQuestionOptions(
+    options: Array<string | QuestionAnswerOption>
+  ): Promise<Array<{ value: string; assetId?: string; svgPath?: string }>> {
+    const normalized = options.map((option) =>
+      typeof option === 'string' ? { value: option } : option
+    );
+
+    return Promise.all(
+      normalized.map(async (option) => {
+        if (option.svgPath || !option.assetId) {
+          return option;
+        }
+
+        const visual = await this.visualAssetRegistryService.toQuestionVisual(
+          option.assetId,
+          {
+            role: 'answer-option',
+            placement: 'after-question',
+          }
+        );
+
+        return {
+          value: option.value,
+          assetId: option.assetId,
+          svgPath: visual?.svgPath,
+        };
+      })
+    );
   }
 
   // ── Lessons Learned ──────────────────────────────────────────
@@ -1246,6 +1309,11 @@ export class QuestionsService {
       throw new NotFoundException(`Question ${id} not found`);
     }
     this.logger.log(`Question ${id} deleted`);
+  }
+
+  async deleteAllQuestions(): Promise<number> {
+    const result = await this.questionModel.deleteMany({}).exec();
+    return result.deletedCount ?? 0;
   }
 
   /**

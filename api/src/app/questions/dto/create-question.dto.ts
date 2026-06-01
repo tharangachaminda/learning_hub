@@ -5,6 +5,7 @@ import {
   IsArray,
   IsEnum,
   ValidateNested,
+  ValidateIf,
   Min,
   Max,
 } from 'class-validator';
@@ -36,6 +37,19 @@ export class CreateQuestionMetadataDto {
   country?: string;
 }
 
+export class CreateQuestionOptionDto {
+  @IsString()
+  value: string;
+
+  @IsOptional()
+  @IsString()
+  assetId?: string;
+
+  @IsOptional()
+  @IsString()
+  svgPath?: string;
+}
+
 /**
  * DTO for creating a single question via the REST API.
  * Status is always set to `pending` server-side and cannot be overridden.
@@ -59,8 +73,16 @@ export class CreateQuestionDto {
   questionText: string;
 
   /** The correct answer value */
+  @ValidateIf((_obj, value) => typeof value === 'number')
   @IsNumber()
-  answer: number;
+  @ValidateIf((_obj, value) => typeof value === 'string')
+  @IsString()
+  answer: number | string;
+
+  /** Optional visual asset id for the correct answer when it is image-based */
+  @IsOptional()
+  @IsString()
+  answerAssetId?: string;
 
   /** Detailed explanation of the solution */
   @IsOptional()
@@ -90,8 +112,7 @@ export class CreateQuestionDto {
   /** Answer options for multiple-choice questions */
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  options?: string[];
+  options?: Array<string | CreateQuestionOptionDto>;
 
   /** Step-by-step solution explanation strings */
   @IsOptional()

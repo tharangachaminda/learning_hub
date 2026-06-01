@@ -110,6 +110,24 @@
             <div class="q-text">
               <app-katex-render [content]="q.questionText" />
             </div>
+            @if (q.visuals?.length) {
+            <div class="q-visuals" aria-label="Question visuals">
+              <div class="q-visuals-grid">
+                @for (visual of q.visuals; track $index) { @if (visual.svgPath)
+                {
+                <div class="q-visual-chip">
+                  <img
+                    [src]="visual.svgPath"
+                    [style.width]="visual.render && visual.render.width !== null ? visual.render.width + 'px' : (visual.render && visual.render.height !== null ? 'auto' : null)"
+                    [style.height]="visual.render && visual.render.height !== null ? visual.render.height + 'px' : (visual.render && visual.render.width !== null ? 'auto' : null)"
+                    alt=""
+                    loading="lazy"
+                  />
+                </div>
+                } }
+              </div>
+            </div>
+            }
             <div class="q-meta">
               <span class="q-answer"
                 >Answer:

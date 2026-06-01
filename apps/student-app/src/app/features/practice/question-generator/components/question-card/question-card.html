@@ -29,6 +29,33 @@
       <app-katex-render [content]="question().question" />
     </div>
 
+    @if (question().visuals?.length) {
+    <div
+      class="question-card__visuals"
+      [class.question-card__visuals--grid]="$any(question().visualLayout)?.container === 'grid' || $any(question().visuals?.[0]?.layout)?.container === 'grid'"
+      [style.grid-template-columns]="($any(question().visualLayout)?.container === 'grid' || $any(question().visuals?.[0]?.layout)?.container === 'grid') ? 'repeat(' + ($any(question().visualLayout)?.columns || $any(question().visuals?.[0]?.layout)?.columns || 1) + ', minmax(0, 1fr))' : null"
+      data-testid="question-visuals"
+    >
+      @for (visual of question().visuals; track $index) { @if (visual.svgPath) {
+      <div
+        class="question-card__visual"
+        [class.question-card__visual--grid]="$any(question().visualLayout)?.container === 'grid' || $any(question().visuals?.[0]?.layout)?.container === 'grid'"
+        [style.grid-column]="visual.layout?.column || null"
+        [style.grid-row]="visual.layout?.row || null"
+      >
+        <img
+          class="question-card__visual-image"
+          [src]="visual.svgPath"
+          [style.width]="visual.render?.width != null ? visual.render?.width + 'px' : visual.render?.height != null ? 'auto' : null"
+          [style.height]="visual.render?.height != null ? visual.render?.height + 'px' : visual.render?.width != null ? 'auto' : null"
+          alt=""
+          loading="lazy"
+        />
+      </div>
+      } }
+    </div>
+    }
+
     <!-- Multiple-choice options (2×2 grid) -->
     @if (options().length > 0) {
     <div
@@ -49,7 +76,16 @@
       >
         <span class="option-badge">{{ optionLetters[$index] }}</span>
         <span class="option-text">
-          <app-katex-render [content]="option" />
+          @if (option.svgPath) {
+          <img
+            class="question-card__visual-image"
+            [src]="option.svgPath"
+            [alt]="option.value"
+            loading="lazy"
+          />
+          } @else {
+          <app-katex-render [content]="option.value" />
+          }
         </span>
       </button>
       }

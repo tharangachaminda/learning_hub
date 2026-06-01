@@ -4,6 +4,9 @@ import { Observable, map } from 'rxjs';
 import {
   GeneratedQuestion,
   HealthCheckResponse,
+  QuestionAnswerOption,
+  QuestionVisualSelection,
+  QuestionVisual,
 } from '../models/question.model';
 
 /**
@@ -19,9 +22,13 @@ interface PracticeQuestionsResponse {
     topic: string;
     category: string;
     format: string;
-    options: string[];
+    options: Array<string | QuestionAnswerOption>;
     stepByStepSolution: string[];
     difficulty: string;
+    answerAssetId?: string;
+    visualSelections?: QuestionVisualSelection[];
+    visuals?: QuestionVisual[];
+    visualLayout?: GeneratedQuestion['visualLayout'];
   }>;
   total: number;
   requested: number;
@@ -101,11 +108,15 @@ export class QuestionGeneratorService {
       map((response) =>
         response.questions.map((q) => ({
           question: q.questionText,
-          answer:
-            typeof q.answer === 'number'
-              ? q.answer
-              : parseFloat(String(q.answer)) || 0,
+          answer: q.answer,
+          answerAssetId: q.answerAssetId,
           explanation: q.explanation,
+          options: (q.options ?? []).map((option) =>
+            typeof option === 'string' ? { value: option } : option
+          ),
+          visualSelections: q.visualSelections ?? [],
+          visuals: q.visuals ?? [],
+          visualLayout: q.visualLayout,
           metadata: {
             grade: q.grade,
             topic: q.topic,

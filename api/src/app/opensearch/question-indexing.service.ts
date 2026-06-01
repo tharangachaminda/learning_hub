@@ -17,6 +17,7 @@ interface PreparedQuestionDocument {
   questionText: string;
   explanation: string;
   answer: number;
+  answerText?: string;
   embeddingSourceText: string;
   metadata: {
     grade: string;
@@ -87,6 +88,7 @@ export class QuestionIndexingService {
         prepared.questionText,
         prepared.explanation,
         prepared.answer,
+        prepared.answerText,
         embedding,
         prepared.metadata
       );
@@ -146,6 +148,7 @@ export class QuestionIndexingService {
         questionText: question.questionText,
         explanation: question.explanation,
         answer: question.answer,
+        answerText: question.answerText,
         embedding: embeddings[index],
         metadata: question.metadata,
       }));
@@ -200,6 +203,7 @@ export class QuestionIndexingService {
         prepared.questionText,
         prepared.explanation,
         prepared.answer,
+        prepared.answerText,
         embedding,
         prepared.metadata
       );
@@ -305,9 +309,14 @@ export class QuestionIndexingService {
       questionText: question.questionText,
       explanation,
       answer: this.normalizeAnswer(question.answer),
+      answerText:
+        typeof question.answer === 'string'
+          ? question.answer.trim()
+          : undefined,
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.questionText,
-        explanation
+        explanation,
+        question.visuals
       ),
       metadata: {
         grade: question.grade.toString(),
@@ -394,10 +403,15 @@ export class QuestionIndexingService {
       id: question.id || this.generateQuestionId(question),
       questionText: question.question,
       explanation,
-      answer: question.answer,
+      answer: this.normalizeAnswer(question.answer),
+      answerText:
+        typeof question.answer === 'string'
+          ? question.answer.trim() || undefined
+          : undefined,
       embeddingSourceText: this.buildEmbeddingSourceText(
         question.question,
-        explanation
+        explanation,
+        question.visuals
       ),
       metadata: {
         grade: metadata.grade.toString(),
@@ -419,11 +433,27 @@ export class QuestionIndexingService {
 
   private buildEmbeddingSourceText(
     questionText: string,
-    explanation: string
+    explanation: string,
+    visuals?: Array<{
+      assetId?: string;
+      role?: string;
+      placement?: string;
+    }>
   ): string {
+    const visualText = visuals?.length
+      ? `\n\nVisual references: ${visuals
+          .map((visual) => {
+            return [visual.assetId, visual.role, visual.placement]
+              .filter(Boolean)
+              .join(' ');
+          })
+          .filter(Boolean)
+          .join('; ')}`
+      : '';
+
     return explanation
-      ? `${questionText}\n\nExplanation: ${explanation}`
-      : questionText;
+      ? `${questionText}\n\nExplanation: ${explanation}${visualText}`
+      : `${questionText}${visualText}`;
   }
 
   private normalizeAnswer(answer: number | string): number {

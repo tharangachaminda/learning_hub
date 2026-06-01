@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OllamaService } from './ollama.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { VisualAssetRegistryService } from './visual-asset-registry.service';
 
 describe('OllamaService', () => {
   let service: OllamaService;
@@ -30,6 +31,7 @@ describe('OllamaService', () => {
             get: jest.fn().mockReturnValue('http://localhost:11434'),
           },
         },
+        VisualAssetRegistryService,
       ],
     }).compile();
 
@@ -46,7 +48,7 @@ describe('OllamaService', () => {
       // Mock successful Ollama response
       mockAxios.get.mockResolvedValue({
         data: {
-          models: [{ name: 'falcon3:latest' }, { name: 'qwen3:14b' }],
+          models: [{ name: 'falcon3:latest' }, { name: 'falcon3:latest' }],
         },
       });
 
@@ -90,21 +92,24 @@ describe('OllamaService', () => {
 
       const result = await service.generateMathQuestion(questionRequest);
 
-      expect(result).toEqual({
-        question: expect.stringMatching(/\d+\s*\+\s*\d+\s*=\s*\?/),
-        answer: expect.any(Number),
-        explanation: expect.any(String),
-        metadata: {
-          grade: 3,
-          topic: 'addition',
-          difficulty: 'medium',
-          country: 'NZ',
-          generated_by: 'falcon3:latest',
-          generation_time: expect.any(Number),
-          validation_score: expect.any(Number),
-          latexValid: expect.any(Boolean),
-        },
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          question: expect.stringMatching(/\d+\s*\+\s*\d+\s*=\s*\?/),
+          answer: expect.any(Number),
+          explanation: expect.any(String),
+          visuals: [],
+          metadata: {
+            grade: 3,
+            topic: 'addition',
+            difficulty: 'medium',
+            country: 'NZ',
+            generated_by: 'falcon3:latest',
+            generation_time: expect.any(Number),
+            validation_score: expect.any(Number),
+            latexValid: expect.any(Boolean),
+          },
+        })
+      );
     });
 
     it('should maintain generation time under 3 seconds', async () => {
@@ -129,6 +134,51 @@ describe('OllamaService', () => {
 
       const generationTime = Date.now() - startTime;
       expect(generationTime).toBeLessThan(3000); // <3 seconds requirement
+    });
+
+    it('should preserve structured multiple-choice options and answerAssetId from the LLM response', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: 'Look at the shapes shown. What comes next?',
+            answer: 'full circle',
+            answerAssetId: 'pattern.circle.full',
+            explanation: 'The pattern alternates empty and full circles.',
+            options: [
+              { value: 'empty circle', assetId: 'pattern.circle.empty' },
+              { value: 'full circle', assetId: 'pattern.circle.full' },
+              { value: 'empty square', assetId: 'pattern.square.empty' },
+              { value: 'full square', assetId: 'pattern.square.full' },
+            ],
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        format: 'multiple-choice',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+
+      expect(postBody.prompt).toContain(
+        'Return exactly 4 options in "options"'
+      );
+      expect(postBody.prompt).toContain('answerAssetId');
+      expect(result.answer).toBe('full circle');
+      expect(result.answerAssetId).toBe('pattern.circle.full');
+      expect(result.options).toHaveLength(4);
+      expect(result.options[1]).toEqual({
+        value: 'full circle',
+        assetId: 'pattern.circle.full',
+      });
     });
 
     it('should include planner-directed context instructions in the generated prompt', async () => {
@@ -178,8 +228,255 @@ describe('OllamaService', () => {
       expect(result.question).toBeDefined();
       expect(result.question).toBe('$7 + 5 = ?$');
       expect(result.answer).toBeDefined();
+      expect(result.visuals).toEqual([]);
       expect(result.metadata.fallback_used).toBe(true);
       expect(result.metadata.country).toBe('NZ');
+    });
+
+    it('should fallback to a pattern-aligned question with default visuals for early patterning', async () => {
+      mockAxios.post.mockRejectedValue(new Error('Ollama server error'));
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.question).toContain('Look at the shapes shown.');
+      expect(result.answer).toBe(2);
+      expect(result.visuals).toEqual([
+        expect.objectContaining({ assetId: 'pattern.circle.empty' }),
+        expect.objectContaining({ assetId: 'pattern.circle.full' }),
+      ]);
+      expect(result.metadata.fallback_used).toBe(true);
+    });
+
+    it('should reject arithmetic-only outputs for pattern topics and use the pattern fallback', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response:
+            'QUESTION: $7 + 5 = ?$\nANSWER: 12\nEXPLANATION: Add 7 and 5 to get 12.',
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.question).toContain('Look at the shapes shown.');
+      expect(result.visuals.length).toBeGreaterThan(0);
+    });
+
+    it('should inject the approved visual catalog and resolve returned visual IDs for pattern topics', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the shapes shown. What comes next in the pattern?',
+            answer: 1,
+            explanation:
+              'The pattern repeats, so the next shape matches the start of the sequence.',
+            visuals: [
+              { assetId: 'pattern.circle.empty', role: 'inline-symbol' },
+              { assetId: 'pattern.circle.full', role: 'inline-symbol' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 3,
+        topic: 'PATTERN_RECOGNITION',
+        difficulty: 'medium',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+      expect(postBody.prompt).toContain('APPROVED VISUAL ASSET CATALOG');
+      expect(postBody.prompt).toContain('pattern.circle.empty');
+      expect(postBody.prompt).toContain('pattern.circle.full');
+      expect(result.visuals).toEqual([
+        expect.objectContaining({
+          assetId: 'pattern.circle.empty',
+          placement: 'inline',
+          svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+        }),
+        expect.objectContaining({
+          assetId: 'pattern.circle.full',
+          placement: 'inline',
+          svgPath: '/assets/question-visuals/patterns/full-circle.svg',
+        }),
+      ]);
+    });
+
+    it('should fallback to a valid counting question when the model invents visual asset ids', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the shown circles and squares. Count how many objects you can see.',
+            answer: 4,
+            explanation:
+              'Count each shown object once to find there are 4 objects.',
+            visuals: [
+              {
+                assetId: 'forest-trail-kiwi-count',
+                role: 'prompt-illustration',
+              },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      const postBody = mockAxios.post.mock.calls[0][1];
+      expect(postBody.prompt).toContain('APPROVED VISUAL ASSET CATALOG');
+      expect(postBody.prompt).toContain(
+        'For counting topics, the JSON "visualSelections" array must not be empty.'
+      );
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.answer).toBe(4);
+      expect(result.visualSelections).toHaveLength(4);
+      expect(result.visuals).toHaveLength(4);
+      expect(result.question).toContain(
+        'How many shapes are there altogether?'
+      );
+    });
+
+    it('should preserve ordered repeated visual selections for counting questions', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the shapes shown. How many shapes are there altogether?',
+            answer: 3,
+            explanation:
+              'Count each shown shape once to find there are 3 shapes.',
+            visualSelections: [
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+              { assetId: 'pattern.square.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.question).toBe(
+        'Look at the shapes shown. How many shapes are there altogether?'
+      );
+      expect(result.explanation).toBe(
+        'Count each shown shape once. There are 3 shapes altogether.'
+      );
+      expect(result.visualSelections).toHaveLength(3);
+      expect(result.visuals).toHaveLength(3);
+      expect(
+        result.visuals.every(
+          (visual) => visual.assetId === 'pattern.square.full'
+        )
+      ).toBe(true);
+    });
+
+    it('should normalize counting questions that drift into pattern language when visuals are usable', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'Look at the repeating pattern: empty circle, full circle, empty circle, full circle. How many shapes are in the repeating part?',
+            answer: 2,
+            explanation: 'The repeating part has 2 shapes.',
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.answer).toBe(2);
+      expect(result.visualSelections).toHaveLength(2);
+      expect(result.question).toBe(
+        'Look at the shapes shown. How many shapes are there altogether?'
+      );
+    });
+
+    it('should normalize counting questions that name unseen objects when visuals are usable', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question:
+              'In the picture, there are 2 kiwi birds. Can you count them and tell me how many there are?',
+            answer: 2,
+            explanation: 'Count the kiwi birds one by one.',
+            visualSelections: [
+              { assetId: 'pattern.circle.empty', role: 'prompt-illustration' },
+              { assetId: 'pattern.circle.full', role: 'prompt-illustration' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBeUndefined();
+      expect(result.answer).toBe(2);
+      expect(result.visualSelections).toHaveLength(2);
+      expect(result.question).toContain('Look at the shapes shown.');
+      expect(result.question).not.toContain('kiwi birds');
+      expect(result.explanation).toBe(
+        'Count each shown shape once. There are 2 shapes altogether.'
+      );
+    });
+
+    it('should vary counting fallback wording across existing questions to avoid duplicates', async () => {
+      mockAxios.post.mockRejectedValue(
+        new Error('timeout of 30000ms exceeded')
+      );
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+        existingQuestions: ['Q1', 'Q2', 'Q3'],
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.question).toBe(
+        'Look at the picture. How many shapes are shown?'
+      );
+      expect(result.visualSelections.length).toBeGreaterThanOrEqual(4);
     });
   });
   describe('validateMathematicalAccuracy', () => {

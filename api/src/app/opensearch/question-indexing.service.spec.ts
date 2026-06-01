@@ -80,6 +80,7 @@ describe('QuestionIndexingService', () => {
         'What is 5 + 3?',
         'Step 1\nStep 2',
         8,
+        undefined,
         mockEmbedding768,
         {
           grade: '3',
@@ -163,11 +164,35 @@ describe('QuestionIndexingService', () => {
         expect.any(String),
         expect.any(String),
         expect.any(Number),
+        undefined,
         mockEmbedding768,
         expect.objectContaining({
           grade: '3',
         })
       );
+    });
+
+    it('should preserve text answers for stored questions while keeping numeric indexing stable', () => {
+      const prepared = service.prepareStoredQuestion({
+        _id: new Types.ObjectId(),
+        questionText: 'Look at the pattern. What comes next?',
+        answer: 'full circle',
+        explanation: 'The next shape is a full circle.',
+        grade: 0,
+        topic: 'EARLY_PATTERNING',
+        category: 'algebra-patterns',
+        visuals: [],
+        metadata: {
+          difficulty: 'easy',
+          subject: 'mathematics',
+          curriculumVersion: 'nz-maths-2025-seed-v1',
+          curriculumStrand: 'Algebra',
+          sourceTopicKey: 'EARLY_PATTERNING',
+        },
+      } as any);
+
+      expect(prepared.answer).toBe(0);
+      expect(prepared.answerText).toBe('full circle');
     });
   });
 
@@ -274,11 +299,10 @@ describe('QuestionIndexingService', () => {
 
       await service.indexQuestion(question);
 
-      // indexQuestion is called with 5 separate parameters, not an object
-      // Parameters: (questionId, questionText, answer, embedding, metadata)
+      // Parameters: (questionId, questionText, explanation, answer, answerText, embedding, metadata)
       const callArgs = (vectorIndexService.indexQuestion as jest.Mock).mock
         .calls[0];
-      const metadata = callArgs[5]; // 6th parameter is metadata
+      const metadata = callArgs[6];
       expect(metadata.difficulty_score).toBeGreaterThanOrEqual(0);
       expect(metadata.difficulty_score).toBeLessThanOrEqual(1);
     });
@@ -307,6 +331,7 @@ describe('QuestionIndexingService', () => {
         'What is 10 - 4?',
         '',
         6,
+        undefined,
         mockEmbedding768,
         expect.objectContaining({
           topic: 'SUBTRACTION',

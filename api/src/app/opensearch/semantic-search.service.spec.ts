@@ -124,6 +124,42 @@ describe('SemanticSearchService', () => {
       });
     });
 
+    it('should prefer answerText when present in indexed documents', async () => {
+      const questionText = 'What shape comes next?';
+      const textAnswerResults = {
+        hits: {
+          hits: [
+            {
+              _id: 'q-100',
+              _score: 0.91,
+              _source: {
+                questionText: 'Look at the pattern. What comes next?',
+                answer: 0,
+                answerText: 'full circle',
+                metadata: {
+                  grade: '0',
+                  topic: 'EARLY_PATTERNING',
+                  operation: 'EARLY_PATTERNING',
+                  difficulty: 'easy',
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding384);
+      jest
+        .spyOn(openSearchService, 'search')
+        .mockResolvedValue(textAnswerResults as any);
+
+      const results = await service.findSimilar(questionText);
+
+      expect(results[0]?.answer).toBe('full circle');
+    });
+
     it('should filter by grade level', async () => {
       const questionText = 'What is 5 + 3?';
 
@@ -142,7 +178,7 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.grade': 3 },
+                term: { 'metadata.grade': '3' },
               }),
             }),
           }),
@@ -169,7 +205,13 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.topic': 'addition' },
+                bool: expect.objectContaining({
+                  should: expect.arrayContaining([
+                    { term: { 'metadata.topic': 'addition' } },
+                    { term: { 'metadata.source_topic_key': 'addition' } },
+                  ]),
+                  minimum_should_match: 1,
+                }),
               }),
             }),
           }),
@@ -196,7 +238,13 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.operation': 'addition' },
+                bool: expect.objectContaining({
+                  should: expect.arrayContaining([
+                    { term: { 'metadata.operation': 'addition' } },
+                    { term: { 'metadata.source_topic_key': 'addition' } },
+                  ]),
+                  minimum_should_match: 1,
+                }),
               }),
             }),
           }),
@@ -229,9 +277,17 @@ describe('SemanticSearchService', () => {
               filter: expect.objectContaining({
                 bool: expect.objectContaining({
                   must: expect.arrayContaining([
-                    { term: { 'metadata.grade': 3 } },
-                    { term: { 'metadata.topic': 'addition' } },
-                    { term: { 'metadata.operation': 'addition' } },
+                    { term: { 'metadata.grade': '3' } },
+                    expect.objectContaining({
+                      bool: expect.objectContaining({
+                        minimum_should_match: 1,
+                      }),
+                    }),
+                    expect.objectContaining({
+                      bool: expect.objectContaining({
+                        minimum_should_match: 1,
+                      }),
+                    }),
                   ]),
                 }),
               }),
@@ -415,7 +471,7 @@ describe('SemanticSearchService', () => {
           knn: expect.objectContaining({
             embedding: expect.objectContaining({
               filter: expect.objectContaining({
-                term: { 'metadata.grade': 3 },
+                term: { 'metadata.grade': '3' },
               }),
             }),
           }),

@@ -5,6 +5,7 @@ import {
 } from '../entities/math-question.entity';
 import { OllamaService } from '../../ai/ollama.service';
 import { QuestionsService } from '../../questions/questions.service';
+import { QuestionFormat } from '../../questions/schemas/question.schema';
 import {
   CONTEXT_BUCKET_IDS,
   getCountryContext,
@@ -64,7 +65,8 @@ export class MathQuestionGenerator {
     topic: string,
     autoPersist = true,
     questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
-    requestedGrade?: number
+    requestedGrade?: number,
+    questionFormat: QuestionFormat = QuestionFormat.OPEN_ENDED
   ): Promise<MathQuestion[]> {
     this.validateQuestionCount(count);
     const startTime = Date.now();
@@ -80,7 +82,8 @@ export class MathQuestionGenerator {
       count,
       topic,
       questionDifficulty,
-      requestedGrade
+      requestedGrade,
+      questionFormat
     );
 
     if (questions.length === 0) {
@@ -97,7 +100,8 @@ export class MathQuestionGenerator {
         topic,
         startTime,
         questionDifficulty,
-        requestedGrade
+        requestedGrade,
+        questionFormat
       );
     }
 
@@ -142,7 +146,8 @@ export class MathQuestionGenerator {
     count: number,
     topic: string,
     questionDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
-    requestedGrade?: number
+    requestedGrade?: number,
+    questionFormat: QuestionFormat = QuestionFormat.OPEN_ENDED
   ): Promise<MathQuestion[]> {
     const questions: MathQuestion[] = [];
     const gradeNumber = requestedGrade ?? this.difficultyToGrade(difficulty);
@@ -167,10 +172,16 @@ export class MathQuestionGenerator {
             grade: gradeNumber,
             topic,
             difficulty: questionDifficulty,
+            format: questionFormat,
             country: 'NZ',
             contextPlan: contextPlans[i],
             existingQuestions,
           });
+
+          const visuals = this.normalizeQuestionVisuals(aiQuestion.visuals);
+          const visualSelections = this.normalizeQuestionVisualSelections(
+            aiQuestion.visualSelections
+          );
 
           // Convert AI question format to MathQuestion entity
           questions.push(
@@ -179,7 +190,27 @@ export class MathQuestionGenerator {
               aiQuestion.answer,
               topic,
               difficulty,
-              [aiQuestion.explanation] // stepByStepSolution from AI
+              [aiQuestion.explanation], // stepByStepSolution from AI
+              visuals,
+              visualSelections,
+              questionFormat,
+              (aiQuestion.options ?? []).reduce<
+                ConstructorParameters<typeof MathQuestion>[8]
+              >((acc, option) => {
+                if (!option?.value) {
+                  return acc;
+                }
+
+                acc.push({
+                  value: option.value,
+                  assetId: option.assetId,
+                  svgPath: option.svgPath,
+                });
+
+                return acc;
+              }, []),
+              aiQuestion.answerAssetId,
+              aiQuestion.visualLayout
             )
           );
           lastError = null;
@@ -236,7 +267,7 @@ export class MathQuestionGenerator {
   ): Promise<string> {
     if (!this.ollamaService) {
       // Fallback to basic explanation if no AI service
-      return this.generateBasicExplanation(question, answer, difficulty);
+      return this.generateBasicExplanation(question, answer);
     }
 
     try {
@@ -264,7 +295,7 @@ export class MathQuestionGenerator {
         'Enhanced explanation generation failed, using basic:',
         error.message
       );
-      return this.generateBasicExplanation(question, answer, difficulty);
+      return this.generateBasicExplanation(question, answer);
     }
   }
 
@@ -273,11 +304,7 @@ export class MathQuestionGenerator {
    *
    * @private
    */
-  private generateBasicExplanation(
-    question: string,
-    answer: number,
-    difficulty: DifficultyLevel
-  ): string {
+  private generateBasicExplanation(question: string, answer: number): string {
     const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
 
     if (additionMatch) {
@@ -286,6 +313,94 @@ export class MathQuestionGenerator {
     }
 
     return `The answer is ${answer}. Let's practice more problems like this!`;
+  }
+
+  private normalizeQuestionVisuals(
+    visuals: Array<{
+      assetId?: string;
+      role?:
+        | 'inline-symbol'
+        | 'prompt-illustration'
+        | 'answer-option'
+        | 'explanation-aid';
+      svgPath?: string;
+      templateId?: string;
+      placement?:
+        | 'before-question'
+        | 'after-question'
+        | 'inline'
+        | 'explanation';
+      render?: {
+        width?: number;
+        height?: number;
+      };
+      layout?: {
+        row?: number;
+        column?: number;
+      };
+    }> = []
+  ) {
+    return visuals.flatMap((visual) => {
+      if (!visual.assetId || !visual.role) {
+        return [];
+      }
+
+      if (!visual.svgPath && !visual.templateId) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: visual.assetId,
+          role: visual.role,
+          svgPath: visual.svgPath,
+          templateId: visual.templateId,
+          placement: visual.placement,
+          render: visual.render,
+          layout: visual.layout,
+        },
+      ];
+    });
+  }
+
+  private normalizeQuestionVisualSelections(
+    visualSelections: Array<{
+      assetId?: string;
+      role?:
+        | 'inline-symbol'
+        | 'prompt-illustration'
+        | 'answer-option'
+        | 'explanation-aid';
+      placement?:
+        | 'before-question'
+        | 'after-question'
+        | 'inline'
+        | 'explanation';
+      render?: {
+        width?: number;
+        height?: number;
+      };
+      layout?: {
+        row?: number;
+        column?: number;
+      };
+    }> = []
+  ) {
+    return visualSelections.flatMap((selection) => {
+      if (!selection.assetId || !selection.role) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: selection.assetId,
+          role: selection.role,
+          placement: selection.placement,
+          render: selection.render,
+          layout: selection.layout,
+        },
+      ];
+    });
   }
 
   /**
@@ -306,7 +421,8 @@ export class MathQuestionGenerator {
     topic: string,
     startTime: number,
     questionDifficulty: 'easy' | 'medium' | 'hard',
-    requestedGrade?: number
+    requestedGrade?: number,
+    questionFormat: QuestionFormat = QuestionFormat.OPEN_ENDED
   ): Promise<void> {
     try {
       const gradeNumber = requestedGrade ?? this.difficultyToGrade(difficulty);
@@ -317,9 +433,29 @@ export class MathQuestionGenerator {
       const dtos = questions.map((q) => ({
         questionText: q.question,
         answer: q.answer,
+        answerAssetId: q.answerAssetId,
         grade: gradeNumber,
         topic,
+        format: q.format ?? questionFormat,
+        options: q.options ?? [],
         stepByStepSolution: q.stepByStepSolution,
+        visualSelections: q.visualSelections.flatMap((selection) => {
+          if (!selection.assetId || !selection.role) {
+            return [];
+          }
+
+          return [
+            {
+              assetId: selection.assetId,
+              role: selection.role,
+              placement: selection.placement,
+              render: selection.render,
+              layout: selection.layout,
+            },
+          ];
+        }),
+        visuals: q.visuals,
+        visualLayout: q.visualLayout,
         metadata: {
           generatedBy: this.ollamaService ? 'ollama' : 'deterministic',
           difficulty: questionDifficulty,

@@ -74,6 +74,9 @@ export interface CurriculumPromptRequest {
   /** Difficulty level */
   difficulty: 'easy' | 'medium' | 'hard';
 
+  /** Requested question format */
+  format?: 'open-ended' | 'multiple-choice';
+
   /** Country code for cultural context */
   country: string;
 
@@ -277,7 +280,7 @@ export class CurriculumPromptEngine {
    * @returns Formatted curriculum context string
    */
   private buildCurriculumContext(
-    levelData: any,
+    levelData: ReturnType<typeof getCurriculumLevel>,
     strandName: string,
     objectives: LearningObjective[],
     topic: string,
@@ -513,7 +516,27 @@ Use $...$ ONLY around mathematical expressions and operators — NOT around plai
 
 RESPONSE FORMAT:
 You MUST respond with ONLY valid JSON in this exact format, nothing else:
-{"question": "<question text with LaTeX>", "answer": <numeric answer>, "explanation": "<step-by-step explanation with LaTeX>"}
+${
+  request.format === 'multiple-choice'
+    ? '{"question": "<question text with LaTeX>", "answer": <correct answer value as number or string>, "answerAssetId": "<approved visual asset id for the correct answer if the answer is image-based>", "explanation": "<step-by-step explanation in plain English>", "options": [{"value": "<option label or value>", "assetId": "<approved visual asset id when this option is an image>"}], "visualSelections": [{"assetId": "<approved visual asset id>", "role": "inline-symbol|prompt-illustration|answer-option|explanation-aid", "placement": "before-question|after-question|inline|explanation"}]}'
+    : '{"question": "<question text with LaTeX>", "answer": <answer as number or string>, "explanation": "<step-by-step explanation in plain English>", "visualSelections": [{"assetId": "<approved visual asset id>", "role": "inline-symbol|prompt-illustration|answer-option|explanation-aid", "placement": "before-question|after-question|inline|explanation"}]}'
+}
+
+- If an approved visual asset catalog is supplied later in the prompt, you MUST use approved asset IDs in "visualSelections".
+- "visualSelections" must list the visuals in display order.
+- If the question shows repeated images, include one visualSelections entry per displayed image. Do not collapse repeated images into a single item.
+- Only return "visualSelections": [] when no approved visual asset catalog is supplied or the topic is not visual by nature.
+- Never invent asset IDs.
+- Never output SVG markup.
+${
+  request.format === 'multiple-choice'
+    ? `- Return exactly 4 options in "options": 1 correct and 3 plausible incorrect choices.
+- Each option must have a unique "value".
+- If an option is image-based, include its approved "assetId" and do not place SVG markup in the response.
+- If the correct answer is image-based, set "answerAssetId" to the correct option asset id. Otherwise omit "answerAssetId".
+- The correct answer must match exactly one option value (and asset id when image-based).`
+    : '- Omit "options" unless the request explicitly asks for multiple-choice.'
+}
 
 Generate a ${request.difficulty.toUpperCase()} difficulty ${
       request.topic
@@ -532,15 +555,72 @@ Generate a ${request.difficulty.toUpperCase()} difficulty ${
    */
   private buildQuestionFormatRules(request: CurriculumPromptRequest): string {
     const basicOps = ['ADDITION', 'SUBTRACTION', 'MULTIPLICATION', 'DIVISION'];
-    const isBasicOp = basicOps.includes(request.topic.toUpperCase());
+    const topicUpper = request.topic.toUpperCase();
+    const isPatternTopic = this.isPatternTopic(request.topic);
+    const isBasicOp = basicOps.includes(topicUpper);
     const isLowerGrade = request.grade <= 4;
     const isEasy = request.difficulty === 'easy';
+
+    if (topicUpper === 'COUNTING_AND_QUANTITY') {
+      return `QUESTION FORMAT STYLE:
+Generate a visual counting question tied to shown objects only.
+Ask the student to count the shown circles, squares, triangles, or a clearly described shown group.
+Do NOT invent story scenes such as birds in forests, sports scores, beaches, mountains, or number lines unless those are actually provided as approved visuals.
+For Year ${
+        request.grade
+      }, keep the wording short and direct and keep the mathematics within early counting and quantity recognition.
+${
+  request.format === 'multiple-choice'
+    ? 'Make it multiple-choice with exactly 4 options. When possible, include plausible counting distractors close to the correct answer.'
+    : ''
+}
+`;
+    }
+
+    if (topicUpper === 'EARLY_OPERATIONS') {
+      return `QUESTION FORMAT STYLE:
+Generate a visual joining or taking-away question tied to shown groups only.
+The student should reason from visible groups of approved objects, not from an unrelated story context.
+Use simple join, add, take away, left, or altogether language appropriate for Year ${
+        request.grade
+      }.
+Do NOT turn this into a plain symbolic equation with no shown objects.
+${
+  request.format === 'multiple-choice'
+    ? 'Return exactly 4 options with one correct answer and three age-appropriate distractors.'
+    : ''
+}
+`;
+    }
+
+    if (isPatternTopic) {
+      return `QUESTION FORMAT STYLE:
+Generate a pattern question, not a standalone arithmetic computation.
+Ask the student to identify the repeating unit, continue the pattern, or count shapes in a shown pattern.
+Keep the wording plain and generic, for example "Look at the shapes shown. What comes next in the pattern?"
+Do NOT mention visual asset IDs or labels such as empty circle, full circle, or full triangle in the question text.
+Keep the wording short and direct for Year ${
+        request.grade
+      }, but the mathematics must stay about patterns.
+Do NOT turn this into a plain addition, subtraction, multiplication, or division equation unless the pattern itself is central to the question.
+${
+  request.format === 'multiple-choice'
+    ? 'When the answer is a shape/image, supply image-based options using approved asset ids.'
+    : ''
+}
+`;
+    }
 
     if (request.grade <= 2) {
       return `QUESTION FORMAT STYLE:
 Generate direct numeric or short-form questions ONLY.
 Do NOT use sentence questions, word problems, or story contexts for this question.
 Very simple wording is acceptable, but keep the mathematics direct and concise.
+${
+  request.format === 'multiple-choice'
+    ? 'Return exactly 4 simple options with one correct answer and three plausible distractors.'
+    : ''
+}
 `;
     }
 
@@ -549,10 +629,21 @@ Very simple wording is acceptable, but keep the mathematics direct and concise.
 Generate simple numeric questions ONLY (e.g. "$5 + 3 = ?$", "$12 \\times 4 = ?$").
 Do NOT use word problems, sentences, or story contexts for this question.
 Keep the format direct: a math expression followed by "= ?".
+${
+  request.format === 'multiple-choice'
+    ? 'Return exactly 4 numeric options with one correct answer and three plausible distractors.'
+    : ''
+}
 `;
     }
 
     return '';
+  }
+
+  private isPatternTopic(topic: string): boolean {
+    const topicUpper = topic.toUpperCase();
+
+    return topicUpper.includes('PATTERN');
   }
 
   private buildContextPlanRules(request: CurriculumPromptRequest): string {
@@ -679,6 +770,18 @@ ${
       return `CRITICAL: The question MUST use ONLY ${enforcement.allowed} as the primary mathematical operation.
 ${enforcement.forbidden} as the main operation, even if they are "related" or "inverse" operations.
 The core computation the student performs MUST be ${enforcement.allowed}.`;
+    }
+
+    if (topicUpper === 'COUNTING_AND_QUANTITY') {
+      return `CRITICAL: The question MUST stay within counting and quantity recognition.
+The student must count or recognise the quantity of shown objects.
+Do NOT switch to addition, subtraction, sports scoring, number lines beyond early counting, or invented scenic word problems.`;
+    }
+
+    if (topicUpper === 'EARLY_OPERATIONS') {
+      return `CRITICAL: The question MUST stay within early operations using shown groups.
+Use only simple joining or taking-away situations with visible objects.
+Do NOT switch to unrelated story problems, advanced number facts, multiplication, or division.`;
     }
 
     return `The question MUST focus on the topic: ${topic}. Do not generate questions about other topics.`;

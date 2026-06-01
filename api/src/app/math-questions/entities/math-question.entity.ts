@@ -1,3 +1,10 @@
+import type {
+  LLMSelectedVisual,
+  QuestionVisualContainerLayout,
+  QuestionVisual as GeneratedQuestionVisual,
+} from '../../ai/schemas';
+import { QuestionFormat } from '../../questions/schemas/question.schema';
+
 /**\n * Educational difficulty levels based on New Zealand Mathematics Curriculum
  * Defines cognitive complexity and numerical ranges appropriate for each grade
  *
@@ -56,6 +63,14 @@ export enum DifficultyLevel {
   GRADE_8 = 'grade_8',
 }
 
+export type MathQuestionVisual = GeneratedQuestionVisual;
+export type MathQuestionVisualSelection = LLMSelectedVisual;
+export type MathQuestionOption = {
+  value: string;
+  assetId?: string;
+  svgPath?: string;
+};
+
 /**
  * Represents a mathematical question with answer and solution steps.
  * Core entity for the AI-powered question generation system.
@@ -103,10 +118,16 @@ export class MathQuestion {
    */
   constructor(
     public readonly question: string,
-    public readonly answer: number,
+    public readonly answer: number | string,
     public readonly operation: string,
     public readonly difficulty: DifficultyLevel,
-    public readonly stepByStepSolution: string[] = []
+    public readonly stepByStepSolution: string[] = [],
+    public readonly visuals: MathQuestionVisual[] = [],
+    public readonly visualSelections: MathQuestionVisualSelection[] = [],
+    public readonly format: QuestionFormat = QuestionFormat.OPEN_ENDED,
+    public readonly options: MathQuestionOption[] = [],
+    public readonly answerAssetId?: string,
+    public readonly visualLayout?: QuestionVisualContainerLayout
   ) {
     this.validateQuestionText(question);
     this.validateAnswer(answer);
@@ -135,7 +156,15 @@ export class MathQuestion {
    *
    * @private
    */
-  private validateAnswer(answerValue: number): void {
+  private validateAnswer(answerValue: number | string): void {
+    if (typeof answerValue === 'string') {
+      if (answerValue.trim().length === 0) {
+        throw new Error('Answer must be a non-empty string');
+      }
+
+      return;
+    }
+
     if (
       typeof answerValue !== 'number' ||
       answerValue === null ||

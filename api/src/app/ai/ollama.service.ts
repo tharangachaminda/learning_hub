@@ -18,6 +18,7 @@ import {
   GeneratedExplanation,
   ExplanationStyle,
   getGradePatterns,
+  LLMSelectedVisual,
 } from './schemas';
 import { CurriculumPromptEngine } from './curriculum-prompt-engine';
 import { validateLatexContent } from './latex-validation.utils';
@@ -25,6 +26,7 @@ import {
   SemanticSearchService,
   SearchResult,
 } from '../opensearch/semantic-search.service';
+import { VisualAssetRegistryService } from './visual-asset-registry.service';
 
 /**
  * Service for integrating with Ollama local LLM server for AI-powered question generation.
@@ -43,11 +45,11 @@ import {
 @Injectable()
 export class OllamaService {
   private readonly ollamaUrl: string;
-  private readonly defaultModel = 'falcon3:latest';
+  private readonly defaultModel: string;
   private readonly curriculumPromptEngine: CurriculumPromptEngine;
 
   /** Timeout for question generation requests (ms). Curriculum-aware prompts need more time. */
-  private readonly generationTimeout = 30000;
+  private readonly generationTimeout: number;
 
   /** Similarity threshold above which a question is considered a duplicate */
   private readonly ragDuplicateThreshold = 0.95;
@@ -59,11 +61,21 @@ export class OllamaService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     @Optional()
-    private readonly semanticSearchService?: SemanticSearchService
+    private readonly semanticSearchService?: SemanticSearchService,
+    @Optional()
+    private readonly visualAssetRegistryService?: VisualAssetRegistryService
   ) {
     this.ollamaUrl = this.configService.get<string>(
       'OLLAMA_URL',
       'http://localhost:11434'
+    );
+    this.defaultModel = this.configService.get<string>(
+      'OLLAMA_MODEL',
+      'llama3.1:latest'
+    );
+    this.generationTimeout = this.configService.get<number>(
+      'OLLAMA_GENERATION_TIMEOUT',
+      90000
     );
     this.curriculumPromptEngine = new CurriculumPromptEngine();
   }
@@ -91,8 +103,10 @@ export class OllamaService {
       );
 
       const responseTime = Date.now() - startTime;
-      const models =
-        response.data.models?.map((model: any) => model.name) || [];
+      const modelList = response.data.models as
+        | Array<{ name: string }>
+        | undefined;
+      const models = modelList?.map((model) => model.name) || [];
 
       const result = {
         status: 'healthy' as const,
@@ -173,6 +187,7 @@ export class OllamaService {
     grade: number;
     topic: string;
     difficulty: string;
+    format?: 'open-ended' | 'multiple-choice';
     country?: string;
     context?: string;
     contextPlan?: QuestionGenerationRequest['contextPlan'];
@@ -184,6 +199,7 @@ export class OllamaService {
       // Validate and parse request using Zod schema
       const request = QuestionGenerationRequestSchema.parse({
         ...requestData,
+        format: requestData.format || 'open-ended',
         country: requestData.country || 'NZ',
       });
 
@@ -193,12 +209,22 @@ export class OllamaService {
           grade: request.grade,
           topic: request.topic.toUpperCase(),
           difficulty: request.difficulty,
+          format: request.format,
           country: request.country,
           contextPlan: request.contextPlan,
         });
 
       // Use the curriculum-aware system prompt for AI generation
       let prompt = curriculumPrompt.systemPrompt;
+
+      const visualCatalog = await this.getVisualCatalogForRequest(request);
+
+      if (visualCatalog.length > 0) {
+        prompt += this.buildVisualCatalogPromptSection(
+          request.topic,
+          visualCatalog
+        );
+      }
 
       // Retrieve RAG context from OpenSearch vector store
       const ragContext = await this.retrieveRAGContext(
@@ -255,23 +281,58 @@ export class OllamaService {
         aiResponse,
         request
       );
+      const visualSelections = parsedQuestion.visualSelections;
+      const visuals = await this.resolveQuestionVisuals(
+        request,
+        visualSelections
+      );
+      const normalizedQuestion = this.normalizeVisualQuestionResponse(
+        request,
+        parsedQuestion,
+        visuals
+      );
+
+      if (this.shouldUseVisualCatalog(request.topic)) {
+        if (visualSelections.length === 0) {
+          throw new Error(
+            'Generated question omitted required visual selections. Retrying.'
+          );
+        }
+
+        // if (visuals.length !== visualSelections.length) {
+        //   throw new Error(
+        //     'Generated question used unresolved visual selections. Retrying.'
+        //   );
+        // }
+      }
 
       // Validate that the generated question uses the correct operation
-      this.validateTopicAlignment(parsedQuestion.question, request.topic);
+      this.validateTopicAlignment(normalizedQuestion.question, request.topic);
+      this.validateVisualQuestionConsistency(
+        request,
+        normalizedQuestion.question,
+        normalizedQuestion.answer,
+        visualSelections,
+        visuals
+      );
 
       const generationTime = Date.now() - startTime;
 
       // Validate LaTeX in generated content (REQ-QG-046)
       const contentToValidate = [
-        parsedQuestion.question,
-        parsedQuestion.explanation,
+        normalizedQuestion.question,
+        normalizedQuestion.explanation,
       ].join(' ');
       const latexValidation = validateLatexContent(contentToValidate);
 
       const result = {
-        question: parsedQuestion.question,
-        answer: parsedQuestion.answer,
-        explanation: parsedQuestion.explanation,
+        question: normalizedQuestion.question,
+        answer: normalizedQuestion.answer,
+        answerAssetId: normalizedQuestion.answerAssetId,
+        explanation: normalizedQuestion.explanation,
+        options: normalizedQuestion.options ?? [],
+        visualSelections,
+        visuals,
         metadata: {
           grade: request.grade,
           topic: request.topic,
@@ -294,17 +355,26 @@ export class OllamaService {
 
       const request = QuestionGenerationRequestSchema.parse({
         ...requestData,
+        format: requestData.format || 'open-ended',
         country: requestData.country || 'NZ',
       });
+      const fallbackVisualSelections = await this.buildFallbackVisualSelections(
+        request,
+        requestData.existingQuestions?.length ?? 0
+      );
+      const fallbackVisuals = this.shouldUseVisualCatalog(request.topic)
+        ? await this.resolveQuestionVisuals(request, fallbackVisualSelections)
+        : [];
       const fallbackQuestion = this.generateFallbackQuestion({
         grade: request.grade,
         topic: request.topic,
         difficulty: request.difficulty,
+        visuals: fallbackVisuals,
+        existingQuestionCount: requestData.existingQuestions?.length ?? 0,
       });
       const fallbackExplanation = this.generateFallbackExplanation(
         fallbackQuestion.question,
-        fallbackQuestion.answer,
-        request.grade
+        fallbackQuestion.answer
       );
       const generationTime = Date.now() - startTime;
       const latexValidation = validateLatexContent(
@@ -314,7 +384,10 @@ export class OllamaService {
       return GeneratedQuestionSchema.parse({
         question: fallbackQuestion.question,
         answer: fallbackQuestion.answer,
+        options: [],
         explanation: fallbackExplanation,
+        visualSelections: fallbackVisualSelections,
+        visuals: fallbackVisuals,
         metadata: {
           grade: request.grade,
           topic: request.topic,
@@ -405,8 +478,13 @@ ${exampleLines}`;
    */
   private createEnhancedCurriculumPrompt(
     request: QuestionGenerationRequest,
-    curriculumContext: any,
-    countryContext: any
+    curriculumContext: {
+      ageContext: string;
+      complexityLevel: string;
+      category?: { curriculumStrand?: string };
+      skillsFocus: string[];
+    },
+    countryContext: ReturnType<typeof getCountryContext>
   ): string {
     const randomName =
       countryContext.commonNames[
@@ -466,6 +544,79 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   private validateTopicAlignment(question: string, topic: string): void {
     const topicUpper = topic.toUpperCase();
 
+    if (this.shouldUseVisualCatalog(topicUpper)) {
+      const hasVisualLanguage =
+        /picture|shown|showing|visual|count|group|objects|altogether|left|remain|join|take away|more|fewer|less|longer|shorter|heavier|lighter|compare|which|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
+          question
+        );
+
+      if (!hasVisualLanguage) {
+        throw new Error(
+          'Generated question does not reference the required visual representation. Retrying.'
+        );
+      }
+
+      if (topicUpper.includes('PATTERN')) {
+        const hasPatternLanguage =
+          /pattern|repeat|repeating|sequence|comes next|next shape|shape|circle|square|triangle|diamond|full|empty|half|row/i.test(
+            question
+          );
+
+        if (!hasPatternLanguage) {
+          throw new Error(
+            'Generated question does not match requested pattern topic. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'COUNTING_AND_QUANTITY') {
+        const hasCountingLanguage =
+          /count|how many|same number|altogether|in the picture|shown/i.test(
+            question
+          );
+        const hasPatternLanguage =
+          /pattern|repeat|repeating|sequence|comes next/i.test(question);
+
+        if (!hasCountingLanguage) {
+          throw new Error(
+            'Generated question does not match requested counting topic. Retrying.'
+          );
+        }
+
+        if (hasPatternLanguage) {
+          throw new Error(
+            'Generated counting question drifted into a pattern prompt. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'EARLY_OPERATIONS') {
+        const hasGroupLanguage =
+          /group|altogether|join|take away|left|remain|shown|count/i.test(
+            question
+          );
+
+        if (!hasGroupLanguage) {
+          throw new Error(
+            'Generated question does not match requested early operations topic. Retrying.'
+          );
+        }
+      }
+
+      if (topicUpper === 'COMPARING_AND_MEASURING') {
+        const hasComparisonLanguage =
+          /more|fewer|less|longer|shorter|heavier|lighter|compare|which|same|different|how many|measure|unit/i.test(
+            question
+          );
+
+        if (!hasComparisonLanguage) {
+          throw new Error(
+            'Generated question does not match requested comparing/measuring topic. Retrying.'
+          );
+        }
+      }
+    }
+
     // Map topics to their expected and forbidden operator patterns
     const operatorPatterns: Record<
       string,
@@ -507,13 +658,90 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
   }
 
+  private validateVisualQuestionConsistency(
+    request: QuestionGenerationRequest,
+    question: string,
+    answer: number | string,
+    visualSelections: LLMSelectedVisual[],
+    visuals: GeneratedQuestion['visuals']
+  ): void {
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return;
+    }
+
+    if (visualSelections.length === 0 || visuals.length === 0) {
+      throw new Error(
+        'Generated visual-topic question is missing resolved visuals. Retrying.'
+      );
+    }
+
+    // Answer-count consistency for COUNTING_AND_QUANTITY is handled by
+    // normalizeVisualQuestionResponse (sets answer = visuals.length), so no
+    // throw here. Log a warning if the LLM's original count was far off.
+    if (
+      request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
+      typeof answer === 'number' &&
+      answer !== visuals.length
+    ) {
+      console.warn(
+        `[OllamaService] Counting answer adjusted: LLM said ${answer}, showing ${visuals.length} objects (selections=${visualSelections.length})`
+      );
+    }
+  }
+
+  private getVisualTextDescriptors(assetId: string): string[] {
+    const parts = assetId.toLowerCase().split('.');
+    const shape = parts.at(-2);
+    const state = parts.at(-1)?.replace(/-/g, ' ');
+
+    if (!shape || !state) {
+      return [];
+    }
+
+    return [`${state} ${shape}`, `${shape} ${state}`];
+  }
+
+  private normalizeVisualQuestionResponse(
+    request: QuestionGenerationRequest,
+    parsedQuestion: {
+      question: string;
+      answer: number | string;
+      answerAssetId?: string;
+      explanation: string;
+      options?: Array<{ value: string; assetId?: string; svgPath?: string }>;
+      visualSelections: LLMSelectedVisual[];
+    },
+    visuals: GeneratedQuestion['visuals']
+  ) {
+    // Keep the LLM's question text for diversity, but set the answer to the
+    // actual resolved visual count so it is always truthful.
+    // The LLM often miscounts in its narrative; the visuals array is ground truth.
+    if (
+      request.topic.toUpperCase() === 'COUNTING_AND_QUANTITY' &&
+      visuals.length > 0
+    ) {
+      return {
+        ...parsedQuestion,
+        answer: visuals.length,
+      };
+    }
+    return parsedQuestion;
+  }
+
   /**
    * Parses AI response using Zod validation for structured output.
    */
   private parseAIResponseWithValidation(
     aiResponse: string,
     request: QuestionGenerationRequest
-  ): { question: string; answer: number; explanation: string } {
+  ): {
+    question: string;
+    answer: number | string;
+    answerAssetId?: string;
+    explanation: string;
+    options: Array<{ value: string; assetId?: string; svgPath?: string }>;
+    visualSelections: LLMSelectedVisual[];
+  } {
     // First try structured parsing with Zod validation
     const structured = parseLLMResponse(aiResponse);
     if (structured) {
@@ -522,7 +750,32 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
           this.formatQuestionForMath(structured.question, request.topic)
         ),
         answer: structured.answer,
+        answerAssetId: structured.answerAssetId,
         explanation: this.stripLatex(structured.explanation),
+        options: (structured.options ?? []).reduce<
+          Array<{ value: string; assetId?: string; svgPath?: string }>
+        >((acc, option) => {
+          if (typeof option === 'string') {
+            acc.push({ value: option });
+            return acc;
+          }
+
+          if (!option?.value) {
+            return acc;
+          }
+
+          acc.push({
+            value: option.value,
+            assetId: option.assetId,
+            svgPath: option.svgPath,
+          });
+
+          return acc;
+        }, []),
+        visualSelections:
+          structured.visualSelections?.length > 0
+            ? structured.visualSelections
+            : structured.visuals ?? [],
       };
     }
 
@@ -530,7 +783,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     const questionMatch = aiResponse.match(
       /QUESTION:\s*([\s\S]+?)(?=\nANSWER:|$)/
     );
-    const answerMatch = aiResponse.match(/ANSWER:\s*(\d+)/);
+    const answerMatch = aiResponse.match(/ANSWER:\s*(.+?)(?=\n[A-Z_]+:|$)/);
     const explanationMatch = aiResponse.match(/EXPLANATION:\s*([\s\S]+?)$/m);
 
     if (!questionMatch || !answerMatch) {
@@ -543,7 +796,10 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
     }
 
     let question = questionMatch[1].trim();
-    const answer = parseInt(answerMatch[1], 10);
+    const rawAnswer = answerMatch[1].trim();
+    const answer = /^-?\d+(?:\.\d+)?$/.test(rawAnswer)
+      ? Number(rawAnswer)
+      : rawAnswer.replace(/^"|"$/g, '');
     const explanation = explanationMatch?.[1]?.trim() || 'Solve step by step.';
 
     // Ensure question contains proper math format
@@ -553,7 +809,228 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       question: this.normalizeLatexDelimiters(question),
       answer,
       explanation: this.stripLatex(explanation),
+      options: [],
+      visualSelections: [],
     };
+  }
+
+  private async getVisualCatalogForRequest(request: QuestionGenerationRequest) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.getGenerationCatalog({
+      grade: request.grade,
+      topic: request.topic,
+    });
+  }
+
+  private async resolveQuestionVisuals(
+    request: QuestionGenerationRequest,
+    selectedVisuals: LLMSelectedVisual[]
+  ) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.resolveSelectedVisuals(
+      {
+        grade: request.grade,
+        topic: request.topic,
+      },
+      selectedVisuals
+    );
+  }
+
+  private toVisualSelections(visuals: GeneratedQuestion['visuals']) {
+    return (visuals ?? []).flatMap((visual) => {
+      if (!visual.assetId || !visual.role) {
+        return [];
+      }
+
+      return [
+        {
+          assetId: visual.assetId,
+          role: visual.role,
+          placement: visual.placement,
+        },
+      ];
+    });
+  }
+
+  private async getDefaultPatternVisuals(request: QuestionGenerationRequest) {
+    if (!this.visualAssetRegistryService) {
+      return [];
+    }
+
+    return this.visualAssetRegistryService.getDefaultVisualsForTopic({
+      grade: request.grade,
+      topic: request.topic,
+    });
+  }
+
+  private async buildFallbackVisualSelections(
+    request: QuestionGenerationRequest,
+    existingQuestionCount = 0
+  ): Promise<LLMSelectedVisual[]> {
+    if (!this.shouldUseVisualCatalog(request.topic)) {
+      return [];
+    }
+
+    const defaultVisuals = await this.getDefaultPatternVisuals(request);
+    const defaultSelections = this.toVisualSelections(defaultVisuals);
+    const topicUpper = request.topic.toUpperCase();
+
+    if (
+      topicUpper === 'COUNTING_AND_QUANTITY' &&
+      defaultSelections.length > 0
+    ) {
+      const targetLength =
+        request.grade <= 1 ? 4 + (existingQuestionCount % 3) : 6;
+
+      return Array.from({ length: targetLength }, (_, index) => {
+        const selection =
+          defaultSelections[
+            (index + existingQuestionCount) % defaultSelections.length
+          ];
+        return {
+          assetId: selection.assetId,
+          role: selection.role,
+          placement: 'before-question' as const,
+        };
+      });
+    }
+
+    return defaultSelections;
+  }
+
+  private shouldUseVisualCatalog(topic: string): boolean {
+    const normalizedTopic = topic.toUpperCase();
+
+    return (
+      normalizedTopic === 'COUNTING_AND_QUANTITY' ||
+      normalizedTopic === 'EARLY_OPERATIONS' ||
+      normalizedTopic === 'COMPARING_AND_MEASURING' ||
+      normalizedTopic === 'PATTERN_RECOGNITION' ||
+      normalizedTopic.includes('PATTERN')
+    );
+  }
+
+  private buildVisualCatalogPromptSection(
+    topic: string,
+    visualCatalog: Awaited<ReturnType<typeof this.getVisualCatalogForRequest>>
+  ): string {
+    const topicUpper = topic.toUpperCase();
+    const catalogEntries = visualCatalog
+      .map(
+        (asset) =>
+          `- ${asset.assetId}: ${asset.displayName} | semanticText=${
+            asset.semanticText
+          } | roles=${asset.roles.join(
+            ', '
+          )} | categories=${asset.categories.join(', ')}`
+      )
+      .join('\n');
+
+    const topicRules =
+      topicUpper === 'COUNTING_AND_QUANTITY'
+        ? `Use these approved SVG assets as the visible objects the student counts.
+The question text must ask generically, e.g. "How many [objects] are shown altogether?" — do NOT embed specific counts in the question text.
+Do NOT invent unseen scenes or use assets not in the catalog below.
+
+CRITICAL JSON RULES:
+- The "answer" value MUST equal the EXACT number of entries in "visualSelections" (one entry = one object shown on screen).
+- To show multiple copies of the same object, repeat its assetId. Example — to show 3 kiwi birds:
+  [{"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"},
+   {"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"},
+   {"assetId": "counting.kiwi-bird.standing", "role": "inline-symbol"}]
+- Use ONLY role "inline-symbol" for every counting visual entry. Never use "answer-option" or "prompt-illustration".
+- For easy difficulty: include exactly 2–5 total entries; for medium: 5–8; for hard: 8–12.
+- "visualSelections" MUST NOT be empty.`
+        : topicUpper === 'EARLY_OPERATIONS'
+        ? `Use these approved SVG assets as the visible objects the student joins or takes away.
+The question MUST describe what is shown — do NOT invent a scene that contradicts the visuals.
+
+CRITICAL JSON RULES:
+- Each entry in "visualSelections" represents ONE visible object on screen.
+- To show a group, repeat the assetId. Example — joining 3 apples and 2 bananas:
+  [{"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.apple.red", "role": "inline-symbol"},
+   {"assetId": "counting.banana.yellow", "role": "inline-symbol"},
+   {"assetId": "counting.banana.yellow", "role": "inline-symbol"}]
+- For joining (addition): total "visualSelections" entries MUST equal the answer.
+- For taking-away (subtraction): show only the starting group; "answer" is the count remaining after removal.
+- Use ONLY role "inline-symbol" for every entry. Never use "answer-option" or "prompt-illustration".
+- Include 2–8 total entries for easy/medium; up to 12 for hard.
+- "visualSelections" MUST NOT be empty.`
+        : topicUpper === 'COMPARING_AND_MEASURING'
+        ? `Use these approved SVG assets to show the objects being compared or measured.
+
+QUESTION TYPES you can generate:
+1. Compare two groups: Show Group A (repeat one assetId N times) then Group B (repeat another assetId M times).
+   - The question should ask which group has more/fewer, or how many more/less.
+   - Example — 3 apples vs 5 oranges:
+     [{"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.apple.red", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"},
+      {"assetId": "counting.orange.fruit", "role": "inline-symbol"}]
+   - Answer: the count of the larger group, or the difference between the two groups.
+2. Informal measurement: Show a row of unit objects (measurement.paperclip.unit, measurement.cube.unit, etc.).
+   - Answer: the count of units shown.
+
+CRITICAL JSON RULES:
+- Each entry in "visualSelections" represents ONE visible object on screen.
+- To show a group, repeat the assetId.
+- Use ONLY role "inline-symbol" for every entry. Never use "answer-option" or "prompt-illustration".
+- Show between 4 and 12 total entries across both groups.
+- "visualSelections" MUST NOT be empty.
+- Do NOT invent assetIds (like "kiwi-feathers", "crayon-box", "skis-01"). Use ONLY catalog assets below.
+
+CRITICAL QUESTION TEXT RULES:
+- The question text MUST describe the objects shown, e.g. "There are 3 apples and 5 oranges shown. Which group has more?"
+- Do NOT reference objects or scenes that are not in the catalog.`
+        : topicUpper === 'EARLY_PATTERNING'
+        ? `Use these approved SVG assets to show the repeating pattern sequence.
+Each entry in "visualSelections" represents ONE shape in the sequence, listed in display order.
+
+CRITICAL JSON RULES:
+- Repeat assetIds to build the pattern. Example — an AB pattern of 4 elements:
+  [{"assetId": "pattern.circle.full", "role": "inline-symbol"},
+   {"assetId": "pattern.square.full", "role": "inline-symbol"},
+   {"assetId": "pattern.circle.full", "role": "inline-symbol"},
+   {"assetId": "pattern.square.full", "role": "inline-symbol"}]
+- Use role "inline-symbol" for every element shown in the sequence.
+- Show between 4 and 6 elements so the student can see the pattern clearly (do NOT stop at 2).
+- The "answer" should be the visual description of the shape that comes next (e.g. "full circle", "empty square").
+- "visualSelections" MUST NOT be empty.
+
+CRITICAL QUESTION TEXT RULES:
+- Keep the question text SHORT and GENERIC: e.g. "Look at the pattern of shapes. What shape comes next?" — do NOT list or spell out the individual shapes in the question text.
+- The student sees the SVG shapes directly; the question only needs to ask what comes next.
+- Do NOT invent unrelated scenes, stories, or objects. Never say "on the beach", "snow-covered mountains", "rugby balls", or any non-geometric context.
+- The shapes ARE geometric (circle, square, triangle). If you must name a shape, use ONLY its correct geometric name matching the assetId (e.g. pattern.circle.full → "full circle", not "rugby ball").`
+        : `Use only these approved SVG assets to show the pattern sequence.
+Each "visualSelections" entry represents ONE shape in the sequence. Repeat assetIds to build the repeating pattern.
+You MUST include between 4 and 8 entries so the pattern is visible. The JSON "visualSelections" array must not be empty.
+Use role "inline-symbol" for sequence shapes.
+Return the visualSelections in display order.`;
+
+    return `\n\nAPPROVED VISUAL ASSET CATALOG:
+${topicRules}
+Do not invent asset IDs, do not output raw SVG, and do not choose assets outside this list.
+Do NOT embed asset IDs (e.g. "counting.apple.red") in the question text. Follow the per-topic count limits above.
+
+AVAILABLE VISUALS:
+${catalogEntries}`;
   }
 
   /**
@@ -746,7 +1223,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       };
 
       return ValidationResultSchema.parse(result);
-    } catch (error) {
+    } catch {
       // Fallback validation with schema validation
       const result = {
         isCorrect: false,
@@ -837,7 +1314,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
       // Parse and analyze explanation
       const explanation = this.parseExplanationResponse(aiResponse);
-      const analysis = this.analyzeExplanation(explanation, request.grade);
+      const analysis = this.analyzeExplanation(explanation);
 
       const generationTime = Date.now() - startTime;
 
@@ -861,13 +1338,12 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       };
 
       return GeneratedExplanationSchema.parse(result);
-    } catch (error) {
+    } catch {
       // Fallback to simple deterministic explanation
       const generationTime = Date.now() - startTime;
       const fallbackExplanation = this.generateFallbackExplanation(
         requestData.question,
-        requestData.answer,
-        requestData.grade
+        requestData.answer
       );
 
       return GeneratedExplanationSchema.parse({
@@ -893,8 +1369,8 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
    */
   private createExplanationPrompt(
     request: ExplanationRequest,
-    gradePatterns: any,
-    countryContext: any
+    gradePatterns: ReturnType<typeof getGradePatterns>,
+    countryContext: ReturnType<typeof getCountryContext>
   ): string {
     const isWrongAnswer =
       request.studentAnswer !== undefined &&
@@ -959,10 +1435,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
   /**
    * Analyzes explanation for educational appropriateness.
    */
-  private analyzeExplanation(
-    explanation: string,
-    grade: number
-  ): {
+  private analyzeExplanation(explanation: string): {
     vocabularyLevel: 'simple' | 'moderate' | 'complex';
     visualAids: string[];
     wordCount: number;
@@ -1018,8 +1491,7 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
    */
   private generateFallbackExplanation(
     question: string,
-    answer: number,
-    grade: number
+    answer: number
   ): string {
     // Extract numbers and operation
     const additionMatch = question.match(/(\d+)\s*\+\s*(\d+)/);
@@ -1046,11 +1518,59 @@ IMPORTANT: Provide ONLY the explanation text, no labels or formatting.`;
     grade: number;
     topic: string;
     difficulty: string;
+    visuals?: GeneratedQuestion['visuals'];
+    existingQuestionCount?: number;
   }): {
     question: string;
     answer: number;
   } {
     const topicUpper = request.topic.toUpperCase();
+
+    if (topicUpper === 'COUNTING_AND_QUANTITY' && request.visuals?.length) {
+      const variants = [
+        'Look at the shapes shown. How many shapes are there altogether?',
+        'Count the shapes shown. How many are there altogether?',
+        'How many shapes can you see in the picture?',
+        'Look at the picture. How many shapes are shown?',
+        'Count all the shapes you can see. How many are there?',
+        'How many shapes are shown in this picture?',
+      ];
+      return {
+        question:
+          variants[(request.existingQuestionCount ?? 0) % variants.length],
+        answer: request.visuals.length,
+      };
+    }
+
+    if (this.shouldUseVisualCatalog(topicUpper)) {
+      if (topicUpper.includes('PATTERN')) {
+        return {
+          question:
+            'Look at the shapes shown. How many shapes are in the repeating part?',
+          answer: request.grade <= 1 ? 2 : 3,
+        };
+      }
+
+      if (topicUpper === 'EARLY_OPERATIONS') {
+        return {
+          question:
+            'Look at the groups shown. How many shapes are there altogether?',
+          answer: request.grade <= 1 ? 2 : 3,
+        };
+      }
+
+      if (request.grade <= 1) {
+        return {
+          question: 'Look at the shapes shown. How many shapes are there?',
+          answer: 2,
+        };
+      }
+
+      return {
+        question: 'Look at the shapes shown. How many shapes are there?',
+        answer: 3,
+      };
+    }
 
     if (topicUpper.includes('SUBTRACTION')) {
       const minuend = 12;

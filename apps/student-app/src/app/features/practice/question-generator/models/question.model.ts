@@ -39,6 +39,62 @@ export interface QuestionMetadata {
   validation_score?: number;
 }
 
+export interface QuestionVisual {
+  /** Stable registry identifier for the visual asset */
+  assetId: string;
+  /** Rendering role for placement/use in the UI */
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  /** Path to a static SVG asset if file-backed */
+  svgPath?: string;
+  /** Template identifier if generated from parameters */
+  templateId?: string;
+  /** Optional layout hint for the renderer */
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+  /** Optional render sizing override for the image */
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+export interface QuestionVisualSelection {
+  assetId: string;
+  role:
+    | 'inline-symbol'
+    | 'prompt-illustration'
+    | 'answer-option'
+    | 'explanation-aid';
+  placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+export interface QuestionVisualContainerLayout {
+  container?: 'grid';
+  rows?: number;
+  columns?: number;
+}
+
+export interface QuestionAnswerOption {
+  value: string;
+  assetId?: string;
+  svgPath?: string;
+}
+
 /**
  * A single AI-generated question returned from the API.
  *
@@ -55,10 +111,20 @@ export interface QuestionMetadata {
 export interface GeneratedQuestion {
   /** Question text — may contain LaTeX */
   question: string;
-  /** Correct numerical answer */
-  answer: number;
+  /** Correct answer value */
+  answer: number | string;
+  /** Optional visual asset id for the correct answer when it is image-based */
+  answerAssetId?: string;
   /** Age-appropriate explanation (used for hints) */
   explanation: string;
+  /** Ordered visual selection sequence returned by the backend */
+  visualSelections?: QuestionVisualSelection[];
+  /** Optional structured visuals associated with the question */
+  visuals?: QuestionVisual[];
+  /** Optional shared layout metadata for the question visual container */
+  visualLayout?: QuestionVisualContainerLayout;
+  /** Explicit multiple-choice options, including visual answer options */
+  options?: QuestionAnswerOption[];
   /** Generation metadata */
   metadata: QuestionMetadata;
 }

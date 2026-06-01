@@ -73,6 +73,10 @@ export class VectorIndexService implements OnModuleInit {
         answer: {
           type: 'integer',
         },
+        answerText: {
+          type: 'keyword',
+          ignore_above: 256,
+        },
         metadata: {
           properties: {
             grade: {
@@ -238,6 +242,7 @@ export class VectorIndexService implements OnModuleInit {
     questionText: string,
     explanation: string,
     answer: number,
+    answerText: string | undefined,
     embedding: number[],
     metadata: {
       grade?: string;
@@ -259,6 +264,7 @@ export class VectorIndexService implements OnModuleInit {
       questionText,
       explanation,
       answer,
+      answerText,
       embedding,
       metadata: {
         ...metadata,
@@ -286,6 +292,7 @@ export class VectorIndexService implements OnModuleInit {
       questionText: string;
       explanation: string;
       answer: number;
+      answerText?: string;
       embedding: number[];
       metadata: any;
     }>
@@ -296,6 +303,7 @@ export class VectorIndexService implements OnModuleInit {
         questionText: q.questionText,
         explanation: q.explanation,
         answer: q.answer,
+        answerText: q.answerText,
         embedding: q.embedding,
         metadata: {
           ...q.metadata,

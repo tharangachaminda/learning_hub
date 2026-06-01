@@ -5,7 +5,10 @@
  * and produces a ScoringResult with correct/incorrect/skipped counts.
  */
 
-import { GeneratedQuestion } from '../models/question.model';
+import {
+  GeneratedQuestion,
+  QuestionAnswerOption,
+} from '../models/question.model';
 import { StudentAnswer } from '../models/student-answer.model';
 import { ScoringResult } from '../models/answer-submission.model';
 
@@ -41,7 +44,7 @@ export function formatTime(totalSeconds: number): string {
  * @param questions - The generated questions with correct answers
  * @param answers - Map of student answers keyed by question index
  * @param totalTimeSeconds - Total session time in seconds
- * @param questionOptions - Optional map of question index → option strings for letter resolution
+ * @param questionOptions - Optional map of question index → structured options for letter resolution
  * @returns ScoringResult with counts, percentage, and formatted time
  *
  * @example
@@ -54,7 +57,7 @@ export function scoreAnswers(
   questions: GeneratedQuestion[],
   answers: Map<number, StudentAnswer>,
   totalTimeSeconds: number,
-  questionOptions?: Map<number, string[]>
+  questionOptions?: Map<number, QuestionAnswerOption[]>
 ): ScoringResult {
   const total = questions.length;
   let correct = 0;
@@ -75,7 +78,16 @@ export function scoreAnswers(
         const options = questionOptions.get(i);
         const idx = letterIndex[answer.selectedOption];
         if (options && idx !== undefined && idx < options.length) {
-          resolvedValue = options[idx];
+          resolvedValue = options[idx].value;
+
+          if (questions[i].answerAssetId) {
+            if (options[idx].assetId === questions[i].answerAssetId) {
+              correct++;
+            } else {
+              incorrect++;
+            }
+            continue;
+          }
         }
       }
 

@@ -19,14 +19,60 @@ export interface SearchFilters {
 export interface SearchResult {
   id: string;
   questionText: string;
-  answer: number;
+  answer: number | string;
   similarityScore: number;
   metadata: {
     grade: string;
     topic: string;
     operation: string;
     difficulty: string;
-    [key: string]: any;
+    [key: string]: unknown;
+  };
+}
+
+type KeywordTermClause = {
+  term: Record<string, string>;
+};
+
+type IdsClause = {
+  ids: { values: string[] };
+};
+
+type BoolClause = {
+  bool: {
+    must?: FilterClause[];
+    must_not?: IdsClause[];
+    should?: KeywordTermClause[];
+    minimum_should_match?: 1;
+  };
+};
+
+type FilterClause = KeywordTermClause | BoolClause;
+
+type KnnQuery = Record<string, unknown> & {
+  knn: {
+    embedding: {
+      vector: number[];
+      k: number;
+      filter?: FilterClause;
+    };
+  };
+};
+
+interface RawSearchHit {
+  _id: string;
+  _score: number;
+  _source: {
+    questionText: string;
+    answer: number;
+    answerText?: string;
+    metadata: SearchResult['metadata'];
+  };
+}
+
+interface RawSearchResponse {
+  hits?: {
+    hits?: RawSearchHit[];
   };
 }
 
@@ -172,8 +218,8 @@ export class SemanticSearchService {
     embedding: number[],
     k: number,
     filters: SearchFilters
-  ): any {
-    const knnQuery: any = {
+  ): KnnQuery {
+    const knnQuery: KnnQuery = {
       knn: {
         embedding: {
           vector: embedding,
@@ -186,20 +232,23 @@ export class SemanticSearchService {
     const filterClauses = this.buildFilterClauses(filters);
 
     if (filterClauses.must.length > 0 || filterClauses.must_not.length > 0) {
-      knnQuery.knn.embedding.filter = {
-        bool: {},
-      };
+      if (
+        filterClauses.must.length === 1 &&
+        filterClauses.must_not.length === 0
+      ) {
+        knnQuery.knn.embedding.filter = filterClauses.must[0];
+      } else {
+        knnQuery.knn.embedding.filter = {
+          bool: {},
+        };
 
-      if (filterClauses.must.length > 0) {
-        if (filterClauses.must.length === 1) {
-          knnQuery.knn.embedding.filter = filterClauses.must[0];
-        } else {
+        if (filterClauses.must.length > 0) {
           knnQuery.knn.embedding.filter.bool.must = filterClauses.must;
         }
-      }
 
-      if (filterClauses.must_not.length > 0) {
-        knnQuery.knn.embedding.filter.bool.must_not = filterClauses.must_not;
+        if (filterClauses.must_not.length > 0) {
+          knnQuery.knn.embedding.filter.bool.must_not = filterClauses.must_not;
+        }
       }
     }
 
@@ -215,31 +264,27 @@ export class SemanticSearchService {
    * @private
    */
   private buildFilterClauses(filters: SearchFilters): {
-    must: any[];
-    must_not: any[];
+    must: FilterClause[];
+    must_not: IdsClause[];
   } {
-    const must: any[] = [];
-    const must_not: any[] = [];
+    const must: FilterClause[] = [];
+    const must_not: IdsClause[] = [];
 
     // Grade filter
     if (filters.grade !== undefined) {
       must.push({
-        term: { 'metadata.grade': filters.grade },
+        term: { 'metadata.grade': filters.grade.toString() },
       });
     }
 
     // Topic filter
     if (filters.topic) {
-      must.push({
-        term: { 'metadata.topic': filters.topic },
-      });
+      must.push(this.buildTopicFilter(filters.topic));
     }
 
     // Operation filter
     if (filters.operation) {
-      must.push({
-        term: { 'metadata.operation': filters.operation },
-      });
+      must.push(this.buildOperationFilter(filters.operation));
     }
 
     // Exclude IDs filter
@@ -252,6 +297,42 @@ export class SemanticSearchService {
     return { must, must_not };
   }
 
+  private buildTopicFilter(topic: string): BoolClause {
+    return this.buildKeywordShouldFilter(topic, [
+      'metadata.topic',
+      'metadata.source_topic_key',
+      'metadata.resolved_topic_key',
+    ]);
+  }
+
+  private buildOperationFilter(operation: string): BoolClause {
+    return this.buildKeywordShouldFilter(operation, [
+      'metadata.operation',
+      'metadata.topic',
+      'metadata.source_topic_key',
+    ]);
+  }
+
+  private buildKeywordShouldFilter(
+    value: string,
+    fields: string[]
+  ): BoolClause {
+    const normalizedValues = Array.from(
+      new Set([value, value.toUpperCase(), value.toLowerCase()])
+    );
+
+    return {
+      bool: {
+        should: fields.flatMap((field) =>
+          normalizedValues.map((normalizedValue) => ({
+            term: { [field]: normalizedValue },
+          }))
+        ),
+        minimum_should_match: 1,
+      },
+    };
+  }
+
   /**
    * Transforms OpenSearch results to SearchResult format.
    *
@@ -260,15 +341,17 @@ export class SemanticSearchService {
    *
    * @private
    */
-  private transformSearchResults(searchResults: any): SearchResult[] {
+  private transformSearchResults(
+    searchResults: RawSearchResponse
+  ): SearchResult[] {
     if (!searchResults.hits || !searchResults.hits.hits) {
       return [];
     }
 
-    return searchResults.hits.hits.map((hit: any) => ({
+    return searchResults.hits.hits.map((hit) => ({
       id: hit._id,
       questionText: hit._source.questionText,
-      answer: hit._source.answer,
+      answer: hit._source.answerText ?? hit._source.answer,
       similarityScore: hit._score,
       metadata: hit._source.metadata,
     }));

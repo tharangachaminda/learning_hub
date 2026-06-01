@@ -8,7 +8,10 @@ import {
 } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faLightbulb, faPenRuler } from '@fortawesome/free-solid-svg-icons';
-import { GeneratedQuestion } from '../../models/question.model';
+import {
+  GeneratedQuestion,
+  QuestionAnswerOption,
+} from '../../models/question.model';
 import { KatexRenderComponent } from '../katex-render/katex-render';
 import { formatCurriculumTopicLabel } from '../../../../../shared/curriculum-topic-labels';
 
@@ -52,8 +55,8 @@ export class QuestionCardComponent {
   /** Total number of questions in the set. */
   readonly totalQuestions = input.required<number>();
 
-  /** Multiple-choice option texts (4 options: A, B, C, D). */
-  readonly options = input<string[]>([]);
+  /** Multiple-choice options (4 options: A, B, C, D). */
+  readonly options = input<QuestionAnswerOption[]>([]);
 
   /** Currently selected option letter ('A'|'B'|'C'|'D'). */
   readonly selectedOption = input<string | undefined>(undefined);

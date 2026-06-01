@@ -236,10 +236,10 @@ describe('scoreAnswers', () => {
     // index 0: answer=8,  options=['10','8','11','9']  → correct = 'B' (index 1)
     // index 1: answer=5,  options=['5','7','3','6']    → correct = 'A' (index 0)
     // index 2: answer=12, options=['14','11','12','10'] → correct = 'C' (index 2)
-    const questionOptions = new Map<number, string[]>([
-      [0, ['10', '8', '11', '9']],
-      [1, ['5', '7', '3', '6']],
-      [2, ['14', '11', '12', '10']],
+    const questionOptions = new Map<number, { value: string }[]>([
+      [0, ['10', '8', '11', '9'].map((value) => ({ value }))],
+      [1, ['5', '7', '3', '6'].map((value) => ({ value }))],
+      [2, ['14', '11', '12', '10'].map((value) => ({ value }))],
     ]);
 
     it('should resolve letter selectedOption to option value and score correctly', () => {

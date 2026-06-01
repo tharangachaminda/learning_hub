@@ -1,0 +1,161 @@
+<div class="visual-catalog-page admin-page">
+  <header class="admin-page-header">
+    <div>
+      <p class="admin-eyebrow">SVG Asset Review</p>
+      <h1 class="admin-page-title">Visual Catalog</h1>
+      <p class="admin-page-subtitle">
+        Inspect the approved SVG shapes and the same registry metadata used by
+        backend question generation.
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+  <section class="admin-panel visual-catalog-state">
+    <p>Loading visual catalog…</p>
+  </section>
+  } @else if (error()) {
+  <section class="admin-alert admin-alert-error">{{ error() }}</section>
+  } @else {
+  <section class="admin-panel visual-catalog-summary">
+    <div>
+      <p class="admin-eyebrow">Catalog Snapshot</p>
+      <h2>
+        {{ filteredAssets().length }} of {{ assets().length }} assets visible
+      </h2>
+      <p>
+        Version {{ manifest()?.metadata?.version }} from {{
+        manifest()?.metadata?.source }}
+      </p>
+    </div>
+    <div class="visual-catalog-summary-icon" aria-hidden="true">
+      <fa-icon [icon]="catalogIcon"></fa-icon>
+    </div>
+  </section>
+
+  <section class="admin-panel visual-catalog-filters">
+    <div class="visual-catalog-filter-grid">
+      <label class="admin-field-group visual-catalog-search">
+        <span>Search</span>
+        <div class="visual-catalog-search-input">
+          <fa-icon [icon]="searchIcon"></fa-icon>
+          <input
+            class="admin-input"
+            type="search"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="setSearchTerm($event)"
+            placeholder="Find by label, ID, keyword, or topic"
+          />
+        </div>
+      </label>
+
+      <label class="admin-field-group">
+        <span>Category</span>
+        <select
+          class="admin-select"
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="setCategory($event)"
+        >
+          <option value="">All categories</option>
+          @for (category of categories(); track category) {
+          <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="admin-field-group">
+        <span>Topic</span>
+        <select
+          class="admin-select"
+          [ngModel]="selectedTopic()"
+          (ngModelChange)="setTopic($event)"
+        >
+          <option value="">All topics</option>
+          @for (topic of topics(); track topic) {
+          <option [value]="topic">{{ topic }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="admin-field-group">
+        <span>Year</span>
+        <select
+          class="admin-select"
+          [ngModel]="selectedYear() === null ? '' : selectedYear()"
+          (ngModelChange)="setYear($event)"
+        >
+          <option value="">All years</option>
+          @for (year of years(); track year) {
+          <option [value]="year">Year {{ year }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <button
+      class="admin-btn admin-btn-secondary"
+      type="button"
+      (click)="resetFilters()"
+    >
+      <fa-icon [icon]="resetIcon"></fa-icon>
+      <span>Reset Filters</span>
+    </button>
+  </section>
+
+  <section class="visual-catalog-grid">
+    @for (asset of filteredAssets(); track trackByAssetId($index, asset)) {
+    <article class="admin-panel visual-card">
+      <div class="visual-card-preview">
+        <img
+          [src]="asset.source.svgPath"
+          [alt]="asset.altText"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="visual-card-content">
+        <div class="visual-card-header">
+          <div>
+            <p class="admin-eyebrow">{{ asset.assetId }}</p>
+            <h3>{{ asset.displayName }}</h3>
+          </div>
+          <span class="admin-chip">{{ asset.format.toUpperCase() }}</span>
+        </div>
+
+        <p class="visual-card-text">{{ asset.altText }}</p>
+        <p class="visual-card-semantic">{{ asset.semanticText }}</p>
+
+        <div class="visual-chip-row">
+          @for (category of asset.categories; track category) {
+          <span class="visual-chip">{{ category }}</span>
+          }
+        </div>
+
+        <div class="visual-meta-grid">
+          <div>
+            <span class="visual-meta-label">Topics</span>
+            <p>{{ asset.supportedTopics.join(', ') }}</p>
+          </div>
+          <div>
+            <span class="visual-meta-label">Years</span>
+            <p>{{ asset.yearLevels.join(', ') }}</p>
+          </div>
+          <div>
+            <span class="visual-meta-label">Roles</span>
+            <p>{{ asset.roles.join(', ') }}</p>
+          </div>
+          <div>
+            <span class="visual-meta-label">Keywords</span>
+            <p>{{ asset.keywords.join(', ') }}</p>
+          </div>
+        </div>
+      </div>
+    </article>
+    } @empty {
+    <section class="admin-panel visual-catalog-state">
+      <p>No assets match the current filter set.</p>
+    </section>
+    }
+  </section>
+  }
+</div>

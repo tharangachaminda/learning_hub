@@ -10,6 +10,7 @@ import { LessonsLearnedComponent } from './features/lessons-learned/lessons-lear
 import { AnalyticsComponent } from './features/analytics/analytics';
 import { authGuard } from './guards/auth.guard';
 import { AdminShellComponent } from './shared/admin-shell/admin-shell';
+import { VisualCatalogPreviewComponent } from './features/visual-catalog-preview/visual-catalog-preview';
 
 export const appRoutes: Route[] = [
   {
@@ -68,6 +69,15 @@ export const appRoutes: Route[] = [
         data: {
           shellDescription:
             'Assemble approved questions into printable worksheet packs with answer sheets.',
+        },
+      },
+      {
+        path: 'visual-catalog',
+        component: VisualCatalogPreviewComponent,
+        title: 'Visual Catalog',
+        data: {
+          shellDescription:
+            'Inspect approved SVG assets, metadata, and curriculum coverage before using them in generated questions.',
         },
       },
       {

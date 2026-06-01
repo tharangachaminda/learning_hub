@@ -1,5 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema } from 'mongoose';
+import type {
+  LLMSelectedVisual,
+  QuestionVisual as GeneratedQuestionVisual,
+  QuestionVisualContainerLayout as GeneratedQuestionVisualContainerLayout,
+  VisualAssetPlacement,
+  VisualAssetRole,
+} from '../../ai/schemas';
 
 /**
  * Status values for a stored question in the review workflow.
@@ -35,6 +42,22 @@ export enum QuestionFormat {
   MULTIPLE_CHOICE = 'multiple-choice',
 }
 
+/** Supported roles for structured visual content attached to a question. */
+export enum QuestionVisualRole {
+  INLINE_SYMBOL = 'inline-symbol',
+  PROMPT_ILLUSTRATION = 'prompt-illustration',
+  ANSWER_OPTION = 'answer-option',
+  EXPLANATION_AID = 'explanation-aid',
+}
+
+/** Placement hints for question visuals in the UI. */
+export enum QuestionVisualPlacement {
+  BEFORE_QUESTION = 'before-question',
+  AFTER_QUESTION = 'after-question',
+  INLINE = 'inline',
+  EXPLANATION = 'explanation',
+}
+
 /**
  * Synchronization lifecycle for publishing a stored question to the vector index.
  */
@@ -55,7 +78,7 @@ export enum VectorSyncStatus {
  */
 @Schema({ _id: false })
 export class QuestionMetadata {
-  /** LLM model identifier used for generation (e.g. 'falcon3:latest') */
+  /** LLM model identifier used for generation (e.g. 'qwen3:14b') */
   @Prop({ type: String })
   generatedBy: string;
 
@@ -184,6 +207,130 @@ export class VectorSyncMetadata {
   embeddingModelVersion?: string;
 }
 
+/** Structured visual content associated with a question. */
+@Schema({ _id: false })
+export class QuestionVisual implements GeneratedQuestionVisual {
+  /** Stable registry identifier for the visual asset */
+  @Prop({ type: String, required: true })
+  assetId: string;
+
+  /** How the frontend should use the visual */
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualRole),
+    required: true,
+  })
+  role: VisualAssetRole;
+
+  /** Path to a static SVG asset when the visual is file-backed */
+  @Prop({ type: String })
+  svgPath?: string;
+
+  /** Template identifier when the visual is generated from parameters */
+  @Prop({ type: String })
+  templateId?: string;
+
+  /** Optional placement hint for the frontend */
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualPlacement),
+  })
+  placement?: VisualAssetPlacement;
+
+  @Prop({
+    type: {
+      width: { type: Number },
+      height: { type: Number },
+    },
+    _id: false,
+  })
+  render?: {
+    width?: number;
+    height?: number;
+  };
+
+  @Prop({
+    type: {
+      row: { type: Number },
+      column: { type: Number },
+    },
+    _id: false,
+  })
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+@Schema({ _id: false })
+export class QuestionVisualSelection implements LLMSelectedVisual {
+  @Prop({ type: String, required: true })
+  assetId: string;
+
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualRole),
+    required: true,
+  })
+  role: VisualAssetRole;
+
+  @Prop({
+    type: String,
+    enum: Object.values(QuestionVisualPlacement),
+  })
+  placement?: VisualAssetPlacement;
+
+  @Prop({
+    type: {
+      width: { type: Number },
+      height: { type: Number },
+    },
+    _id: false,
+  })
+  render?: {
+    width?: number;
+    height?: number;
+  };
+
+  @Prop({
+    type: {
+      row: { type: Number },
+      column: { type: Number },
+    },
+    _id: false,
+  })
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+@Schema({ _id: false })
+export class QuestionVisualContainerLayout
+  implements GeneratedQuestionVisualContainerLayout
+{
+  @Prop({ type: String })
+  container?: 'grid';
+
+  @Prop({ type: Number })
+  rows?: number;
+
+  @Prop({ type: Number })
+  columns?: number;
+}
+
+@Schema({ _id: false })
+export class QuestionAnswerOption {
+  @Prop({ type: String, required: true })
+  value: string;
+
+  @Prop({ type: String })
+  assetId?: string;
+
+  @Prop({ type: String })
+  svgPath?: string;
+}
+
 /** Mongoose hydrated document type for the Question schema */
 export type QuestionDocument = HydratedDocument<Question>;
 
@@ -255,12 +402,16 @@ export class Question {
   })
   format: QuestionFormat;
 
+  /** Optional visual asset id for the correct answer when the answer is image-based. */
+  @Prop({ type: String })
+  answerAssetId?: string;
+
   /**
    * Answer options for multiple-choice questions.
    * Empty array for open-ended questions.
    */
-  @Prop({ type: [String], default: [] })
-  options: string[];
+  @Prop({ type: [MongooseSchema.Types.Mixed], default: [] })
+  options: Array<string | QuestionAnswerOption>;
 
   /**
    * Review workflow status. Defaults to `pending`.
@@ -278,6 +429,18 @@ export class Question {
    */
   @Prop({ type: [String], default: [] })
   stepByStepSolution: string[];
+
+  /** Ordered visual selection sequence supplied by the LLM. */
+  @Prop({ type: [QuestionVisualSelection], default: [] })
+  visualSelections: QuestionVisualSelection[];
+
+  /** Structured SVG-backed visuals associated with the question. */
+  @Prop({ type: [QuestionVisual], default: [] })
+  visuals: QuestionVisual[];
+
+  /** Shared layout metadata for the question's visual container. */
+  @Prop({ type: QuestionVisualContainerLayout, _id: false })
+  visualLayout?: QuestionVisualContainerLayout;
 
   /**
    * AI generation metadata including model, timing, and quality info.
