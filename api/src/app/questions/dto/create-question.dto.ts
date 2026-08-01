@@ -10,13 +10,17 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { QuestionFormat } from '../schemas/question.schema';
+import {
+  QuestionFormat,
+  QuestionVisualPlacement,
+  QuestionVisualRole,
+} from '../schemas/question.schema';
 
 /**
  * Nested metadata DTO for question creation requests.
  */
 export class CreateQuestionMetadataDto {
-  /** LLM model identifier (e.g. 'falcon3:latest') */
+  /** LLM model identifier (e.g. 'falcon3:latest'); omitted for manually authored questions */
   @IsOptional()
   @IsString()
   generatedBy?: string;
@@ -35,6 +39,71 @@ export class CreateQuestionMetadataDto {
   @IsOptional()
   @IsString()
   country?: string;
+}
+
+/** Optional render dimensions for a requested visual selection. */
+export class CreateQuestionVisualRenderDto {
+  @IsOptional()
+  @IsNumber()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+}
+
+/** Optional grid position for a requested visual selection. */
+export class CreateQuestionVisualLayoutPositionDto {
+  @IsOptional()
+  @IsNumber()
+  row?: number;
+
+  @IsOptional()
+  @IsNumber()
+  column?: number;
+}
+
+/**
+ * A visual asset picked from the registry to attach to a manually created
+ * question. Resolved server-side against the approved catalog for the
+ * question's grade/topic before being persisted as a `QuestionVisual`.
+ */
+export class CreateQuestionVisualSelectionDto {
+  /** Stable registry identifier for the visual asset (e.g. 'pattern.circle.full') */
+  @IsString()
+  assetId: string;
+
+  @IsEnum(QuestionVisualRole)
+  role: QuestionVisualRole;
+
+  @IsOptional()
+  @IsEnum(QuestionVisualPlacement)
+  placement?: QuestionVisualPlacement;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateQuestionVisualRenderDto)
+  render?: CreateQuestionVisualRenderDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateQuestionVisualLayoutPositionDto)
+  layout?: CreateQuestionVisualLayoutPositionDto;
+}
+
+/** Shared grid container layout hint for a question's attached visuals. */
+export class CreateQuestionVisualLayoutDto {
+  @IsOptional()
+  @IsString()
+  container?: 'grid';
+
+  @IsOptional()
+  @IsNumber()
+  rows?: number;
+
+  @IsOptional()
+  @IsNumber()
+  columns?: number;
 }
 
 export class CreateQuestionOptionDto {
@@ -89,10 +158,10 @@ export class CreateQuestionDto {
   @IsString()
   explanation?: string;
 
-  /** Grade level (3–8) */
+  /** Grade level (0–10), aligned to the NZ Curriculum */
   @IsNumber()
-  @Min(3)
-  @Max(8)
+  @Min(0)
+  @Max(10)
   grade: number;
 
   /** Curriculum topic key (e.g. 'ADDITION') */
@@ -119,6 +188,19 @@ export class CreateQuestionDto {
   @IsArray()
   @IsString({ each: true })
   stepByStepSolution?: string[];
+
+  /** Visual assets picked from the registry to attach to this question */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateQuestionVisualSelectionDto)
+  visualSelections?: CreateQuestionVisualSelectionDto[];
+
+  /** Grid container layout hint for the attached visuals */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateQuestionVisualLayoutDto)
+  visualLayout?: CreateQuestionVisualLayoutDto;
 
   /** AI generation metadata */
   @IsOptional()

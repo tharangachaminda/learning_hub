@@ -117,8 +117,9 @@ export interface QuestionItem {
   status: string;
   stepByStepSolution: string[];
   metadata: {
-    generatedBy: string;
-    generationTime: number;
+    source?: 'llm' | 'manual';
+    generatedBy?: string;
+    generationTime?: number;
     difficulty: string;
     country: string;
     subject?: string;
@@ -231,6 +232,25 @@ export interface BatchGenerateRequest {
 export interface BatchGenerateResponse {
   stored: number;
   questions: QuestionItem[];
+}
+
+export interface CreateQuestionRequest {
+  questionText: string;
+  answer: number | string;
+  answerAssetId?: string;
+  explanation?: string;
+  grade: number;
+  topic: string;
+  category?: string;
+  format?: string;
+  options?: Array<string | QuestionAnswerOption>;
+  stepByStepSolution?: string[];
+  visualSelections?: QuestionVisualSelection[];
+  visualLayout?: QuestionVisualContainerLayout;
+  metadata?: {
+    difficulty?: string;
+    country?: string;
+  };
 }
 
 export interface RefinementPreview {
@@ -493,6 +513,12 @@ export class AuthService {
       `${this.questionsApiUrl}/batch-generate`,
       request
     );
+  }
+
+  createQuestion(
+    request: CreateQuestionRequest
+  ): Observable<QuestionItem> {
+    return this.http.post<QuestionItem>(this.questionsApiUrl, request);
   }
 
   reviewQuestion(

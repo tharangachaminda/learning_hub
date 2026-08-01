@@ -25,6 +25,7 @@ import {
   faGaugeHigh,
   faLayerGroup,
   faLightbulb,
+  faPenToSquare,
   faRobot,
   faUsersGear,
   IconDefinition,
@@ -87,6 +88,12 @@ export class AdminShellComponent implements OnDestroy {
       description: 'Create curriculum-aligned questions',
       route: '/generate',
       icon: faRobot,
+    },
+    {
+      label: 'Create Question',
+      description: 'Manually author and submit a question for review',
+      route: '/create',
+      icon: faPenToSquare,
     },
     {
       label: 'Review Queue',

@@ -1,0 +1,208 @@
+<div class="create-question">
+  @if (isLoadingCurriculum) {
+  <p class="status-text">Loading curriculum…</p>
+  } @else if (created) {
+  <div class="confirmation-card">
+    <h3>Question created</h3>
+    <p>
+      Saved as <strong>pending</strong>. Approve it from the review queue to
+      trigger vector indexing.
+    </p>
+    <app-katex-render [content]="created.questionText" />
+    <div class="confirmation-actions">
+      <button type="button" class="btn-primary" (click)="goToReview()">
+        Open in Review Queue
+      </button>
+      <button type="button" class="btn-secondary" (click)="createAnother()">
+        Create another
+      </button>
+    </div>
+  </div>
+  } @else {
+  <form (ngSubmit)="submit()" class="create-question-form">
+    @if (error) {
+    <div class="alert alert-error">{{ error }}</div>
+    }
+
+    <div class="field-row">
+      <div class="field-group">
+        <label for="grade">Grade</label>
+        <select
+          id="grade"
+          class="form-select"
+          [(ngModel)]="selectedGrade"
+          name="grade"
+          (ngModelChange)="onGradeChange()"
+        >
+          <option [ngValue]="null">Select grade…</option>
+          @for (grade of grades; track grade.grade) {
+          <option [ngValue]="grade.grade">Year {{ grade.grade }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="topic">Topic</label>
+        <select
+          id="topic"
+          class="form-select"
+          [(ngModel)]="selectedTopic"
+          name="topic"
+          [disabled]="!availableTopics.length"
+        >
+          <option value="">Select topic…</option>
+          @for (topic of availableTopics; track topic.key) {
+          <option [value]="topic.key">{{ topic.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="format">Format</label>
+        <select
+          id="format"
+          class="form-select"
+          [(ngModel)]="format"
+          name="format"
+        >
+          <option value="open-ended">Open-ended</option>
+          <option value="multiple-choice">Multiple-choice</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="difficulty">Difficulty</label>
+        <select
+          id="difficulty"
+          class="form-select"
+          [(ngModel)]="difficulty"
+          name="difficulty"
+        >
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Question text</label>
+      <app-latex-editor
+        [content]="questionText"
+        placeholder="e.g. What is $5 + 3$?"
+        (contentChange)="questionText = $event"
+      />
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label for="answer">Answer</label>
+        <input
+          id="answer"
+          type="text"
+          class="form-control"
+          [(ngModel)]="answer"
+          name="answer"
+          placeholder="e.g. 8"
+        />
+      </div>
+      <div class="field-group">
+        <label for="answerAssetId">Answer visual asset id (optional)</label>
+        <input
+          id="answerAssetId"
+          type="text"
+          class="form-control"
+          [(ngModel)]="answerAssetId"
+          name="answerAssetId"
+          placeholder="e.g. pattern.circle.full"
+        />
+      </div>
+    </div>
+
+    @if (format === 'multiple-choice') {
+    <div class="field-group">
+      <label>Options</label>
+      @for (option of options; track $index) {
+      <div class="option-row">
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="option.value"
+          [name]="'option-' + $index"
+          placeholder="Option text"
+        />
+        <button type="button" class="btn-remove" (click)="removeOption($index)">
+          Remove
+        </button>
+      </div>
+      }
+      <button type="button" class="btn-secondary" (click)="addOption()">
+        + Add option
+      </button>
+    </div>
+    }
+
+    <div class="field-group">
+      <label>Explanation</label>
+      <app-latex-editor
+        [content]="explanation"
+        placeholder="Explain the solution…"
+        (contentChange)="explanation = $event"
+      />
+    </div>
+
+    <div class="field-group">
+      <label>Step-by-step solution</label>
+      @for (step of steps; track $index) {
+      <div class="step-row">
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="steps[$index]"
+          [name]="'step-' + $index"
+        />
+        <button
+          type="button"
+          class="btn-icon"
+          (click)="moveStep($index, 'up')"
+          [disabled]="$index === 0"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          class="btn-icon"
+          (click)="moveStep($index, 'down')"
+          [disabled]="$index === steps.length - 1"
+        >
+          ↓
+        </button>
+        <button type="button" class="btn-remove" (click)="removeStep($index)">
+          Remove
+        </button>
+      </div>
+      }
+      <button type="button" class="btn-secondary" (click)="addStep()">
+        + Add step
+      </button>
+    </div>
+
+    <div class="field-group">
+      <label>
+        Visuals (image library) — optional, attach whenever relevant
+      </label>
+      <app-visual-picker
+        [grade]="selectedGrade"
+        [topic]="selectedTopic"
+        (selectionChange)="onVisualSelectionChange($event)"
+      />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="!canSubmit">
+        {{ isSubmitting ? 'Saving…' : 'Save as pending' }}
+      </button>
+    </div>
+  </form>
+  }
+</div>

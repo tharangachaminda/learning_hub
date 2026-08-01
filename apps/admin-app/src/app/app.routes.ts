@@ -11,6 +11,7 @@ import { AnalyticsComponent } from './features/analytics/analytics';
 import { authGuard } from './guards/auth.guard';
 import { AdminShellComponent } from './shared/admin-shell/admin-shell';
 import { VisualCatalogPreviewComponent } from './features/visual-catalog-preview/visual-catalog-preview';
+import { CreateQuestionComponent } from './features/create-question/create-question';
 
 export const appRoutes: Route[] = [
   {
@@ -48,6 +49,15 @@ export const appRoutes: Route[] = [
         data: {
           shellDescription:
             'Create new question batches with tighter control over grade, topic, and difficulty.',
+        },
+      },
+      {
+        path: 'create',
+        component: CreateQuestionComponent,
+        title: 'Create Question',
+        data: {
+          shellDescription:
+            'Manually author a question, attach visuals from the image library, and submit it for review.',
         },
       },
       {

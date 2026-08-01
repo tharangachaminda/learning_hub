@@ -1,10 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { QuestionsController } from './questions.controller';
 import { QuestionsService, PaginatedQuestions } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { OllamaService } from '../ai/ollama.service';
-import { QuestionStatus, QuestionFormat } from './schemas/question.schema';
+import { VisualAssetRegistryService } from '../ai/visual-asset-registry.service';
+import {
+  QuestionStatus,
+  QuestionFormat,
+  QuestionVisualRole,
+} from './schemas/question.schema';
 import { QuestionIndexingService } from '../opensearch/question-indexing.service';
 
 const mockQuestion = {
@@ -81,6 +86,22 @@ describe('QuestionsController', () => {
       indexStoredQuestion: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockVisualAssetRegistryService = {
+      getGenerationCatalog: jest.fn().mockResolvedValue([
+        {
+          assetId: 'pattern.circle.empty',
+          roles: ['prompt-illustration', 'inline-symbol'],
+        },
+      ]),
+      resolveSelectedVisuals: jest.fn().mockResolvedValue([
+        {
+          assetId: 'pattern.circle.empty',
+          role: 'prompt-illustration',
+          svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+        },
+      ]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [QuestionsController],
       providers: [
@@ -90,6 +111,10 @@ describe('QuestionsController', () => {
         {
           provide: QuestionIndexingService,
           useValue: mockQuestionIndexingService,
+        },
+        {
+          provide: VisualAssetRegistryService,
+          useValue: mockVisualAssetRegistryService,
         },
       ],
     }).compile();
@@ -221,6 +246,91 @@ describe('QuestionsController', () => {
         result.subjects[0].years[result.subjects[0].years.length - 1].grade
       ).toBe(10);
       expect(result.grades[0].topics.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('POST /questions (manual creation)', () => {
+    const validDto = {
+      questionText: 'What is $5 + 3$?',
+      answer: 8,
+      grade: 3,
+      topic: 'ADDITION',
+    } as any;
+
+    it('should create a manual question with source=manual metadata', async () => {
+      const result = await controller.createQuestion(validDto, {
+        user: { email: 'teacher@example.com' },
+      });
+
+      expect(questionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionText: 'What is $5 + 3$?',
+          answer: 8,
+          grade: 3,
+          topic: 'ADDITION',
+          generatedByUser: 'teacher@example.com',
+          metadata: expect.objectContaining({ source: 'manual' }),
+        })
+      );
+      expect(result).toEqual(mockQuestion);
+    });
+
+    it('should reject an unsupported grade/topic pairing', async () => {
+      await expect(
+        controller.createQuestion(
+          { ...validDto, grade: 0, topic: 'LINEAR_EQUATIONS' } as any,
+          { user: { email: 'teacher@example.com' } }
+        )
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ConflictException when the service reports a duplicate', async () => {
+      questionsService.create.mockResolvedValueOnce(null as any);
+
+      await expect(
+        controller.createQuestion(validDto, {
+          user: { email: 'teacher@example.com' },
+        })
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should resolve valid visual selections into stored visuals', async () => {
+      const dto = {
+        ...validDto,
+        visualSelections: [
+          {
+            assetId: 'pattern.circle.empty',
+            role: QuestionVisualRole.PROMPT_ILLUSTRATION,
+          },
+        ],
+      } as any;
+
+      await controller.createQuestion(dto, {
+        user: { email: 'teacher@example.com' },
+      });
+
+      expect(questionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          visuals: [
+            expect.objectContaining({ assetId: 'pattern.circle.empty' }),
+          ],
+        })
+      );
+    });
+
+    it('should reject a visual selection not in the approved catalog', async () => {
+      const dto = {
+        ...validDto,
+        visualSelections: [
+          { assetId: 'not.a.real.asset', role: QuestionVisualRole.INLINE_SYMBOL },
+        ],
+      } as any;
+
+      await expect(
+        controller.createQuestion(dto, {
+          user: { email: 'teacher@example.com' },
+        })
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

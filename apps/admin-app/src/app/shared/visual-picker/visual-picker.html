@@ -1,0 +1,82 @@
+<div class="visual-picker">
+  <div class="visual-picker-toolbar">
+    <input
+      type="search"
+      class="form-control"
+      placeholder="Search visuals by name or keyword…"
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+    />
+    <label class="relax-filters">
+      <input
+        type="checkbox"
+        [ngModel]="showAllYearsAndTopics()"
+        (ngModelChange)="showAllYearsAndTopics.set($event)"
+      />
+      Show all grades/topics
+    </label>
+  </div>
+
+  @if (loading()) {
+  <p class="visual-picker-status">Loading visual library…</p>
+  } @else if (error()) {
+  <p class="visual-picker-status visual-picker-error">{{ error() }}</p>
+  } @else if (filteredAssets().length === 0) {
+  <p class="visual-picker-status">
+    No visuals match the current filters. Try "Show all grades/topics".
+  </p>
+  } @else {
+  <div class="visual-grid">
+    @for (asset of filteredAssets(); track trackByAssetId($index, asset)) {
+    <button
+      type="button"
+      class="visual-card"
+      [class.visual-card--selected]="isSelected(asset.assetId)"
+      (click)="toggleAsset(asset)"
+      [attr.aria-pressed]="isSelected(asset.assetId)"
+    >
+      @if (asset.source.svgPath) {
+      <img [src]="asset.source.svgPath" [alt]="asset.altText" loading="lazy" />
+      }
+      <span class="visual-card-label">{{ asset.displayName }}</span>
+    </button>
+    }
+  </div>
+  } @if (selections().length > 0) {
+  <div class="visual-selections">
+    <h4>Selected visuals ({{ selections().length }})</h4>
+    @for (selection of selections(); track selection.assetId) {
+    <div class="visual-selection-row">
+      @if (assetById(selection.assetId)?.source?.svgPath) {
+      <img
+        [src]="assetById(selection.assetId)?.source?.svgPath"
+        alt=""
+        loading="lazy"
+      />
+      }
+      <span class="visual-selection-name"
+        >{{ assetById(selection.assetId)?.displayName ?? selection.assetId
+        }}</span
+      >
+      <select
+        class="form-select form-select-sm"
+        [ngModel]="selection.role"
+        (ngModelChange)="updateSelectionRole(selection.assetId, $event)"
+      >
+        @for (role of assetById(selection.assetId)?.roles; track role) {
+        <option [value]="role">{{ role }}</option>
+        }
+      </select>
+      <button
+        type="button"
+        class="btn-remove"
+        (click)="removeSelection(selection.assetId)"
+        aria-label="Remove visual"
+      >
+        ✕
+      </button>
+    </div>
+    }
+  </div>
+  }
+</div>

@@ -1,0 +1,121 @@
+.visual-picker {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 0.85rem;
+  padding: 0.9rem;
+  background: #f8fbff;
+}
+
+.visual-picker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+
+  input[type='search'] {
+    flex: 1 1 220px;
+  }
+}
+
+.relax-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.visual-picker-status {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0.5rem 0;
+}
+
+.visual-picker-error {
+  color: #b91c1c;
+}
+
+.visual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.6rem;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 0.15rem;
+}
+
+.visual-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.65rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
+
+  &-label {
+    font-size: 0.68rem;
+    text-align: center;
+    color: #475569;
+    line-height: 1.15;
+  }
+
+  &--selected {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+}
+
+.visual-selections {
+  margin-top: 0.85rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  padding-top: 0.65rem;
+
+  h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    margin: 0 0 0.5rem;
+  }
+}
+
+.visual-selection-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.1rem;
+
+  img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+}
+
+.visual-selection-name {
+  flex: 1 1 auto;
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.btn-remove {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: #dc2626;
+  }
+}
