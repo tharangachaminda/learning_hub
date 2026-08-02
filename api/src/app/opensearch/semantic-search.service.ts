@@ -9,6 +9,7 @@ export interface SearchFilters {
   grade?: number;
   topic?: string;
   operation?: string;
+  difficulty?: string;
   excludeIds?: string[];
   limit?: number;
 }
@@ -285,6 +286,13 @@ export class SemanticSearchService {
     // Operation filter
     if (filters.operation) {
       must.push(this.buildOperationFilter(filters.operation));
+    }
+
+    // Difficulty filter
+    if (filters.difficulty) {
+      must.push({
+        term: { 'metadata.difficulty': filters.difficulty },
+      });
     }
 
     // Exclude IDs filter

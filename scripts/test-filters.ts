@@ -69,6 +69,40 @@ async function main() {
         })`
       );
     });
+    console.log();
+
+    // Test 5: Difficulty filter alone
+    console.log('Test 5: With difficulty filter (difficulty=easy)');
+    const results5 = await semanticSearchService.findSimilar('solve math', {
+      difficulty: 'easy',
+      limit: 3,
+    });
+    console.log(`✅ Found ${results5.length} results`);
+    results5.forEach((r, i) => {
+      console.log(
+        `  ${i + 1}. ${r.questionText} (Difficulty: ${r.metadata.difficulty})`
+      );
+    });
+    console.log();
+
+    // Test 6: Grade + Topic + Difficulty filter combined
+    console.log(
+      'Test 6: With grade + topic + difficulty filter (grade=0, topic=counting_and_quantity, difficulty=easy)'
+    );
+    const results6 = await semanticSearchService.findSimilar('count objects', {
+      grade: 0,
+      topic: 'counting_and_quantity',
+      difficulty: 'easy',
+      limit: 3,
+    });
+    console.log(`✅ Found ${results6.length} results`);
+    results6.forEach((r, i) => {
+      console.log(
+        `  ${i + 1}. ${r.questionText} (Grade: ${r.metadata.grade}, Topic: ${
+          r.metadata.topic
+        }, Difficulty: ${r.metadata.difficulty})`
+      );
+    });
   } catch (error) {
     console.error('❌ Error:', error);
     if (error instanceof Error) {

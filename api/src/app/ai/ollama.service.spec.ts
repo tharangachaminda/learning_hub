@@ -3,6 +3,10 @@ import { OllamaService } from './ollama.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { VisualAssetRegistryService } from './visual-asset-registry.service';
+import {
+  SemanticSearchService,
+  SearchResult,
+} from '../opensearch/semantic-search.service';
 
 describe('OllamaService', () => {
   let service: OllamaService;
@@ -352,6 +356,33 @@ describe('OllamaService', () => {
       expect(result.question).toContain(
         'How many shapes are there altogether?'
       );
+    });
+
+    it('should fallback instead of storing a question that embeds a raw asset ID', async () => {
+      mockAxios.post.mockResolvedValue({
+        data: {
+          response: JSON.stringify({
+            question: 'What quantity of counting.kiwi-bird.standing objects are shown?',
+            answer: 3,
+            explanation: 'Count the kiwi birds shown.',
+            visualSelections: [
+              { assetId: 'counting.kiwi-bird.standing', role: 'inline-symbol' },
+              { assetId: 'counting.kiwi-bird.standing', role: 'inline-symbol' },
+              { assetId: 'counting.kiwi-bird.standing', role: 'inline-symbol' },
+            ],
+          }),
+        },
+      });
+
+      const result = await service.generateMathQuestion({
+        grade: 0,
+        topic: 'COUNTING_AND_QUANTITY',
+        difficulty: 'easy',
+        country: 'NZ',
+      });
+
+      expect(result.metadata.fallback_used).toBe(true);
+      expect(result.question).not.toContain('counting.kiwi-bird.standing');
     });
 
     it('should preserve ordered repeated visual selections for counting questions', async () => {
@@ -989,5 +1020,203 @@ describe('OllamaService', () => {
       const dollars = result.question.match(/\$/g) || [];
       expect(dollars.length % 2).toBe(0);
     });
+  });
+});
+
+describe('OllamaService RAG prompt integration', () => {
+  let service: OllamaService;
+  let semanticSearchService: SemanticSearchService;
+  let mockAxios: any;
+
+  const buildExample = (
+    overrides: Partial<SearchResult> = {}
+  ): SearchResult => ({
+    id: 'q-1',
+    questionText: 'How many red circles are shown altogether?',
+    answer: 3,
+    similarityScore: 0.7,
+    metadata: {
+      grade: '3',
+      topic: 'addition',
+      operation: 'addition',
+      difficulty: 'easy',
+    },
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    mockAxios = {
+      get: jest.fn(),
+      post: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OllamaService,
+        {
+          provide: HttpService,
+          useValue: { axiosRef: mockAxios },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string, defaultValue?: unknown) =>
+              key === 'OLLAMA_URL' ? 'http://localhost:11434' : defaultValue
+            ),
+          },
+        },
+        {
+          provide: SemanticSearchService,
+          useValue: { findSimilar: jest.fn() },
+        },
+        VisualAssetRegistryService,
+      ],
+    }).compile();
+
+    service = module.get<OllamaService>(OllamaService);
+    semanticSearchService = module.get<SemanticSearchService>(
+      SemanticSearchService
+    );
+  });
+
+  it('presents RAG examples as a STYLE REFERENCE, not a "COMPLETELY DIFFERENT" instruction', async () => {
+    jest
+      .spyOn(semanticSearchService, 'findSimilar')
+      .mockResolvedValue([buildExample()]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: JSON.stringify({
+          question: 'How many blue squares are shown altogether?',
+          answer: 4,
+          explanation: 'Count the squares shown.',
+        }),
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).toContain('STYLE REFERENCE');
+    expect(body.prompt).toContain(
+      'How many red circles are shown altogether?'
+    );
+    expect(body.prompt).not.toContain('COMPLETELY DIFFERENT');
+  });
+
+  it('passes difficulty through to findSimilar and requests the configured pool size', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'hard',
+      country: 'NZ',
+    });
+
+    expect(semanticSearchService.findSimilar).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        grade: 3,
+        topic: 'addition',
+        difficulty: 'hard',
+        limit: 20,
+      })
+    );
+  });
+
+  it('samples down to ragExampleLimit when the pool is larger', async () => {
+    const pool = Array.from({ length: 20 }, (_, i) =>
+      buildExample({
+        id: `q-${i}`,
+        questionText: `Question number ${i}`,
+      })
+    );
+
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue(pool);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: JSON.stringify({
+          question: 'How many blue squares are shown altogether?',
+          answer: 4,
+          explanation: 'Count the squares shown.',
+        }),
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    const referencedCount = pool.filter((ex) =>
+      body.prompt.includes(`"${ex.questionText}"`)
+    ).length;
+    expect(referencedCount).toBe(10);
+  });
+
+  it('uses the full pool without error when it is smaller than ragExampleLimit', async () => {
+    jest
+      .spyOn(semanticSearchService, 'findSimilar')
+      .mockResolvedValue([buildExample()]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: JSON.stringify({
+          question: 'How many blue squares are shown altogether?',
+          answer: 4,
+          explanation: 'Count the squares shown.',
+        }),
+      },
+    });
+
+    const result = await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    expect(result.question).toBeDefined();
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).toContain(
+      'How many red circles are shown altogether?'
+    );
+  });
+
+  it('does not error when the retrieved pool is empty', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    const result = await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    expect(result.question).toBeDefined();
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).not.toContain('REFERENCE EXAMPLES (from question bank)');
   });
 });

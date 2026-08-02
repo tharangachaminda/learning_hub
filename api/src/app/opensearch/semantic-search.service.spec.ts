@@ -220,6 +220,69 @@ describe('SemanticSearchService', () => {
       );
     });
 
+    it('should filter by difficulty', async () => {
+      const questionText = 'What is 5 + 3?';
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding384);
+      jest
+        .spyOn(openSearchService, 'search')
+        .mockResolvedValue(mockSearchResults);
+
+      await service.findSimilar(questionText, { difficulty: 'easy' });
+
+      expect(openSearchService.search).toHaveBeenCalledWith(
+        'math-questions',
+        expect.objectContaining({
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.difficulty': 'easy' },
+              }),
+            }),
+          }),
+        }),
+        10
+      );
+    });
+
+    it('should combine grade, topic, and difficulty filters', async () => {
+      const questionText = 'What is 5 + 3?';
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding384);
+      jest
+        .spyOn(openSearchService, 'search')
+        .mockResolvedValue(mockSearchResults);
+
+      await service.findSimilar(questionText, {
+        grade: 0,
+        topic: 'counting_and_quantity',
+        difficulty: 'easy',
+      });
+
+      expect(openSearchService.search).toHaveBeenCalledWith(
+        'math-questions',
+        expect.objectContaining({
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must: expect.arrayContaining([
+                    { term: { 'metadata.grade': '0' } },
+                    { term: { 'metadata.difficulty': 'easy' } },
+                  ]),
+                }),
+              }),
+            }),
+          }),
+        }),
+        10
+      );
+    });
+
     it('should filter by operation', async () => {
       const questionText = 'What is 5 + 3?';
 

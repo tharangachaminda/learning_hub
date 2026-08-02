@@ -561,14 +561,17 @@ Generate a ${request.difficulty.toUpperCase()} difficulty ${
     const isLowerGrade = request.grade <= 4;
     const isEasy = request.difficulty === 'easy';
 
+    const styleGuidance = `If a REFERENCE EXAMPLES section is provided later in this prompt, derive the phrasing, tone, and narrative style of the question from those examples (using different numbers/objects/context — not a duplicate). Only use the fallback guidance below when no REFERENCE EXAMPLES section is provided.`;
+
     if (topicUpper === 'COUNTING_AND_QUANTITY') {
       return `QUESTION FORMAT STYLE:
-Generate a visual counting question tied to shown objects only.
-Ask the student to count the shown circles, squares, triangles, or a clearly described shown group.
-Do NOT invent story scenes such as birds in forests, sports scores, beaches, mountains, or number lines unless those are actually provided as approved visuals.
+${styleGuidance}
+Generate a visual counting question tied only to objects actually present in the approved visual catalog.
+STRUCTURAL CONSTRAINT (always applies, regardless of reference examples): do NOT invent a setting, location, or narrative scene for the shown objects (e.g. no forests, beaches, mountains, or story context) — describe only the objects and their quantity, nothing more.
+Fallback (no reference examples): ask the student to count or identify the quantity of the shown objects, using clear and direct wording.
 For Year ${
         request.grade
-      }, keep the wording short and direct and keep the mathematics within early counting and quantity recognition.
+      }, keep the mathematics within early counting and quantity recognition.
 ${
   request.format === 'multiple-choice'
     ? 'Make it multiple-choice with exactly 4 options. When possible, include plausible counting distractors close to the correct answer.'
@@ -579,9 +582,10 @@ ${
 
     if (topicUpper === 'EARLY_OPERATIONS') {
       return `QUESTION FORMAT STYLE:
-Generate a visual joining or taking-away question tied to shown groups only.
-The student should reason from visible groups of approved objects, not from an unrelated story context.
-Use simple join, add, take away, left, or altogether language appropriate for Year ${
+${styleGuidance}
+Generate a joining or taking-away question grounded only in the visible groups of approved objects, not an unrelated story context.
+STRUCTURAL CONSTRAINT (always applies, regardless of reference examples): do NOT invent a setting, location, or narrative scene for the shown objects (e.g. no forests, beaches, mountains, or story context) — describe only the objects and the joining/taking-away action, nothing more.
+Fallback (no reference examples): use simple join, add, take away, left, or altogether language appropriate for Year ${
         request.grade
       }.
 Do NOT turn this into a plain symbolic equation with no shown objects.
@@ -595,13 +599,12 @@ ${
 
     if (isPatternTopic) {
       return `QUESTION FORMAT STYLE:
-Generate a pattern question, not a standalone arithmetic computation.
-Ask the student to identify the repeating unit, continue the pattern, or count shapes in a shown pattern.
-Keep the wording plain and generic, for example "Look at the shapes shown. What comes next in the pattern?"
-Do NOT mention visual asset IDs or labels such as empty circle, full circle, or full triangle in the question text.
-Keep the wording short and direct for Year ${
+${styleGuidance}
+Generate a pattern question, not a standalone arithmetic computation — ask the student to identify the repeating unit, continue the pattern, or count shapes in a shown pattern.
+Fallback (no reference examples): keep the wording plain, short, and generic for Year ${
         request.grade
-      }, but the mathematics must stay about patterns.
+      }.
+Do NOT mention visual asset IDs or labels such as empty circle, full circle, or full triangle in the question text.
 Do NOT turn this into a plain addition, subtraction, multiplication, or division equation unless the pattern itself is central to the question.
 ${
   request.format === 'multiple-choice'
@@ -613,7 +616,8 @@ ${
 
     if (request.grade <= 2) {
       return `QUESTION FORMAT STYLE:
-Generate direct numeric or short-form questions ONLY.
+${styleGuidance}
+Fallback (no reference examples): generate direct numeric or short-form questions only.
 Do NOT use sentence questions, word problems, or story contexts for this question.
 Very simple wording is acceptable, but keep the mathematics direct and concise.
 ${
@@ -626,9 +630,8 @@ ${
 
     if (isEasy && isBasicOp && isLowerGrade) {
       return `QUESTION FORMAT STYLE:
-Generate simple numeric questions ONLY (e.g. "$5 + 3 = ?$", "$12 \\times 4 = ?$").
-Do NOT use word problems, sentences, or story contexts for this question.
-Keep the format direct: a math expression followed by "= ?".
+${styleGuidance}
+Fallback (no reference examples): generate simple numeric questions only (e.g. "$5 + 3 = ?$", "$12 \\times 4 = ?$") — a math expression followed by "= ?", no word problems or story contexts.
 ${
   request.format === 'multiple-choice'
     ? 'Return exactly 4 numeric options with one correct answer and three plausible distractors.'
