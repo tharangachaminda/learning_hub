@@ -78,21 +78,25 @@ export enum VectorSyncStatus {
  */
 @Schema({ _id: false })
 export class QuestionMetadata {
-  /** LLM model identifier used for generation (e.g. 'qwen3:14b') */
-  @Prop({ type: String })
-  generatedBy: string;
+  /** How the question was authored — LLM-generated or manually entered by staff */
+  @Prop({ type: String, enum: ['llm', 'manual'], default: 'llm' })
+  source?: 'llm' | 'manual';
 
-  /** Time taken to generate the question in milliseconds */
+  /** LLM model identifier used for generation (e.g. 'qwen3:14b'); unset for manual questions */
+  @Prop({ type: String })
+  generatedBy?: string;
+
+  /** Time taken to generate the question in milliseconds; unset for manual questions */
   @Prop({ type: Number })
-  generationTime: number;
+  generationTime?: number;
 
-  /** Difficulty descriptor passed to the LLM (e.g. 'easy', 'medium', 'hard') */
+  /** Difficulty descriptor (e.g. 'easy', 'medium', 'hard') */
   @Prop({ type: String })
-  difficulty: string;
+  difficulty?: string;
 
   /** Country code for cultural/curriculum context (e.g. 'NZ', 'AU') */
   @Prop({ type: String })
-  country: string;
+  country?: string;
 
   /** Subject key used for curriculum lookup and filtering */
   @Prop({ type: String })
@@ -372,7 +376,7 @@ export class Question {
   explanation: string;
 
   /**
-   * Grade level (3–8) aligned to the NZ Curriculum.
+   * Grade level (0–10) aligned to the NZ Curriculum.
    */
   @Prop({ required: true, type: Number })
   grade: number;

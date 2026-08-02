@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Controller,
   Get,
   Param,
@@ -23,6 +24,7 @@ import {
 } from './questions.service';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { OllamaService } from '../ai/ollama.service';
+import { VisualAssetRegistryService } from '../ai/visual-asset-registry.service';
 import { DifficultyLevel } from '../math-questions/entities/math-question.entity';
 import {
   QuestionDocument,
@@ -31,6 +33,10 @@ import {
 } from './schemas/question.schema';
 import { FindQuestionsDto } from './dto/find-questions.dto';
 import { BatchGenerateQuestionsDto } from './dto/batch-generate-questions.dto';
+import {
+  CreateQuestionDto,
+  CreateQuestionVisualSelectionDto,
+} from './dto/create-question.dto';
 import { ReviewQuestionDto } from './dto/review-question.dto';
 import { RefineQuestionDto } from './dto/refine-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
@@ -77,7 +83,8 @@ export class QuestionsController {
     private readonly questionsService: QuestionsService,
     private readonly mathGenerator: MathQuestionGenerator,
     private readonly ollamaService: OllamaService,
-    private readonly questionIndexingService: QuestionIndexingService
+    private readonly questionIndexingService: QuestionIndexingService,
+    private readonly visualAssetRegistryService: VisualAssetRegistryService
   ) {}
 
   /**
@@ -219,6 +226,68 @@ export class QuestionsController {
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<QuestionDocument | null> {
     return this.questionsService.findOne(id);
+  }
+
+  /**
+   * Manually creates a single question (no LLM involved). Used by the
+   * admin/teacher "Question Creator" so authors can attach visuals picked
+   * from the registry and submit for review directly.
+   * Protected: requires admin or teacher role.
+   */
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'teacher')
+  async createQuestion(
+    @Body() dto: CreateQuestionDto,
+    @Request() req: { user?: { email?: string; userId?: string } }
+  ): Promise<QuestionDocument> {
+    const resolvedTopic = this.resolveCurriculumTopicOrThrow(
+      dto.grade,
+      dto.topic
+    );
+    const generatedByUser = req.user?.email || req.user?.userId || 'unknown';
+
+    const visuals = await this.resolveManualVisualSelectionsOrThrow(
+      dto.grade,
+      dto.topic,
+      dto.visualSelections ?? []
+    );
+
+    const created = await this.questionsService.create({
+      questionText: dto.questionText,
+      answer: dto.answer,
+      answerAssetId: dto.answerAssetId,
+      explanation: dto.explanation ?? '',
+      grade: dto.grade,
+      topic: dto.topic,
+      category: dto.category ?? this.topicToCategory(dto.topic, resolvedTopic),
+      format: dto.format ?? QuestionFormat.OPEN_ENDED,
+      options: dto.options ?? [],
+      stepByStepSolution: dto.stepByStepSolution ?? [],
+      visualSelections: dto.visualSelections ?? [],
+      visuals,
+      visualLayout: dto.visualLayout,
+      generatedByUser,
+      metadata: {
+        source: 'manual',
+        difficulty: dto.metadata?.difficulty ?? 'medium',
+        country: dto.metadata?.country ?? 'NZ',
+        subject: MATHEMATICS_CURRICULUM.subject,
+        curriculumVersion: MATHEMATICS_CURRICULUM.version,
+        resolvedTopicKey: resolvedTopic?.key,
+        resolvedTopicLabel: resolvedTopic?.label,
+        curriculumStrand: resolvedTopic?.strand,
+        sourceTopicKey: dto.topic,
+      },
+    });
+
+    if (!created) {
+      throw new ConflictException(
+        'A question with the same text, grade, and topic already exists.'
+      );
+    }
+
+    return created;
   }
 
   /**
@@ -519,7 +588,28 @@ export class QuestionsController {
     @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const editedBy = req.user?.email || req.user?.userId || 'unknown';
-    return this.questionsService.updateQuestionContent(id, dto, editedBy);
+    const existing = await this.questionsService.findOne(id);
+    if (!existing) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    const visuals =
+      dto.visualSelections !== undefined
+        ? await this.resolveManualVisualSelectionsOrThrow(
+            existing.grade,
+            existing.topic,
+            dto.visualSelections
+          )
+        : undefined;
+
+    return this.questionsService.updateQuestionContent(
+      id,
+      {
+        ...dto,
+        visuals,
+      },
+      editedBy
+    );
   }
 
   // ── Lessons Learned (mutations) ─────────────────────────────
@@ -811,5 +901,49 @@ IMPORTANT LaTeX rules:
     }
 
     return resolvedTopic;
+  }
+
+  /**
+   * Validates manually picked visual selections against the approved catalog
+   * for the given grade/topic and resolves them into stored `QuestionVisual`s.
+   * Unlike LLM generation (which silently drops unapproved picks), manual
+   * creation must surface a clear error so the author can fix the selection.
+   */
+  private async resolveManualVisualSelectionsOrThrow(
+    grade: number,
+    topic: string,
+    selections: CreateQuestionVisualSelectionDto[]
+  ) {
+    if (selections.length === 0) {
+      return [];
+    }
+
+    const approvedAssets =
+      await this.visualAssetRegistryService.getGenerationCatalog({
+        grade,
+        topic,
+      });
+    const approvedById = new Map(
+      approvedAssets.map((asset) => [asset.assetId, asset])
+    );
+
+    const invalid = selections.filter((selection) => {
+      const asset = approvedById.get(selection.assetId);
+      return !asset || !asset.roles.includes(selection.role);
+    });
+
+    if (invalid.length > 0) {
+      throw new BadRequestException(
+        `Invalid visual selection(s) for grade ${grade}, topic '${topic}': ${invalid
+          .map((selection) => selection.assetId)
+          .join(', ')}`
+      );
+    }
+
+    return this.visualAssetRegistryService.resolveSelectedVisuals(
+      { grade, topic },
+      selections,
+      { maxVisuals: selections.length }
+    );
   }
 }

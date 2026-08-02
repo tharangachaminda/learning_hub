@@ -20,6 +20,7 @@ import {
   AuthService,
   CurriculumData,
   GradeInfo,
+  QuestionAnswerOption,
   QuestionItem,
 } from '../../services/auth.service';
 import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
@@ -378,6 +379,51 @@ export class ExportQuestionsComponent
     );
   }
 
+  optionValue(option: string | QuestionAnswerOption): string {
+    return typeof option === 'string' ? option : option.value;
+  }
+
+  optionSvgPath(option: string | QuestionAnswerOption): string | null {
+    if (typeof option === 'string') {
+      return null;
+    }
+    return option.svgPath ?? null;
+  }
+
+  isVisualGrid(question: QuestionItem): boolean {
+    return question.visualLayout?.container === 'grid';
+  }
+
+  visualGridColumns(question: QuestionItem): string | null {
+    if (!this.isVisualGrid(question)) {
+      return null;
+    }
+    const columns = question.visualLayout?.columns ?? Math.min(4, Math.max(1, question.visuals?.length || 1));
+    return `repeat(${columns}, minmax(0, 1fr))`;
+  }
+
+  answerAssetSvgPath(question: QuestionItem): string | null {
+    const answerAssetId = question.answerAssetId;
+    if (!answerAssetId) {
+      return null;
+    }
+
+    return this.resolveAssetSvgPath(question, answerAssetId);
+  }
+
+  private resolveAssetSvgPath(question: QuestionItem, assetId: string): string | null {
+    const visualMatch = question.visuals?.find((visual) => visual.assetId === assetId && visual.svgPath);
+    if (visualMatch?.svgPath) {
+      return visualMatch.svgPath;
+    }
+
+    const optionMatch = question.options
+      .filter((option): option is QuestionAnswerOption => typeof option !== 'string')
+      .find((option) => option.assetId === assetId && option.svgPath);
+
+    return optionMatch?.svgPath ?? null;
+  }
+
   private syncLoadedQuestionsIntoSelection(): void {
     for (const question of this.questions) {
       if (this.selectedQuestionMap.has(question._id)) {
@@ -443,6 +489,11 @@ export class ExportQuestionsComponent
     startOnNewPage: boolean,
     html2canvas: typeof import('html2canvas').default
   ): Promise<void> {
+    await this.inlineImagesAsDataUrls(element);
+    await this.waitForImagesToLoad(element);
+
+    const imageBoundaries = this.computeImageCanvasBoundaries(element);
+
     const canvas = await html2canvas(element, {
       scale: 2,
       backgroundColor: '#ffffff',
@@ -462,6 +513,11 @@ export class ExportQuestionsComponent
       1,
       Math.floor(contentHeight / mmPerCanvasPixel)
     );
+    const scaleFactor = canvas.width / element.getBoundingClientRect().width;
+    const imageRanges = imageBoundaries.map(({ top, bottom }) => ({
+      top: top * scaleFactor,
+      bottom: bottom * scaleFactor,
+    }));
 
     if (startOnNewPage) {
       pdf.addPage();
@@ -475,7 +531,11 @@ export class ExportQuestionsComponent
         pdf.addPage();
       }
 
-      const sliceHeight = Math.min(pageCanvasHeight, canvas.height - offsetY);
+      const sliceHeight = this.computeSafeSliceHeight(
+        offsetY,
+        Math.min(pageCanvasHeight, canvas.height - offsetY),
+        imageRanges
+      );
       const pageCanvas = document.createElement('canvas');
       pageCanvas.width = canvas.width;
       pageCanvas.height = sliceHeight;
@@ -553,6 +613,209 @@ export class ExportQuestionsComponent
         requestAnimationFrame(checkReady);
       };
       checkReady();
+    });
+  }
+
+  private async waitForImagesToLoad(root: HTMLElement): Promise<void> {
+    const images = Array.from(root.querySelectorAll('img'));
+    if (images.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      images.map(async (img) => {
+        if (img.complete && img.naturalWidth > 0) {
+          if (typeof img.decode === 'function') {
+            try {
+              await img.decode();
+            } catch {
+              // Ignore decode failures; loaded image can still render.
+            }
+          }
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            img.removeEventListener('load', done);
+            img.removeEventListener('error', done);
+            resolve();
+          };
+
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        });
+
+        if (typeof img.decode === 'function') {
+          try {
+            await img.decode();
+          } catch {
+            // Ignore decode failures; loaded image can still render.
+          }
+        }
+      })
+    );
+  }
+
+  private computeImageCanvasBoundaries(
+    root: HTMLElement
+  ): Array<{ top: number; bottom: number }> {
+    const rootRect = root.getBoundingClientRect();
+
+    return Array.from(root.querySelectorAll('img')).map((img) => {
+      const imgRect = img.getBoundingClientRect();
+      return {
+        top: imgRect.top - rootRect.top,
+        bottom: imgRect.bottom - rootRect.top,
+      };
+    });
+  }
+
+  /** Shrinks a page slice so it never cuts through the middle of an image row; the row moves to the next page instead. */
+  private computeSafeSliceHeight(
+    offsetY: number,
+    naiveSliceHeight: number,
+    imageRanges: Array<{ top: number; bottom: number }>
+  ): number {
+    let cutPosition = offsetY + naiveSliceHeight;
+
+    for (let i = 0; i < 10; i++) {
+      const breakingImage = imageRanges.find(
+        (range) =>
+          range.top >= offsetY &&
+          range.top < cutPosition &&
+          range.bottom > cutPosition
+      );
+
+      if (!breakingImage) {
+        break;
+      }
+
+      cutPosition = breakingImage.top;
+    }
+
+    const safeSliceHeight = cutPosition - offsetY;
+    return safeSliceHeight > 0 ? safeSliceHeight : naiveSliceHeight;
+  }
+
+  private async inlineImagesAsDataUrls(root: HTMLElement): Promise<void> {
+    const images = Array.from(root.querySelectorAll('img'));
+    if (images.length === 0) {
+      return;
+    }
+
+    const failedSources: string[] = [];
+
+    await Promise.all(
+      images.map(async (img) => {
+        const currentSrc = img.getAttribute('src')?.trim();
+        if (!currentSrc || currentSrc.startsWith('data:')) {
+          return;
+        }
+
+        try {
+          const absoluteUrl = new URL(currentSrc, window.location.origin).toString();
+          const response = await fetch(absoluteUrl, { credentials: 'same-origin' });
+
+          if (!response.ok) {
+            return;
+          }
+
+          const blob = await response.blob();
+          const dataUrl = this.isSvgImageSource(currentSrc, blob)
+            ? await this.rasterizeSvgBlobToPngDataUrl(blob, img)
+            : await this.blobToDataUrl(blob);
+          img.src = dataUrl;
+        } catch {
+          failedSources.push(currentSrc);
+          // Keep original src when inlining fails; waitForImagesToLoad handles load/error.
+        }
+      })
+    );
+
+    if (failedSources.length > 0) {
+      console.warn(
+        '[ExportQuestions] Failed to inline some images for PDF export:',
+        failedSources
+      );
+    }
+  }
+
+  private isSvgImageSource(src: string, blob: Blob): boolean {
+    return (
+      blob.type.includes('image/svg+xml') ||
+      src.toLowerCase().includes('.svg') ||
+      src.startsWith('data:image/svg+xml')
+    );
+  }
+
+  private async rasterizeSvgBlobToPngDataUrl(
+    blob: Blob,
+    targetImage: HTMLImageElement
+  ): Promise<string> {
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      const loadedImage = await this.loadImageFromUrl(objectUrl);
+      const width = Math.max(
+        1,
+        Math.round(
+          targetImage.clientWidth || targetImage.naturalWidth || loadedImage.naturalWidth || 96
+        )
+      );
+      const height = Math.max(
+        1,
+        Math.round(
+          targetImage.clientHeight ||
+            targetImage.naturalHeight ||
+            loadedImage.naturalHeight ||
+            96
+        )
+      );
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Failed to prepare SVG rasterization canvas.');
+      }
+
+      context.clearRect(0, 0, width, height);
+      context.drawImage(loadedImage, 0, 0, width, height);
+      return canvas.toDataURL('image/png');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  private loadImageFromUrl(url: string): Promise<HTMLImageElement> {
+    return new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => {
+        reject(new Error(`Failed to load image for rasterization: ${url}`));
+      };
+      image.src = url;
+    });
+  }
+
+  private blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+          return;
+        }
+
+        reject(new Error('Failed to convert image blob to a data URL.'));
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read image blob.'));
+      };
+      reader.readAsDataURL(blob);
     });
   }
 

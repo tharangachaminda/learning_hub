@@ -973,8 +973,9 @@ export class QuestionsService {
           `Auto-created lesson learned for rejected question ${id}`
         );
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         this.logger.warn(
-          `Failed to auto-create lesson learned for question ${id}: ${err.message}`
+          `Failed to auto-create lesson learned for question ${id}: ${errorMessage}`
         );
       }
     }
@@ -1238,8 +1239,13 @@ export class QuestionsService {
     id: string,
     updates: {
       questionText?: string;
+      answer?: number | string;
+      answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
+      visualSelections?: Question['visualSelections'];
+      visuals?: Question['visuals'];
+      visualLayout?: Question['visualLayout'];
     },
     editedBy: string
   ): Promise<QuestionDocument> {
@@ -1265,17 +1271,32 @@ export class QuestionsService {
     if (updates.questionText !== undefined) {
       question.questionText = updates.questionText;
     }
+    if (updates.answer !== undefined) {
+      question.answer = updates.answer;
+    }
+    if (updates.answerAssetId !== undefined) {
+      question.answerAssetId = updates.answerAssetId;
+    }
     if (updates.explanation !== undefined) {
       question.explanation = updates.explanation;
     }
     if (updates.stepByStepSolution !== undefined) {
       question.stepByStepSolution = updates.stepByStepSolution;
     }
+    if (updates.visualSelections !== undefined) {
+      question.visualSelections = updates.visualSelections;
+    }
+    if (updates.visuals !== undefined) {
+      question.visuals = updates.visuals;
+    }
+    if (updates.visualLayout !== undefined) {
+      question.visualLayout = updates.visualLayout;
+    }
 
     // Reset to pending for re-review
     question.status = QuestionStatus.PENDING;
-    question.reviewedBy = undefined;
-    question.reviewedAt = undefined;
+    question.set('reviewedBy', undefined);
+    question.set('reviewedAt', undefined);
     this.resetVectorSync(question);
 
     await question.save();

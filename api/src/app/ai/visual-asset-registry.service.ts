@@ -114,7 +114,8 @@ export class VisualAssetRegistryService {
 
   async resolveSelectedVisuals(
     request: { grade: number; topic: string },
-    selectedVisuals: LLMSelectedVisual[]
+    selectedVisuals: LLMSelectedVisual[],
+    options?: { maxVisuals?: number }
   ): Promise<QuestionVisual[]> {
     if (selectedVisuals.length === 0) {
       return [];
@@ -125,7 +126,7 @@ export class VisualAssetRegistryService {
       approvedAssets.map((asset) => [asset.assetId, asset])
     );
     const resolvedVisuals: QuestionVisual[] = [];
-    const maxVisuals = request.grade <= 1 ? 12 : 8;
+    const maxVisuals = options?.maxVisuals;
 
     for (const visual of selectedVisuals) {
       const asset = approvedById.get(visual.assetId);
@@ -158,7 +159,7 @@ export class VisualAssetRegistryService {
         resolvedVisuals.push(questionVisual);
       }
 
-      if (resolvedVisuals.length >= maxVisuals) {
+      if (maxVisuals !== undefined && resolvedVisuals.length >= maxVisuals) {
         break;
       }
     }

@@ -9,6 +9,7 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KatexRenderComponent } from '../katex-render/katex-render';
@@ -60,6 +61,29 @@ export class LatexEditorComponent implements AfterViewInit, OnDestroy {
 
   /** Whether to show the preview pane. */
   showPreview = true;
+
+  constructor() {
+    effect(() => {
+      const nextContent = this.content() || '';
+      const view = this.editorView;
+      if (!view) {
+        this.previewText = nextContent;
+        return;
+      }
+
+      const currentContent = view.state.doc.toString();
+      if (currentContent === nextContent) {
+        this.previewText = nextContent;
+        return;
+      }
+
+      view.dispatch({
+        changes: { from: 0, to: currentContent.length, insert: nextContent },
+      });
+      this.previewText = nextContent;
+      this.cdr.markForCheck();
+    });
+  }
 
   // ── Toolbar definitions ──────────────────────────────────────
 

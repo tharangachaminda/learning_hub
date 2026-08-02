@@ -13,10 +13,16 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
   AuthService,
   QuestionItem,
+  QuestionVisual,
+  QuestionVisualSelection,
   RefinementPreview,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
 import { LatexEditorComponent } from '../../shared/latex-editor/latex-editor';
+import {
+  PickedVisualSelection,
+  VisualPickerComponent,
+} from '../../shared/visual-picker/visual-picker';
 import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
@@ -28,6 +34,7 @@ import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header
     RouterModule,
     KatexRenderComponent,
     LatexEditorComponent,
+    VisualPickerComponent,
   ],
   templateUrl: './question-detail.html',
   styleUrl: './question-detail.scss',
@@ -58,8 +65,12 @@ export class QuestionDetailComponent
   isEditing = false;
   isSaving = false;
   editQuestionText = '';
+  editAnswer = '';
+  editAnswerAssetId = '';
   editExplanation = '';
   editSteps: string[] = [];
+  editInitialVisualSelections: PickedVisualSelection[] = [];
+  editVisualSelections: PickedVisualSelection[] = [];
 
   // Lesson learned
   showLessonForm = false;
@@ -323,18 +334,28 @@ export class QuestionDetailComponent
   startEditing(): void {
     if (!this.question) return;
     this.editQuestionText = this.question.questionText;
+    this.editAnswer = `${this.question.answer ?? ''}`;
+    this.editAnswerAssetId = this.question.answerAssetId ?? '';
     this.editExplanation = this.question.explanation || '';
     this.editSteps = this.question.stepByStepSolution
       ? [...this.question.stepByStepSolution]
       : [];
+    this.editInitialVisualSelections = this.toEditableVisualSelections(
+      this.question
+    );
+    this.editVisualSelections = [...this.editInitialVisualSelections];
     this.isEditing = true;
   }
 
   cancelEditing(): void {
     this.isEditing = false;
     this.editQuestionText = '';
+    this.editAnswer = '';
+    this.editAnswerAssetId = '';
     this.editExplanation = '';
     this.editSteps = [];
+    this.editInitialVisualSelections = [];
+    this.editVisualSelections = [];
   }
 
   saveEdits(): void {
@@ -344,8 +365,18 @@ export class QuestionDetailComponent
     this.authService
       .updateQuestion(this.questionId, {
         questionText: this.editQuestionText,
+        answer: this.toAnswerValue(this.editAnswer),
+        answerAssetId: this.editAnswerAssetId.trim() || undefined,
         explanation: this.editExplanation,
         stepByStepSolution: this.editSteps,
+        visualSelections: this.editVisualSelections.map((selection) => ({
+          assetId: selection.assetId,
+          role: selection.role,
+          placement: selection.placement,
+          render: selection.render,
+          layout: selection.layout,
+        })),
+        visualLayout: this.question.visualLayout,
       })
       .subscribe({
         next: () => {
@@ -382,6 +413,10 @@ export class QuestionDetailComponent
     this.editSteps[index] = value;
   }
 
+  onEditVisualSelectionChange(selections: PickedVisualSelection[]): void {
+    this.editVisualSelections = selections;
+  }
+
   backToQueue(): void {
     this.router.navigate(['/review']);
   }
@@ -392,5 +427,96 @@ export class QuestionDetailComponent
 
   trackByIndex(index: number): number {
     return index;
+  }
+
+  visualPreviewItems(
+    question: QuestionItem
+  ): Array<QuestionVisual | PickedVisualSelection> {
+    if (this.isEditing) {
+      return this.editVisualSelections;
+    }
+    return question.visuals ?? [];
+  }
+
+  trackVisualPreview(
+    index: number,
+    visual: QuestionVisual | PickedVisualSelection
+  ): string {
+    if ('selectionId' in visual) {
+      return visual.selectionId;
+    }
+    return `${visual.assetId}-${index}`;
+  }
+
+  isGridVisualLayout(question: QuestionItem): boolean {
+    return question.visualLayout?.container === 'grid';
+  }
+
+  visualGridTemplateColumns(question: QuestionItem): string | null {
+    if (!this.isGridVisualLayout(question)) {
+      return null;
+    }
+
+    const columns = question.visualLayout?.columns ?? 1;
+    return `repeat(${columns}, minmax(88px, 1fr))`;
+  }
+
+  visualWidthStyle(visual: QuestionVisual): string | null {
+    if (visual.render?.width != null) {
+      return `${visual.render.width}px`;
+    }
+    if (visual.render?.height != null) {
+      return 'auto';
+    }
+    return null;
+  }
+
+  visualHeightStyle(visual: QuestionVisual): string | null {
+    if (visual.render?.height != null) {
+      return `${visual.render.height}px`;
+    }
+    if (visual.render?.width != null) {
+      return 'auto';
+    }
+    return null;
+  }
+
+  private toEditableVisualSelections(
+    question: QuestionItem
+  ): PickedVisualSelection[] {
+    const selections =
+      question.visualSelections && question.visualSelections.length > 0
+        ? question.visualSelections
+        : (question.visuals ?? []).map((visual) => ({
+            assetId: visual.assetId,
+            role: visual.role,
+            placement: visual.placement,
+            render: visual.render,
+            layout: visual.layout,
+          }));
+
+    const visualByAssetId = new Map(
+      (question.visuals ?? []).map((visual) => [visual.assetId, visual])
+    );
+
+    return selections.map((selection, index) => {
+      const visual = visualByAssetId.get(selection.assetId);
+      return {
+        selectionId: `${selection.assetId}-${index}`,
+        assetId: selection.assetId,
+        role: selection.role,
+        placement: selection.placement,
+        render: selection.render,
+        layout: selection.layout,
+        svgPath: visual?.svgPath,
+        displayName: selection.assetId,
+      };
+    });
+  }
+
+  private toAnswerValue(value: string): number | string {
+    const trimmed = value.trim();
+    const asNumber = Number(trimmed);
+    return trimmed !== '' && !Number.isNaN(asNumber) ? asNumber : trimmed;
   }
 }
