@@ -11,9 +11,14 @@ import { faLightbulb, faPenRuler } from '@fortawesome/free-solid-svg-icons';
 import {
   GeneratedQuestion,
   QuestionAnswerOption,
+  QuestionVisual,
 } from '../../models/question.model';
 import { KatexRenderComponent } from '../katex-render/katex-render';
 import { formatCurriculumTopicLabel } from '../../../../../shared/curriculum-topic-labels';
+import {
+  VisualComponentData,
+  VisualHostComponent,
+} from '@learning-hub/shared-ui';
 
 /**
  * Presentation component that renders a single AI-generated question card.
@@ -37,7 +42,7 @@ import { formatCurriculumTopicLabel } from '../../../../../shared/curriculum-top
 @Component({
   selector: 'app-question-card',
   standalone: true,
-  imports: [KatexRenderComponent, FaIconComponent],
+  imports: [KatexRenderComponent, FaIconComponent, VisualHostComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './question-card.html',
   styleUrl: './question-card.css',
@@ -131,5 +136,16 @@ export class QuestionCardComponent {
 
   formatTopic(topic: string): string {
     return formatCurriculumTopicLabel(topic);
+  }
+
+  toVisualComponentData(visual: QuestionVisual): VisualComponentData | null {
+    if (!visual.templateId) {
+      return null;
+    }
+
+    return {
+      type: visual.templateId as VisualComponentData['type'],
+      description: `Generated visual (${visual.templateId})`,
+    };
   }
 }

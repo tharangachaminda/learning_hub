@@ -98,6 +98,20 @@
         </select>
       </label>
 
+      <label class="admin-field-group">
+        <span>Difficulty</span>
+        <select
+          class="admin-select"
+          [(ngModel)]="filterDifficulty"
+          (ngModelChange)="onFilterChange()"
+        >
+          <option value="">All difficulties</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
+
       <div class="admin-field-group checkbox-group">
         <span>Index Coverage</span>
         <label class="checkbox-label" for="approvedNotIndexedFilter">

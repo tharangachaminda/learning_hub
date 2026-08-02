@@ -71,6 +71,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
   // Filters
   filterGrade: number | null = null;
   filterTopic = '';
+  filterDifficulty: '' | 'easy' | 'medium' | 'hard' = '';
   filterStatus = 'pending';
   filterApprovedNotIndexed = false;
   private lastExplicitStatus = 'pending';
@@ -104,6 +105,9 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (params['topic']) {
       this.filterTopic = params['topic'];
+    }
+    if (params['difficulty']) {
+      this.filterDifficulty = params['difficulty'];
     }
     if (params['approvedNotIndexed'] !== undefined) {
       this.filterApprovedNotIndexed = params['approvedNotIndexed'] === 'true';
@@ -141,6 +145,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
     };
     if (this.filterGrade !== null) filters['grade'] = this.filterGrade;
     if (this.filterTopic) filters['topic'] = this.filterTopic;
+    if (this.filterDifficulty) filters['difficulty'] = this.filterDifficulty;
     if (this.filterStatus) filters['status'] = this.filterStatus;
     if (this.filterApprovedNotIndexed) {
       filters['approvedNotIndexed'] = true;
@@ -195,6 +200,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
       this.filterStatus !== '' && this.filterStatus !== 'pending',
       this.filterGrade !== null,
       this.filterTopic !== '',
+      this.filterDifficulty !== '',
       this.filterApprovedNotIndexed,
     ].filter(Boolean).length;
   }
@@ -250,6 +256,7 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
   resetFilters(): void {
     this.filterGrade = null;
     this.filterTopic = '';
+    this.filterDifficulty = '';
     this.filterStatus = 'pending';
     this.filterApprovedNotIndexed = false;
     this.lastExplicitStatus = 'pending';
@@ -271,6 +278,10 @@ export class ReviewQueueComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.filterTopic) {
       queryParams['topic'] = this.filterTopic;
+    }
+
+    if (this.filterDifficulty) {
+      queryParams['difficulty'] = this.filterDifficulty;
     }
 
     if (this.filterApprovedNotIndexed) {

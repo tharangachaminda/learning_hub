@@ -318,11 +318,46 @@ describe('QuestionsController', () => {
       );
     });
 
+    it('should preserve all manually selected visuals without generation cap truncation', async () => {
+      const largeSelection = Array.from({ length: 13 }, () => ({
+        assetId: 'pattern.circle.empty',
+        role: QuestionVisualRole.PROMPT_ILLUSTRATION,
+      }));
+      const resolvedVisuals = largeSelection.map(() => ({
+        assetId: 'pattern.circle.empty',
+        role: 'prompt-illustration',
+        svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+      }));
+
+      const registry = (controller as any).visualAssetRegistryService;
+      registry.resolveSelectedVisuals.mockResolvedValueOnce(resolvedVisuals);
+
+      await controller.createQuestion(
+        {
+          ...validDto,
+          visualSelections: largeSelection,
+        } as any,
+        { user: { email: 'teacher@example.com' } }
+      );
+
+      expect(registry.resolveSelectedVisuals).toHaveBeenCalledWith(
+        { grade: 3, topic: 'ADDITION' },
+        largeSelection,
+        { maxVisuals: largeSelection.length }
+      );
+      expect(questionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ visuals: resolvedVisuals })
+      );
+    });
+
     it('should reject a visual selection not in the approved catalog', async () => {
       const dto = {
         ...validDto,
         visualSelections: [
-          { assetId: 'not.a.real.asset', role: QuestionVisualRole.INLINE_SYMBOL },
+          {
+            assetId: 'not.a.real.asset',
+            role: QuestionVisualRole.INLINE_SYMBOL,
+          },
         ],
       } as any;
 

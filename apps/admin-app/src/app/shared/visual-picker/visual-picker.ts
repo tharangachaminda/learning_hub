@@ -7,6 +7,7 @@ import {
   inject,
   input,
   output,
+  untracked,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -34,6 +35,7 @@ interface VisualRegistryManifest {
 
 /** A visual selection as sent to the create-question API. */
 export interface PickedVisualSelection {
+  selectionId: string;
   assetId: string;
   role:
     | 'inline-symbol'
@@ -41,6 +43,24 @@ export interface PickedVisualSelection {
     | 'answer-option'
     | 'explanation-aid';
   placement?: 'before-question' | 'after-question' | 'inline' | 'explanation';
+  displayName?: string;
+  svgPath?: string;
+  render?: {
+    width?: number;
+    height?: number;
+  };
+  layout?: {
+    row?: number;
+    column?: number;
+  };
+}
+
+/** Ordered preview metadata for selected visuals. */
+export interface PickedVisualPreview {
+  selectionId: string;
+  assetId: string;
+  displayName: string;
+  svgPath?: string;
 }
 
 /**
@@ -62,9 +82,13 @@ export class VisualPickerComponent {
   readonly topic = input<string>('');
   /** Previously selected visuals, e.g. when editing a draft. */
   readonly initialSelections = input<PickedVisualSelection[]>([]);
+  /** Incrementing token used by the parent to clear the current selection. */
+  readonly resetToken = input(0);
 
   /** Emitted whenever the selection list changes. */
   readonly selectionChange = output<PickedVisualSelection[]>();
+  /** Emitted whenever ordered preview visuals change. */
+  readonly selectionPreviewChange = output<PickedVisualPreview[]>();
 
   private readonly http = inject(HttpClient);
 
@@ -74,6 +98,7 @@ export class VisualPickerComponent {
   protected readonly searchTerm = signal('');
   protected readonly showAllYearsAndTopics = signal(false);
   protected readonly selections = signal<PickedVisualSelection[]>([]);
+  private lastResetToken = 0;
 
   protected readonly assets = computed(() => this.manifest()?.assets ?? []);
 
@@ -124,7 +149,24 @@ export class VisualPickerComponent {
     this.loadManifest();
 
     effect(() => {
-      this.selections.set(this.initialSelections());
+      const selections = this.initialSelections().map((selection) => ({
+        ...selection,
+        selectionId:
+          selection.selectionId ?? this.createSelectionId(selection.assetId),
+      }));
+      this.selections.set(selections);
+      untracked(() => this.emitSelections());
+    });
+
+    effect(() => {
+      const resetToken = this.resetToken();
+      if (resetToken === this.lastResetToken) {
+        return;
+      }
+
+      this.lastResetToken = resetToken;
+      this.selections.set([]);
+      untracked(() => this.emitSelections());
     });
   }
 
@@ -132,38 +174,63 @@ export class VisualPickerComponent {
     return this.selections().some((s) => s.assetId === assetId);
   }
 
-  protected getSelection(assetId: string): PickedVisualSelection | undefined {
-    return this.selections().find((s) => s.assetId === assetId);
+  protected getSelection(
+    selectionId: string
+  ): PickedVisualSelection | undefined {
+    return this.selections().find((s) => s.selectionId === selectionId);
   }
 
   protected toggleAsset(asset: VisualRegistryAsset): void {
-    if (this.isSelected(asset.assetId)) {
-      this.removeSelection(asset.assetId);
-      return;
-    }
+    this.addSelection(asset);
+  }
 
+  protected moveSelection(selectionId: string, direction: 'up' | 'down'): void {
+    this.selections.update((current) => {
+      const index = current.findIndex((s) => s.selectionId === selectionId);
+      if (index < 0) return current;
+
+      const target = direction === 'up' ? index - 1 : index + 1;
+      if (target < 0 || target >= current.length) return current;
+
+      const next = [...current];
+      const temp = next[index];
+      next[index] = next[target];
+      next[target] = temp;
+      return next;
+    });
+
+    this.emitSelections();
+  }
+
+  private addSelection(asset: VisualRegistryAsset): void {
     const defaultRole = (asset.roles[0] ??
       'prompt-illustration') as PickedVisualSelection['role'];
     this.selections.update((current) => [
       ...current,
-      { assetId: asset.assetId, role: defaultRole },
+      {
+        selectionId: this.createSelectionId(asset.assetId),
+        assetId: asset.assetId,
+        role: defaultRole,
+        displayName: asset.displayName,
+        svgPath: asset.source.svgPath,
+      },
     ]);
     this.emitSelections();
   }
 
   protected updateSelectionRole(
-    assetId: string,
+    selectionId: string,
     role: PickedVisualSelection['role']
   ): void {
     this.selections.update((current) =>
-      current.map((s) => (s.assetId === assetId ? { ...s, role } : s))
+      current.map((s) => (s.selectionId === selectionId ? { ...s, role } : s))
     );
     this.emitSelections();
   }
 
-  protected removeSelection(assetId: string): void {
+  protected removeSelection(selectionId: string): void {
     this.selections.update((current) =>
-      current.filter((s) => s.assetId !== assetId)
+      current.filter((s) => s.selectionId !== selectionId)
     );
     this.emitSelections();
   }
@@ -176,8 +243,28 @@ export class VisualPickerComponent {
     return asset.assetId;
   }
 
+  protected trackBySelectionId(
+    _index: number,
+    selection: PickedVisualSelection
+  ): string {
+    return selection.selectionId;
+  }
+
   private emitSelections(): void {
-    this.selectionChange.emit(this.selections());
+    const selections = this.selections();
+    this.selectionChange.emit(selections);
+    this.selectionPreviewChange.emit(
+      selections.map((selection) => ({
+        selectionId: selection.selectionId,
+        assetId: selection.assetId,
+        displayName: selection.displayName ?? selection.assetId,
+        svgPath: selection.svgPath,
+      }))
+    );
+  }
+
+  private createSelectionId(assetId: string): string {
+    return `${assetId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   private loadManifest(): void {

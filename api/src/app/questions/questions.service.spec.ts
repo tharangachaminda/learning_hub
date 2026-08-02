@@ -699,5 +699,70 @@ describe('QuestionsService', () => {
       expect(question.reviewedAt).toBeUndefined();
       expect(question.save).toHaveBeenCalled();
     });
+
+    it('should persist edited visual selections and visuals when provided', async () => {
+      const question = {
+        ...mockQuestion,
+        refinementHistory: [],
+        visualSelections: [
+          {
+            assetId: 'pattern.circle.empty',
+            role: 'prompt-illustration',
+            placement: 'before-question',
+          },
+        ],
+        visuals: [
+          {
+            assetId: 'pattern.circle.empty',
+            role: 'prompt-illustration',
+            svgPath: '/assets/question-visuals/patterns/empty-circle.svg',
+          },
+        ],
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      (model.findById as jest.Mock).mockReturnValue({
+        exec: jest.fn().mockResolvedValue(question),
+      });
+
+      const updatedSelections = [
+        {
+          assetId: 'pattern.circle.full',
+          role: 'prompt-illustration',
+          placement: 'before-question',
+          render: { width: 120 },
+        },
+        {
+          assetId: 'pattern.square.full',
+          role: 'answer-option',
+          placement: 'after-question',
+        },
+      ];
+      const updatedVisuals = [
+        {
+          assetId: 'pattern.circle.full',
+          role: 'prompt-illustration',
+          svgPath: '/assets/question-visuals/patterns/full-circle.svg',
+        },
+        {
+          assetId: 'pattern.square.full',
+          role: 'answer-option',
+          svgPath: '/assets/question-visuals/patterns/full-square.svg',
+        },
+      ];
+
+      await service.updateQuestionContent(
+        '507f1f77bcf86cd799439011',
+        {
+          visualSelections: updatedSelections as any,
+          visuals: updatedVisuals as any,
+        },
+        'editor@example.com'
+      );
+
+      expect(question.visualSelections).toEqual(updatedSelections);
+      expect(question.visuals).toEqual(updatedVisuals);
+      expect(question.status).toBe(QuestionStatus.PENDING);
+      expect(question.save).toHaveBeenCalled();
+    });
   });
 });

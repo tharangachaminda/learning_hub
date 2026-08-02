@@ -86,7 +86,7 @@
     </div>
 
     <div class="field-group">
-      <label>Question text</label>
+      <div class="field-heading">Question text</div>
       <app-latex-editor
         [content]="questionText"
         placeholder="e.g. What is $5 + 3$?"
@@ -121,7 +121,7 @@
 
     @if (format === 'multiple-choice') {
     <div class="field-group">
-      <label>Options</label>
+      <div class="field-heading">Options</div>
       @for (option of options; track $index) {
       <div class="option-row">
         <input
@@ -143,7 +143,7 @@
     }
 
     <div class="field-group">
-      <label>Explanation</label>
+      <div class="field-heading">Explanation</div>
       <app-latex-editor
         [content]="explanation"
         placeholder="Explain the solution…"
@@ -152,7 +152,7 @@
     </div>
 
     <div class="field-group">
-      <label>Step-by-step solution</label>
+      <div class="field-heading">Step-by-step solution</div>
       @for (step of steps; track $index) {
       <div class="step-row">
         <input
@@ -187,14 +187,55 @@
       </button>
     </div>
 
+    <div class="question-preview">
+      <h4>Student preview (ordered)</h4>
+      <div class="question-preview-card">
+        <app-katex-render
+          [content]="questionText.trim() || 'Question text will appear here...'"
+        />
+
+        @if (selectedVisualPreviews.length > 0) {
+        <div class="question-preview-visuals">
+          @for (visual of selectedVisualPreviews; track visual.selectionId; let
+          index = $index) {
+          <div class="question-preview-visual-item">
+            <span class="question-preview-order">{{ index + 1 }}</span>
+            @if (visual.svgPath) {
+            <img
+              [src]="visual.svgPath"
+              [alt]="visual.displayName || visual.assetId"
+              loading="lazy"
+            />
+            } @else {
+            <div class="question-preview-fallback">
+              {{ visual.displayName || visual.assetId }}
+            </div>
+            }
+            <span class="question-preview-label">
+              {{ visual.displayName || visual.assetId }}
+            </span>
+          </div>
+          }
+        </div>
+        } @else {
+        <p class="question-preview-empty">
+          Select visuals below to preview exactly how they will appear for
+          students.
+        </p>
+        }
+      </div>
+    </div>
+
     <div class="field-group">
-      <label>
+      <div class="field-heading">
         Visuals (image library) — optional, attach whenever relevant
-      </label>
+      </div>
       <app-visual-picker
         [grade]="selectedGrade"
         [topic]="selectedTopic"
+        [resetToken]="pickerResetToken"
         (selectionChange)="onVisualSelectionChange($event)"
+        (selectionPreviewChange)="onVisualPreviewChange($event)"
       />
     </div>
 
@@ -202,7 +243,19 @@
       <button type="submit" class="btn-primary" [disabled]="!canSubmit">
         {{ isSubmitting ? 'Saving…' : 'Save as pending' }}
       </button>
+      <button
+        type="button"
+        class="btn-secondary"
+        [disabled]="!canSubmit"
+        (click)="saveApproveAndIndex()"
+      >
+        {{ isSubmitting ? 'Saving…' : 'Save approve and Index' }}
+      </button>
     </div>
+
+    @if (statusMessage) {
+    <div class="alert alert-success">{{ statusMessage }}</div>
+    }
   </form>
   }
 </div>

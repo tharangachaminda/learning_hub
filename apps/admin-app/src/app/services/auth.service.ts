@@ -515,9 +515,7 @@ export class AuthService {
     );
   }
 
-  createQuestion(
-    request: CreateQuestionRequest
-  ): Observable<QuestionItem> {
+  createQuestion(request: CreateQuestionRequest): Observable<QuestionItem> {
     return this.http.post<QuestionItem>(this.questionsApiUrl, request);
   }
 
@@ -587,8 +585,12 @@ export class AuthService {
     id: string,
     data: {
       questionText?: string;
+      answer?: number | string;
+      answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
+      visualSelections?: QuestionVisualSelection[];
+      visualLayout?: QuestionVisualContainerLayout;
     }
   ): Observable<QuestionItem> {
     return this.http.patch<QuestionItem>(`${this.questionsApiUrl}/${id}`, data);

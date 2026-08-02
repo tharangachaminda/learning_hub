@@ -13,6 +13,7 @@ import {
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
 import { LatexEditorComponent } from '../../shared/latex-editor/latex-editor';
 import {
+  PickedVisualPreview,
   PickedVisualSelection,
   VisualPickerComponent,
 } from '../../shared/visual-picker/visual-picker';
@@ -46,6 +47,7 @@ export class CreateQuestionComponent implements OnInit {
   isLoadingCurriculum = true;
   isSubmitting = false;
   error: string | null = null;
+  statusMessage: string | null = null;
   created: QuestionItem | null = null;
 
   selectedGrade: number | null = null;
@@ -60,6 +62,8 @@ export class CreateQuestionComponent implements OnInit {
   steps: string[] = [];
   options: QuestionAnswerOption[] = [];
   visualSelections: PickedVisualSelection[] = [];
+  selectedVisualPreviews: PickedVisualPreview[] = [];
+  pickerResetToken = 0;
 
   get canSubmit(): boolean {
     return (
@@ -92,6 +96,20 @@ export class CreateQuestionComponent implements OnInit {
 
   onVisualSelectionChange(selections: PickedVisualSelection[]): void {
     this.visualSelections = selections;
+    this.selectedVisualPreviews = selections.map((selection) => ({
+      selectionId: selection.selectionId,
+      assetId: selection.assetId,
+      displayName: selection.displayName ?? selection.assetId,
+      svgPath: selection.svgPath,
+    }));
+  }
+
+  onVisualPreviewChange(previews: PickedVisualPreview[]): void {
+    this.selectedVisualPreviews = previews;
+  }
+
+  saveApproveAndIndex(): void {
+    this.saveQuestion({ approveAndIndex: true });
   }
 
   addStep(): void {
@@ -119,36 +137,44 @@ export class CreateQuestionComponent implements OnInit {
   }
 
   submit(): void {
+    this.saveQuestion({ approveAndIndex: false });
+  }
+
+  private saveQuestion(options: { approveAndIndex: boolean }): void {
     if (!this.canSubmit || this.selectedGrade === null) return;
 
     this.isSubmitting = true;
     this.error = null;
+    this.statusMessage = null;
     this.created = null;
 
-    const request: CreateQuestionRequest = {
-      questionText: this.questionText.trim(),
-      answer: this.toAnswerValue(this.answer),
-      answerAssetId: this.answerAssetId.trim() || undefined,
-      explanation: this.explanation.trim() || undefined,
-      grade: this.selectedGrade,
-      topic: this.selectedTopic,
-      format: this.format,
-      options:
-        this.format === 'multiple-choice'
-          ? this.options.filter((o) => o.value.trim() !== '')
-          : [],
-      stepByStepSolution: this.steps.filter((s) => s.trim() !== ''),
-      visualSelections: this.visualSelections,
-      metadata: {
-        difficulty: this.difficulty,
-        country: 'NZ',
-      },
-    };
+    const request = this.buildCreateRequest();
 
     this.authService.createQuestion(request).subscribe({
       next: (question) => {
-        this.created = question;
+        if (options.approveAndIndex) {
+          this.authService.reviewQuestion(question._id, 'approved').subscribe({
+            next: () => {
+              this.isSubmitting = false;
+              this.statusMessage =
+                'Question saved, approved, and indexed successfully.';
+              this.resetForAnotherQuestion();
+            },
+            error: (err) => {
+              this.created = question;
+              this.error =
+                err?.error?.message ||
+                err?.error?.error ||
+                'Question was saved, but approval and indexing failed.';
+              this.isSubmitting = false;
+            },
+          });
+          return;
+        }
+
         this.isSubmitting = false;
+        this.statusMessage = 'Question saved as pending successfully.';
+        this.resetForAnotherQuestion();
       },
       error: (err) => {
         this.error =
@@ -164,14 +190,8 @@ export class CreateQuestionComponent implements OnInit {
 
   createAnother(): void {
     this.created = null;
-    this.questionText = '';
-    this.answer = '';
-    this.answerAssetId = '';
-    this.explanation = '';
-    this.steps = [];
-    this.options = [];
-    this.visualSelections = [];
-    this.error = null;
+    this.statusMessage = null;
+    this.resetForAnotherQuestion();
   }
 
   goToReview(): void {
@@ -184,5 +204,46 @@ export class CreateQuestionComponent implements OnInit {
     const trimmed = value.trim();
     const asNumber = Number(trimmed);
     return trimmed !== '' && !Number.isNaN(asNumber) ? asNumber : trimmed;
+  }
+
+  private buildCreateRequest(): CreateQuestionRequest {
+    return {
+      questionText: this.questionText.trim(),
+      answer: this.toAnswerValue(this.answer),
+      answerAssetId: this.answerAssetId.trim() || undefined,
+      explanation: this.explanation.trim() || undefined,
+      grade: this.selectedGrade as number,
+      topic: this.selectedTopic,
+      format: this.format,
+      options:
+        this.format === 'multiple-choice'
+          ? this.options.filter((o) => o.value.trim() !== '')
+          : [],
+      stepByStepSolution: this.steps.filter((s) => s.trim() !== ''),
+      visualSelections: this.visualSelections.map((selection) => ({
+        assetId: selection.assetId,
+        role: selection.role,
+        placement: selection.placement,
+        render: selection.render,
+        layout: selection.layout,
+      })),
+      metadata: {
+        difficulty: this.difficulty,
+        country: 'NZ',
+      },
+    };
+  }
+
+  private resetForAnotherQuestion(): void {
+    this.questionText = '';
+    this.answer = '';
+    this.answerAssetId = '';
+    this.explanation = '';
+    this.steps = [];
+    this.options = [];
+    this.visualSelections = [];
+    this.selectedVisualPreviews = [];
+    this.error = null;
+    this.pickerResetToken += 1;
   }
 }

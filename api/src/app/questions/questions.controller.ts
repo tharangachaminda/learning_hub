@@ -588,7 +588,28 @@ export class QuestionsController {
     @Request() req: { user?: { email?: string; userId?: string } }
   ) {
     const editedBy = req.user?.email || req.user?.userId || 'unknown';
-    return this.questionsService.updateQuestionContent(id, dto, editedBy);
+    const existing = await this.questionsService.findOne(id);
+    if (!existing) {
+      throw new NotFoundException(`Question ${id} not found`);
+    }
+
+    const visuals =
+      dto.visualSelections !== undefined
+        ? await this.resolveManualVisualSelectionsOrThrow(
+            existing.grade,
+            existing.topic,
+            dto.visualSelections
+          )
+        : undefined;
+
+    return this.questionsService.updateQuestionContent(
+      id,
+      {
+        ...dto,
+        visuals,
+      },
+      editedBy
+    );
   }
 
   // ── Lessons Learned (mutations) ─────────────────────────────
@@ -921,7 +942,8 @@ IMPORTANT LaTeX rules:
 
     return this.visualAssetRegistryService.resolveSelectedVisuals(
       { grade, topic },
-      selections
+      selections,
+      { maxVisuals: selections.length }
     );
   }
 }

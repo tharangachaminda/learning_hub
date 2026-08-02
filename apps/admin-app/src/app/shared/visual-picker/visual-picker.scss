@@ -102,10 +102,44 @@
   }
 }
 
+.visual-order {
+  display: inline-grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.14);
+  color: #1d4ed8;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .visual-selection-name {
   flex: 1 1 auto;
   font-size: 0.8rem;
   color: #334155;
+}
+
+.order-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-order {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: #fff;
+  color: #334155;
+  border-radius: 0.35rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 .btn-remove {

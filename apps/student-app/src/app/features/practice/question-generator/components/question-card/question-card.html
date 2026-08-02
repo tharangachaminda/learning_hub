@@ -46,10 +46,24 @@
         <img
           class="question-card__visual-image"
           [src]="visual.svgPath"
-          [style.width]="visual.render?.width != null ? visual.render?.width + 'px' : visual.render?.height != null ? 'auto' : null"
-          [style.height]="visual.render?.height != null ? visual.render?.height + 'px' : visual.render?.width != null ? 'auto' : null"
+          [style.width]="visual.render?.width != null ? visual.render.width + 'px' : visual.render?.height != null ? 'auto' : null"
+          [style.height]="visual.render?.height != null ? visual.render.height + 'px' : visual.render?.width != null ? 'auto' : null"
           alt=""
           loading="lazy"
+        />
+      </div>
+      } @else if (visual.templateId && toVisualComponentData(visual); as
+      visualData) {
+      <div
+        class="question-card__visual question-card__visual--template"
+        [class.question-card__visual--grid]="$any(question().visualLayout)?.container === 'grid' || $any(question().visuals?.[0]?.layout)?.container === 'grid'"
+        [style.grid-column]="visual.layout?.column || null"
+        [style.grid-row]="visual.layout?.row || null"
+      >
+        <lib-visual-host
+          [visualData]="visualData"
+          [questionText]="question().question"
+          [skillDescription]="question().explanation"
         />
       </div>
       } }
