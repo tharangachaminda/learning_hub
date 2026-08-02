@@ -38,7 +38,7 @@
 
 .visual-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, 96px);
   gap: 0.6rem;
   max-height: 260px;
   overflow-y: auto;

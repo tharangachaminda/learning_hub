@@ -150,7 +150,7 @@
 .question-preview-visuals {
   margin-top: 0.8rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, 130px);
   gap: 0.7rem;
 }
 

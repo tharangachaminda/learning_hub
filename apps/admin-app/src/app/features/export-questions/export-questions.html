@@ -104,18 +104,52 @@
             ></app-katex-render>
           </div>
 
+          @if (question.visuals?.length) {
+          <div
+            class="preview-visual-grid"
+            [class.preview-visual-grid--positioned]="isVisualGrid(question)"
+            [style.grid-template-columns]="visualGridColumns(question)"
+          >
+            @for (visual of question.visuals; track visualIndex; let visualIndex =
+            $index) {
+            <div class="preview-visual-item">
+              @if (visual.svgPath) {
+              <img
+                [src]="visual.svgPath"
+                alt=""
+                loading="eager"
+                decoding="sync"
+              />
+              } @else {
+              <div class="preview-visual-fallback">
+                {{ visual.templateId || visual.assetId || ('Visual ' + (visualIndex + 1)) }}
+              </div>
+              }
+            </div>
+            }
+          </div>
+          }
+
           @if (question.options.length > 0) {
           <div class="option-grid">
-            @for (option of question.options; track option; let optionIndex =
+            @for (option of question.options; track optionIndex; let optionIndex =
             $index) {
             <div class="option-chip">
               <span
                 >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1
                 }}.</span
               >
-              <app-katex-render
-                [content]="typeof option === 'string' ? option : option.value"
-              ></app-katex-render>
+              @if (optionSvgPath(option); as optionImage) {
+              <img
+                class="option-image"
+                [src]="optionImage"
+                [alt]="optionValue(option)"
+                loading="eager"
+                decoding="sync"
+              />
+              } @else {
+              <app-katex-render [content]="optionValue(option)"></app-katex-render>
+              }
             </div>
             }
           </div>
@@ -253,6 +287,16 @@
               [content]="question.questionText"
             ></app-katex-render>
           </div>
+
+          @if (question.visuals?.length) {
+          <div class="selected-visual-grid" [style.grid-template-columns]="visualGridColumns(question)">
+            @for (visual of question.visuals; track visualIndex; let visualIndex = $index) {
+            @if (visual.svgPath) {
+            <img [src]="visual.svgPath" alt="" loading="eager" decoding="sync" />
+            }
+            }
+          </div>
+          }
         </article>
         }
       </div>
@@ -296,17 +340,51 @@
           ></app-katex-render>
         </div>
 
+        @if (question.visuals?.length) {
+        <div
+          class="pdf-visual-grid"
+          [class.pdf-visual-grid--positioned]="isVisualGrid(question)"
+          [style.grid-template-columns]="visualGridColumns(question)"
+        >
+          @for (visual of question.visuals; track visualIndex; let visualIndex =
+          $index) {
+          <div class="pdf-visual-item">
+            @if (visual.svgPath) {
+            <img
+              [src]="visual.svgPath"
+              alt=""
+              loading="eager"
+              decoding="sync"
+            />
+            } @else {
+            <div class="pdf-visual-fallback">
+              {{ visual.templateId || visual.assetId || ('Visual ' + (visualIndex + 1)) }}
+            </div>
+            }
+          </div>
+          }
+        </div>
+        }
+
         @if (question.options.length > 0) {
         <div class="pdf-options-grid">
-          @for (option of question.options; track option; let optionIndex =
+          @for (option of question.options; track optionIndex; let optionIndex =
           $index) {
           <div class="pdf-option-row">
             <span
               >{{ ['A', 'B', 'C', 'D'][optionIndex] || optionIndex + 1 }}.</span
             >
-            <app-katex-render
-              [content]="typeof option === 'string' ? option : option.value"
-            ></app-katex-render>
+            @if (optionSvgPath(option); as optionImage) {
+            <img
+              class="pdf-option-image"
+              [src]="optionImage"
+              [alt]="optionValue(option)"
+              loading="eager"
+              decoding="sync"
+            />
+            } @else {
+            <app-katex-render [content]="optionValue(option)"></app-katex-render>
+            }
           </div>
           }
         </div>
@@ -341,13 +419,23 @@
             <span class="answer-label">Q{{ index + 1 }}</span>
             <div>
               <div class="answer-value">
+                @if (answerAssetSvgPath(question); as answerImage) {
+                <img
+                  class="answer-asset-image"
+                  [src]="answerImage"
+                  [alt]="'Answer image for question ' + (index + 1)"
+                  loading="eager"
+                  decoding="sync"
+                />
+                } @else {
                 <app-katex-render
                   [content]="'' + question.answer"
                 ></app-katex-render>
+                }
               </div>
               @if (question.stepByStepSolution.length > 0) {
               <div class="answer-steps">
-                @for (step of question.stepByStepSolution; track step) {
+                @for (step of question.stepByStepSolution; track stepIndex; let stepIndex = $index) {
                 <div class="answer-step">
                   <app-katex-render [content]="step"></app-katex-render>
                 </div>
