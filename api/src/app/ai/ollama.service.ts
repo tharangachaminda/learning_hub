@@ -55,7 +55,13 @@ export class OllamaService {
   private readonly ragDuplicateThreshold = 0.95;
 
   /** Number of RAG examples to retrieve per generation call */
-  private readonly ragExampleLimit = 5;
+  private readonly ragExampleLimit = 10;
+
+  /** Size of the candidate pool fetched from OpenSearch before sampling down to ragExampleLimit */
+  private readonly ragPoolSize: number;
+
+  /** Enables verbose logging of assembled prompts and sampled RAG examples */
+  private readonly ragDebugLogging: boolean;
 
   constructor(
     private readonly httpService: HttpService,
@@ -77,6 +83,11 @@ export class OllamaService {
       'OLLAMA_GENERATION_TIMEOUT',
       90000
     );
+    this.ragPoolSize = this.configService.get<number>('RAG_POOL_SIZE', 20);
+    this.ragDebugLogging = this.configService.get<string>(
+      'RAG_DEBUG_LOGGING',
+      'false'
+    ) === 'true';
     this.curriculumPromptEngine = new CurriculumPromptEngine();
   }
 
@@ -254,6 +265,12 @@ export class OllamaService {
         ? Math.min(0.7 + allExistingQuestions.length * 0.1, 1.2)
         : 0.7;
 
+      if (this.ragDebugLogging) {
+        console.log(
+          `[OllamaService] Assembled prompt sent to Ollama:\n${prompt}`
+        );
+      }
+
       // Call Ollama API for question generation
       const response = await this.httpService.axiosRef.post(
         `${this.ollamaUrl}/api/generate`,
@@ -298,6 +315,11 @@ export class OllamaService {
             'Generated question omitted required visual selections. Retrying.'
           );
         }
+
+        this.validateNoAssetIdLeakage(
+          normalizedQuestion.question,
+          visualSelections
+        );
 
         // if (visuals.length !== visualSelections.length) {
         //   throw new Error(
@@ -426,14 +448,20 @@ export class OllamaService {
 
     try {
       const searchQuery = `${topic} grade ${grade} ${difficulty} math question`;
-      const results = await this.semanticSearchService.findSimilar(
-        searchQuery,
-        {
-          grade,
-          topic: topic.toLowerCase(),
-          limit: this.ragExampleLimit,
-        }
-      );
+      const pool = await this.semanticSearchService.findSimilar(searchQuery, {
+        grade,
+        topic: topic.toLowerCase(),
+        difficulty: difficulty.toLowerCase(),
+        limit: this.ragPoolSize,
+      });
+
+      if (pool.length < this.ragExampleLimit) {
+        console.warn(
+          `[OllamaService] RAG pool thin for ${topic}/grade ${grade}/${difficulty}: ${pool.length} indexed example(s), fewer than ragExampleLimit=${this.ragExampleLimit}`
+        );
+      }
+
+      const results = this.samplePool(pool, this.ragExampleLimit);
 
       // Identify near-duplicate questions (similarity > threshold)
       const duplicateQuestions = results
@@ -441,8 +469,16 @@ export class OllamaService {
         .map((r) => r.questionText);
 
       console.log(
-        `[OllamaService] RAG context: ${results.length} examples found, ${duplicateQuestions.length} near-duplicates`
+        `[OllamaService] RAG context: ${results.length} examples sampled from a pool of ${pool.length}, ${duplicateQuestions.length} near-duplicates`
       );
+
+      if (this.ragDebugLogging) {
+        console.log(
+          `[OllamaService] RAG examples sampled:\n${results
+            .map((r) => `  - [${r.id}] "${r.questionText}"`)
+            .join('\n')}`
+        );
+      }
 
       return { examples: results, duplicateQuestions };
     } catch (error) {
@@ -452,6 +488,24 @@ export class OllamaService {
       );
       return { examples: [], duplicateQuestions: [] };
     }
+  }
+
+  /**
+   * Randomly samples up to `sampleSize` items from `pool` without replacement.
+   * Returns all items if the pool is smaller than the requested sample size.
+   */
+  private samplePool<T>(pool: T[], sampleSize: number): T[] {
+    if (pool.length <= sampleSize) {
+      return pool;
+    }
+
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return shuffled.slice(0, sampleSize);
   }
 
   /**
@@ -469,7 +523,7 @@ export class OllamaService {
       .join('\n');
 
     return `\n\nREFERENCE EXAMPLES (from question bank):
-The following are existing questions at this level. Use them as STYLE and COMPLEXITY reference to match the expected quality, but generate a COMPLETELY DIFFERENT question with different numbers and context:
+STYLE REFERENCE (match the tone, structure, and phrasing style of these indexed questions, but use different numbers/objects/context so it is not a duplicate):
 ${exampleLines}`;
   }
 
@@ -537,6 +591,26 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
   }
 
   /**
+   * Validates that the question text does not embed a raw visual asset ID
+   * (e.g. "counting.kiwi-bird.standing") in place of natural language.
+   * Throws an error to trigger a retry if a leak is found.
+   */
+  private validateNoAssetIdLeakage(
+    question: string,
+    visualSelections: LLMSelectedVisual[]
+  ): void {
+    const leaked = visualSelections.find((selection) =>
+      question.includes(selection.assetId)
+    );
+
+    if (leaked) {
+      throw new Error(
+        `Generated question text embeds a raw asset ID ("${leaked.assetId}") instead of natural language. Retrying.`
+      );
+    }
+  }
+
+  /**
    * Validates that a generated question aligns with the requested topic.
    * Detects off-topic operator usage (e.g., multiplication in a subtraction request).
    * Throws an error if the question uses a forbidden operator as the primary operation.
@@ -546,7 +620,7 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
 
     if (this.shouldUseVisualCatalog(topicUpper)) {
       const hasVisualLanguage =
-        /picture|shown|showing|visual|count|group|objects|altogether|left|remain|join|take away|more|fewer|less|longer|shorter|heavier|lighter|compare|which|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
+        /picture|shown|showing|visual|count|how many|are there|there are|group|objects|altogether|left|remain|join|take away|more|fewer|less|longer|shorter|heavier|lighter|compare|which|circles|squares|triangles|pattern|repeat|repeating|sequence|comes next|next shape|shape|full|empty|half|row/i.test(
           question
         );
 
@@ -936,10 +1010,13 @@ EXPLANATION: When we add 8 + 5, we can count on from 8: 9, 10, 11, 12, 13. So ${
       )
       .join('\n');
 
+    const styleGuidance = `If a REFERENCE EXAMPLES section is provided later in this prompt, derive the question's phrasing and narrative style from those examples. Only use the fallback wording below when no REFERENCE EXAMPLES section is provided.`;
+
     const topicRules =
       topicUpper === 'COUNTING_AND_QUANTITY'
         ? `Use these approved SVG assets as the visible objects the student counts.
-The question text must ask generically, e.g. "How many [objects] are shown altogether?" — do NOT embed specific counts in the question text.
+${styleGuidance}
+Fallback (no reference examples): ask generically what quantity is shown — do NOT embed specific counts in the question text.
 Do NOT invent unseen scenes or use assets not in the catalog below.
 
 CRITICAL JSON RULES:
@@ -996,10 +1073,12 @@ CRITICAL JSON RULES:
 - Do NOT invent assetIds (like "kiwi-feathers", "crayon-box", "skis-01"). Use ONLY catalog assets below.
 
 CRITICAL QUESTION TEXT RULES:
-- The question text MUST describe the objects shown, e.g. "There are 3 apples and 5 oranges shown. Which group has more?"
+${styleGuidance}
+- Fallback (no reference examples): the question text must describe the objects shown and ask which group has more/fewer or how many units are shown.
 - Do NOT reference objects or scenes that are not in the catalog.`
         : topicUpper === 'EARLY_PATTERNING'
         ? `Use these approved SVG assets to show the repeating pattern sequence.
+${styleGuidance}
 Each entry in "visualSelections" represents ONE shape in the sequence, listed in display order.
 
 CRITICAL JSON RULES:
@@ -1014,10 +1093,9 @@ CRITICAL JSON RULES:
 - "visualSelections" MUST NOT be empty.
 
 CRITICAL QUESTION TEXT RULES:
-- Keep the question text SHORT and GENERIC: e.g. "Look at the pattern of shapes. What shape comes next?" — do NOT list or spell out the individual shapes in the question text.
+- Fallback (no reference examples): keep the question text short and ask what shape comes next in the pattern; do NOT list or spell out the individual shapes in the question text.
 - The student sees the SVG shapes directly; the question only needs to ask what comes next.
-- Do NOT invent unrelated scenes, stories, or objects. Never say "on the beach", "snow-covered mountains", "rugby balls", or any non-geometric context.
-- The shapes ARE geometric (circle, square, triangle). If you must name a shape, use ONLY its correct geometric name matching the assetId (e.g. pattern.circle.full → "full circle", not "rugby ball").`
+- The shapes ARE geometric (circle, square, triangle). If you must name a shape, use ONLY its correct geometric name matching the assetId (e.g. pattern.circle.full → "full circle").`
         : `Use only these approved SVG assets to show the pattern sequence.
 Each "visualSelections" entry represents ONE shape in the sequence. Repeat assetIds to build the repeating pattern.
 You MUST include between 4 and 8 entries so the pattern is visible. The JSON "visualSelections" array must not be empty.

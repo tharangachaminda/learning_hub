@@ -62,3 +62,7 @@ Thumbs.db
 dev_resources/
 
 source_materials/
+
+# Local environment overrides
+.env
+.env.local
