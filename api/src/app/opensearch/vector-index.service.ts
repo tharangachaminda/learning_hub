@@ -168,9 +168,24 @@ export class VectorIndexService implements OnModuleInit {
 
       this.logger.log(`Vector index '${this.INDEX_NAME}' created successfully`);
     } catch (error) {
+      if (this.isIndexAlreadyExistsError(error)) {
+        this.logger.log(
+          `Index '${this.INDEX_NAME}' already exists (race with existence check) — continuing`
+        );
+        return;
+      }
+
       this.logger.error(`Failed to create index '${this.INDEX_NAME}'`, error);
       throw error;
     }
+  }
+
+  private isIndexAlreadyExistsError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    return error.message.includes('resource_already_exists_exception');
   }
 
   /**

@@ -141,6 +141,36 @@ describe('VectorIndexService', () => {
         },
       });
     });
+
+    it('should not throw when create races with an existence check that missed the index', async () => {
+      jest.spyOn(openSearchService, 'indexExists').mockResolvedValue(false);
+      const createSpy = jest
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'resource_already_exists_exception: [resource_already_exists_exception] Reason: index [math-questions/abc123] already exists'
+          )
+        );
+      jest.spyOn(openSearchService, 'getClient').mockReturnValue({
+        indices: { create: createSpy },
+      } as any);
+
+      await expect(service.createIndexIfNotExists()).resolves.toBeUndefined();
+    });
+
+    it('should still throw for other index creation failures', async () => {
+      jest.spyOn(openSearchService, 'indexExists').mockResolvedValue(false);
+      const createSpy = jest
+        .fn()
+        .mockRejectedValue(new Error('connection refused'));
+      jest.spyOn(openSearchService, 'getClient').mockReturnValue({
+        indices: { create: createSpy },
+      } as any);
+
+      await expect(service.createIndexIfNotExists()).rejects.toThrow(
+        'connection refused'
+      );
+    });
   });
 
   describe('deleteIndex', () => {
