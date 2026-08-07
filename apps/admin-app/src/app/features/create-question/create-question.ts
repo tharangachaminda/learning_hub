@@ -17,6 +17,7 @@ import {
   PickedVisualSelection,
   VisualPickerComponent,
 } from '../../shared/visual-picker/visual-picker';
+import { SubCategoryPickerComponent } from '../../shared/subcategory-picker/subcategory-picker';
 
 /**
  * Manual "Question Creator" for admins/teachers: authors a single question
@@ -34,6 +35,7 @@ import {
     KatexRenderComponent,
     LatexEditorComponent,
     VisualPickerComponent,
+    SubCategoryPickerComponent,
   ],
   templateUrl: './create-question.html',
   styleUrl: './create-question.scss',
@@ -54,6 +56,7 @@ export class CreateQuestionComponent implements OnInit {
   selectedTopic = '';
   format: 'open-ended' | 'multiple-choice' = 'open-ended';
   difficulty: 'easy' | 'medium' | 'hard' = 'medium';
+  subCategories: string[] = [];
 
   questionText = '';
   answer = '';
@@ -88,10 +91,30 @@ export class CreateQuestionComponent implements OnInit {
     });
   }
 
+  get selectedCategory(): string | null {
+    return (
+      this.availableTopics.find((t) => t.key === this.selectedTopic)
+        ?.category ?? null
+    );
+  }
+
   onGradeChange(): void {
     const grade = this.grades.find((g) => g.grade === this.selectedGrade);
     this.availableTopics = grade?.topics ?? [];
     this.selectedTopic = '';
+    this.subCategories = [];
+  }
+
+  onTopicChange(): void {
+    this.subCategories = [];
+  }
+
+  onDifficultyChange(): void {
+    this.subCategories = [];
+  }
+
+  onSubCategoriesChange(slugs: string[]): void {
+    this.subCategories = slugs;
   }
 
   onVisualSelectionChange(selections: PickedVisualSelection[]): void {
@@ -214,6 +237,7 @@ export class CreateQuestionComponent implements OnInit {
       explanation: this.explanation.trim() || undefined,
       grade: this.selectedGrade as number,
       topic: this.selectedTopic,
+      subCategories: this.subCategories,
       format: this.format,
       options:
         this.format === 'multiple-choice'
@@ -241,6 +265,7 @@ export class CreateQuestionComponent implements OnInit {
     this.explanation = '';
     this.steps = [];
     this.options = [];
+    this.subCategories = [];
     this.visualSelections = [];
     this.selectedVisualPreviews = [];
     this.error = null;

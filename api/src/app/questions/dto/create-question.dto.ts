@@ -173,6 +173,12 @@ export class CreateQuestionDto {
   @IsString()
   category?: string;
 
+  /** Sub-category tags scoped to this question's category + difficulty */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  subCategories?: string[];
+
   /** Question presentation format */
   @IsOptional()
   @IsEnum(QuestionFormat)

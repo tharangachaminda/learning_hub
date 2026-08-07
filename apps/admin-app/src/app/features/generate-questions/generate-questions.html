@@ -80,6 +80,20 @@
           </button>
         </div>
       </div>
+
+      @if (selectedTopic) {
+      <div class="admin-field-group subcategory-awareness">
+        <span
+          >Sub-categories (generation distributes questions across these
+          automatically)</span
+        >
+        <app-subcategory-picker
+          [category]="selectedCategory"
+          [difficulty]="selectedDifficulty"
+          [readonlyMode]="true"
+        />
+      </div>
+      }
     </div>
 
     @if (error) {
@@ -139,6 +153,9 @@
                 >{{ q.metadata.difficulty || 'medium' }}</span
               >
               <span class="q-badge q-pending">Pending</span>
+              @if (q.subCategories?.[0]; as subCategory) {
+              <span class="q-badge q-subcategory">{{ subCategory }}</span>
+              }
             </div>
             @if (q.explanation) {
             <div class="q-explanation">

@@ -49,6 +49,7 @@
           [(ngModel)]="selectedTopic"
           name="topic"
           [disabled]="!availableTopics.length"
+          (ngModelChange)="onTopicChange()"
         >
           <option value="">Select topic…</option>
           @for (topic of availableTopics; track topic.key) {
@@ -77,12 +78,23 @@
           class="form-select"
           [(ngModel)]="difficulty"
           name="difficulty"
+          (ngModelChange)="onDifficultyChange()"
         >
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
       </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-heading">Sub-categories</div>
+      <app-subcategory-picker
+        [category]="selectedCategory"
+        [difficulty]="difficulty"
+        [selected]="subCategories"
+        (selectedChange)="onSubCategoriesChange($event)"
+      />
     </div>
 
     <div class="field-group">

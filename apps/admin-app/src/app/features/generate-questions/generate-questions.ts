@@ -14,6 +14,7 @@ import {
   BatchGenerateResponse,
 } from '../../services/auth.service';
 import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
+import { SubCategoryPickerComponent } from '../../shared/subcategory-picker/subcategory-picker';
 
 @Component({
   selector: 'app-generate-questions',
@@ -24,6 +25,7 @@ import { KatexRenderComponent } from '../../shared/katex-render/katex-render';
     RouterModule,
     KatexRenderComponent,
     FontAwesomeModule,
+    SubCategoryPickerComponent,
   ],
   templateUrl: './generate-questions.html',
   styleUrl: './generate-questions.scss',
@@ -48,6 +50,13 @@ export class GenerateQuestionsComponent implements OnInit {
 
   get canGenerate(): boolean {
     return this.selectedGrade !== null && this.selectedTopic !== '';
+  }
+
+  get selectedCategory(): string | null {
+    return (
+      this.availableTopics.find((t) => t.key === this.selectedTopic)
+        ?.category ?? null
+    );
   }
 
   ngOnInit(): void {

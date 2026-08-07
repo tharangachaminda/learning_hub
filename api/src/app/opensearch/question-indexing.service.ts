@@ -33,6 +33,7 @@ interface PreparedQuestionDocument {
     resolved_topic_label?: string;
     curriculum_phase?: string;
     source_topic_key?: string;
+    sub_category?: string;
   };
 }
 
@@ -198,17 +199,26 @@ export class QuestionIndexingService {
         prepared.embeddingSourceText
       );
 
-      await this.vectorIndexService.indexQuestion(
-        prepared.id,
-        prepared.questionText,
-        prepared.explanation,
-        prepared.answer,
-        prepared.answerText,
-        embedding,
-        prepared.metadata
+      const documents = this.expandForSubCategories(
+        prepared,
+        question.subCategories
       );
 
-      this.logger.log(`Successfully indexed stored question: ${prepared.id}`);
+      for (const document of documents) {
+        await this.vectorIndexService.indexQuestion(
+          document.id,
+          document.questionText,
+          document.explanation,
+          document.answer,
+          document.answerText,
+          embedding,
+          document.metadata
+        );
+      }
+
+      this.logger.log(
+        `Successfully indexed stored question: ${prepared.id} (${documents.length} document(s))`
+      );
     } catch (error) {
       this.logIndexingFailure(
         `Failed to index stored question: ${
@@ -240,19 +250,23 @@ export class QuestionIndexingService {
         preparedQuestions.map((question) => question.embeddingSourceText)
       );
 
-      await this.vectorIndexService.bulkIndexQuestions(
-        preparedQuestions.map((question, index) => ({
-          id: question.id,
-          questionText: question.questionText,
-          explanation: question.explanation,
-          answer: question.answer,
-          embedding: embeddings[index],
-          metadata: question.metadata,
-        }))
+      const expandedDocuments = preparedQuestions.flatMap((prepared, index) =>
+        this.expandForSubCategories(prepared, questions[index].subCategories).map(
+          (document) => ({
+            id: document.id,
+            questionText: document.questionText,
+            explanation: document.explanation,
+            answer: document.answer,
+            embedding: embeddings[index],
+            metadata: document.metadata,
+          })
+        )
       );
 
+      await this.vectorIndexService.bulkIndexQuestions(expandedDocuments);
+
       this.logger.log(
-        `Successfully indexed ${questions.length} stored questions in batch`
+        `Successfully indexed ${questions.length} stored questions (${expandedDocuments.length} document(s)) in batch`
       );
     } catch (error) {
       this.logIndexingFailure(
@@ -261,6 +275,27 @@ export class QuestionIndexingService {
       );
       throw new Error(`Failed to index questions: ${error.message}`);
     }
+  }
+
+  /**
+   * Fans a prepared question document out into one document per tagged
+   * sub-category, so RAG retrieval can filter on a single, exact
+   * `sub_category` value rather than an array-contains match. Questions
+   * with no sub-category tags index unchanged as a single document.
+   */
+  private expandForSubCategories(
+    prepared: PreparedQuestionDocument,
+    subCategories?: string[]
+  ): PreparedQuestionDocument[] {
+    if (!subCategories || subCategories.length === 0) {
+      return [prepared];
+    }
+
+    return subCategories.map((subCategory) => ({
+      ...prepared,
+      id: `${prepared.id}#${subCategory}`,
+      metadata: { ...prepared.metadata, sub_category: subCategory },
+    }));
   }
 
   private logIndexingFailure(context: string, error: unknown): void {

@@ -1,0 +1,48 @@
+<div class="subcategory-picker">
+  @if (!category()) {
+  <p class="subcategory-hint">Select a topic to see sub-categories.</p>
+  } @else {
+  @if (loading()) {
+  <p class="subcategory-hint">Loading sub-categories…</p>
+  } @else {
+  <div class="subcategory-chips">
+    @for (option of options(); track option.slug) {
+    <button
+      type="button"
+      class="subcategory-chip"
+      [class.selected]="isSelected(option.slug)"
+      [class.readonly]="readonlyMode()"
+      (click)="toggle(option.slug)"
+    >
+      {{ option.name }}
+    </button>
+    } @if (options().length === 0) {
+    <p class="subcategory-hint">
+      No sub-categories yet for this category/difficulty.
+    </p>
+    }
+  </div>
+
+  <div class="subcategory-create">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="+ New sub-category name"
+      [ngModel]="newName()"
+      (ngModelChange)="newName.set($event)"
+      (keydown.enter)="$event.preventDefault(); createSubCategory()"
+    />
+    <button
+      type="button"
+      class="btn-secondary"
+      [disabled]="!newName().trim() || creating()"
+      (click)="createSubCategory()"
+    >
+      {{ creating() ? 'Adding…' : 'Add' }}
+    </button>
+  </div>
+
+  @if (error()) {
+  <p class="subcategory-error">{{ error() }}</p>
+  } } }
+</div>

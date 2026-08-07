@@ -211,6 +211,7 @@
             <th class="col-answer">Answer</th>
             <th class="col-grade">Year</th>
             <th class="col-topic">Topic</th>
+            <th class="col-subcategories">Sub-Categories</th>
             <th class="col-difficulty">Difficulty</th>
             <th class="col-status">Status</th>
             <th class="col-actions">Actions</th>
@@ -263,6 +264,14 @@
             </td>
             <td class="col-grade">{{ q.grade }}</td>
             <td class="col-topic">{{ topicLabel(q) }}</td>
+            <td class="col-subcategories">
+              <span
+                class="meta-tag subcategory-tag"
+                *ngFor="let subCategory of q.subCategories"
+                >{{ subCategory }}</span
+              >
+              <span class="col-empty" *ngIf="!q.subCategories?.length">—</span>
+            </td>
             <td class="col-difficulty">
               <span
                 class="difficulty-badge"

@@ -10,6 +10,7 @@ import { QuestionsController } from './questions.controller';
 import { MathQuestionGenerator } from '../math-questions/services/math-question-generator.service';
 import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
+import { SubCategoriesModule } from '../subcategories/subcategories.module';
 
 /**
  * NestJS module for question persistence and retrieval.
@@ -35,6 +36,7 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     AiModule,
     AuthModule,
+    SubCategoriesModule,
   ],
   controllers: [QuestionsController],
   providers: [QuestionsService, MathQuestionGenerator],

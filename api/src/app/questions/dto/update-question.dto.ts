@@ -12,6 +12,7 @@ import {
   QuestionVisualPlacement,
   QuestionVisualRole,
 } from '../schemas/question.schema';
+import { PersistedQuestionDifficulty } from './find-questions.dto';
 
 export class UpdateQuestionVisualRenderDto {
   @IsOptional()
@@ -97,6 +98,17 @@ export class UpdateQuestionDto {
   @IsArray()
   @IsString({ each: true })
   stepByStepSolution?: string[];
+
+  /** Sub-category tags scoped to this question's category + difficulty */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  subCategories?: string[];
+
+  /** Stored difficulty metadata (easy, medium, hard) */
+  @IsOptional()
+  @IsEnum(PersistedQuestionDifficulty)
+  difficulty?: PersistedQuestionDifficulty;
 
   @IsOptional()
   @IsArray()

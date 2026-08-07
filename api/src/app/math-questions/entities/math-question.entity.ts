@@ -91,6 +91,9 @@ export class MathQuestion {
   /** Unique identifier (set by database) */
   public id?: string;
 
+  /** Sub-category slug this question was generated for, if any (set post-generation) */
+  public subCategory?: string;
+
   /** Timestamp when the question was created */
   public readonly createdAt: Date;
 

@@ -46,6 +46,7 @@
   .q-difficulty[data-level='easy'] { background: #d1fae5; color: #065f46; }
   .q-difficulty[data-level='medium'] { background: #fef3c7; color: #92400e; }
   .q-difficulty[data-level='hard'] { background: #fee2e2; color: #991b1b; }
+  .q-subcategory { background: #e0e7ff; color: #3730a3; text-transform: capitalize; }
   .q-explanation { margin-top: .5rem; font-size: .8rem; color: #6b7280; background: #f9fafb; padding: .5rem .75rem; border-radius: 6px; border-left: 3px solid #d1d5db; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }

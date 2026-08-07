@@ -3,6 +3,7 @@ import { MathQuestionsController } from './math-questions.controller';
 import { MathQuestionGenerator } from './services/math-question-generator.service';
 import { AiModule } from '../ai/ai.module';
 import { QuestionsModule } from '../questions/questions.module';
+import { SubCategoriesModule } from '../subcategories/subcategories.module';
 
 /**
  * NestJS module for mathematical question generation functionality
@@ -20,7 +21,7 @@ import { QuestionsModule } from '../questions/questions.module';
  * ```
  */
 @Module({
-  imports: [AiModule, QuestionsModule],
+  imports: [AiModule, QuestionsModule, SubCategoriesModule],
   controllers: [MathQuestionsController],
   providers: [MathQuestionGenerator],
   exports: [MathQuestionGenerator],

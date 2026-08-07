@@ -247,6 +247,33 @@ describe('SemanticSearchService', () => {
       );
     });
 
+    it('should filter by sub-category', async () => {
+      const questionText = 'What is 5 + 3?';
+
+      jest
+        .spyOn(embeddingService, 'generateEmbedding')
+        .mockResolvedValue(mockEmbedding384);
+      jest
+        .spyOn(openSearchService, 'search')
+        .mockResolvedValue(mockSearchResults);
+
+      await service.findSimilar(questionText, { subCategory: 'skip-counting' });
+
+      expect(openSearchService.search).toHaveBeenCalledWith(
+        'math-questions',
+        expect.objectContaining({
+          knn: expect.objectContaining({
+            embedding: expect.objectContaining({
+              filter: expect.objectContaining({
+                term: { 'metadata.sub_category': 'skip-counting' },
+              }),
+            }),
+          }),
+        }),
+        10
+      );
+    });
+
     it('should combine grade, topic, and difficulty filters', async () => {
       const questionText = 'What is 5 + 3?';
 

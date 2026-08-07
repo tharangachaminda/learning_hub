@@ -203,6 +203,7 @@ export class OllamaService {
     context?: string;
     contextPlan?: QuestionGenerationRequest['contextPlan'];
     existingQuestions?: string[];
+    subCategory?: string;
   }): Promise<GeneratedQuestion> {
     const startTime = Date.now();
 
@@ -241,7 +242,8 @@ export class OllamaService {
       const ragContext = await this.retrieveRAGContext(
         request.grade,
         request.topic,
-        request.difficulty
+        request.difficulty,
+        requestData.subCategory
       );
 
       // Append RAG examples to prompt for style/complexity reference
@@ -435,12 +437,14 @@ export class OllamaService {
    * @param grade - Student grade level
    * @param topic - Mathematical topic (ADDITION, etc.)
    * @param difficulty - Question difficulty level
+   * @param subCategory - Optional sub-category slug to scope retrieval to
    * @returns Object with example questions and duplicate detection flag
    */
   private async retrieveRAGContext(
     grade: number,
     topic: string,
-    difficulty: string
+    difficulty: string,
+    subCategory?: string
   ): Promise<{ examples: SearchResult[]; duplicateQuestions: string[] }> {
     if (!this.semanticSearchService) {
       return { examples: [], duplicateQuestions: [] };
@@ -452,6 +456,7 @@ export class OllamaService {
         grade,
         topic: topic.toLowerCase(),
         difficulty: difficulty.toLowerCase(),
+        subCategory,
         limit: this.ragPoolSize,
       });
 

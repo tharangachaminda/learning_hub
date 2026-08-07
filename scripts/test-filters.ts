@@ -103,6 +103,45 @@ async function main() {
         }, Difficulty: ${r.metadata.difficulty})`
       );
     });
+    console.log();
+
+    // Test 7: Sub-category filter alone
+    console.log('Test 7: With sub-category filter (subCategory=skip-counting)');
+    const results7 = await semanticSearchService.findSimilar('solve math', {
+      subCategory: 'skip-counting',
+      limit: 3,
+    });
+    console.log(`✅ Found ${results7.length} results`);
+    results7.forEach((r, i) => {
+      console.log(
+        `  ${i + 1}. ${r.questionText} (Sub-category: ${
+          r.metadata['sub_category'] ?? 'none'
+        })`
+      );
+    });
+    console.log();
+
+    // Test 8: Grade + Topic + Difficulty + Sub-category filter combined
+    console.log(
+      'Test 8: With grade + topic + difficulty + sub-category filter (grade=3, topic=addition, difficulty=medium, subCategory=skip-counting)'
+    );
+    const results8 = await semanticSearchService.findSimilar('calculate sum', {
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'medium',
+      subCategory: 'skip-counting',
+      limit: 3,
+    });
+    console.log(`✅ Found ${results8.length} results`);
+    results8.forEach((r, i) => {
+      console.log(
+        `  ${i + 1}. ${r.questionText} (Grade: ${r.metadata.grade}, Topic: ${
+          r.metadata.topic
+        }, Difficulty: ${r.metadata.difficulty}, Sub-category: ${
+          r.metadata['sub_category'] ?? 'none'
+        })`
+      );
+    });
   } catch (error) {
     console.error('❌ Error:', error);
     if (error instanceof Error) {
