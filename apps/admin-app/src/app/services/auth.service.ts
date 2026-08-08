@@ -90,6 +90,7 @@ export interface SubCategoryItem {
   difficulty: 'easy' | 'medium' | 'hard';
   name: string;
   slug: string;
+  description?: string;
   createdBy: string;
   createdAt: string;
 }
@@ -630,8 +631,19 @@ export class AuthService {
     category: string;
     difficulty: 'easy' | 'medium' | 'hard';
     name: string;
+    description: string;
   }): Observable<SubCategoryItem> {
     return this.http.post<SubCategoryItem>(this.subCategoriesApiUrl, dto);
+  }
+
+  updateSubCategory(
+    id: string,
+    description: string
+  ): Observable<SubCategoryItem> {
+    return this.http.patch<SubCategoryItem>(
+      `${this.subCategoriesApiUrl}/${id}`,
+      { description }
+    );
   }
 
   deleteSubCategory(id: string): Observable<{ deleted: boolean }> {

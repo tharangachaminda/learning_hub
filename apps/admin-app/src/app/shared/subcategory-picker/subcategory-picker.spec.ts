@@ -14,7 +14,10 @@ describe('SubCategoryPickerComponent', () => {
   let component: SubCategoryPickerComponent;
   let fixture: ComponentFixture<SubCategoryPickerComponent>;
   let authService: jest.Mocked<
-    Pick<AuthService, 'listSubCategories' | 'createSubCategory'>
+    Pick<
+      AuthService,
+      'listSubCategories' | 'createSubCategory' | 'updateSubCategory'
+    >
   >;
 
   const existingOptions: SubCategoryItem[] = [
@@ -24,6 +27,7 @@ describe('SubCategoryPickerComponent', () => {
       difficulty: 'medium',
       name: 'Skip Counting',
       slug: 'skip-counting',
+      description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
       createdBy: 'teacher@example.com',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
@@ -42,6 +46,7 @@ describe('SubCategoryPickerComponent', () => {
     authService = {
       listSubCategories: jest.fn().mockReturnValue(of(existingOptions)),
       createSubCategory: jest.fn(),
+      updateSubCategory: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -124,13 +129,14 @@ describe('SubCategoryPickerComponent', () => {
     expect(emitted).not.toHaveBeenCalled();
   });
 
-  it('creates a new sub-category and adds it to the selection', () => {
+  it('creates a new sub-category with a description and adds it to the selection', () => {
     const created: SubCategoryItem = {
       _id: 'sc-3',
       category: 'number-operations',
       difficulty: 'medium',
       name: 'Number Lines',
       slug: 'number-lines',
+      description: 'Using a number line to add or subtract',
       createdBy: 'teacher@example.com',
       createdAt: '2026-01-01T00:00:00.000Z',
     };
@@ -138,11 +144,13 @@ describe('SubCategoryPickerComponent', () => {
     setInputs({ selected: ['skip-counting'] });
     const emitted = jest.spyOn(component.selectedChange, 'emit');
 
-    const input = fixture.nativeElement.querySelector(
+    const inputs = fixture.nativeElement.querySelectorAll(
       '.subcategory-create input'
-    ) as HTMLInputElement;
-    input.value = 'Number Lines';
-    input.dispatchEvent(new Event('input'));
+    ) as NodeListOf<HTMLInputElement>;
+    inputs[0].value = 'Number Lines';
+    inputs[0].dispatchEvent(new Event('input'));
+    inputs[1].value = 'Using a number line to add or subtract';
+    inputs[1].dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
     const addButton = fixture.nativeElement.querySelector(
@@ -154,7 +162,81 @@ describe('SubCategoryPickerComponent', () => {
       category: 'number-operations',
       difficulty: 'medium',
       name: 'Number Lines',
+      description: 'Using a number line to add or subtract',
     });
     expect(emitted).toHaveBeenCalledWith(['skip-counting', 'number-lines']);
+  });
+
+  it('disables the Add button until both name and description are filled', () => {
+    setInputs({});
+
+    const addButton = fixture.nativeElement.querySelector(
+      '.subcategory-create button'
+    ) as HTMLButtonElement;
+    expect(addButton.disabled).toBe(true);
+
+    const inputs = fixture.nativeElement.querySelectorAll(
+      '.subcategory-create input'
+    ) as NodeListOf<HTMLInputElement>;
+    inputs[0].value = 'Number Lines';
+    inputs[0].dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(addButton.disabled).toBe(true);
+
+    inputs[1].value = 'Using a number line to add or subtract';
+    inputs[1].dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(addButton.disabled).toBe(false);
+  });
+
+  it('shows an "add description" affordance only for chips missing one', () => {
+    setInputs({});
+
+    const descButtons = fixture.nativeElement.querySelectorAll(
+      '.subcategory-desc-btn'
+    );
+    // Skip Counting has a description, Word Problems does not
+    expect(descButtons.length).toBe(1);
+  });
+
+  it('backfills a missing description via the inline editor', () => {
+    const updated: SubCategoryItem = {
+      ...existingOptions[1],
+      description: 'Real-world scenarios expressed as arithmetic problems',
+    };
+    authService.updateSubCategory.mockReturnValue(of(updated));
+    setInputs({});
+
+    const descButton = fixture.nativeElement.querySelector(
+      '.subcategory-desc-btn'
+    ) as HTMLButtonElement;
+    descButton.click();
+    fixture.detectChanges();
+
+    const editorInput = fixture.nativeElement.querySelector(
+      '.subcategory-desc-editor input'
+    ) as HTMLInputElement;
+    editorInput.value = 'Real-world scenarios expressed as arithmetic problems';
+    editorInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const saveButton = fixture.nativeElement.querySelector(
+      '.subcategory-desc-editor .btn-secondary'
+    ) as HTMLButtonElement;
+    saveButton.click();
+
+    expect(authService.updateSubCategory).toHaveBeenCalledWith(
+      'sc-2',
+      'Real-world scenarios expressed as arithmetic problems'
+    );
+  });
+
+  it('does not show the "add description" affordance in readonly mode', () => {
+    setInputs({ readonlyMode: true });
+
+    const descButtons = fixture.nativeElement.querySelectorAll(
+      '.subcategory-desc-btn'
+    );
+    expect(descButtons.length).toBe(0);
   });
 });

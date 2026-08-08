@@ -37,7 +37,13 @@ export class SubCategoryPickerComponent {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly newName = signal('');
+  protected readonly newDescription = signal('');
   protected readonly creating = signal(false);
+
+  /** Slug of the chip currently showing its inline description editor, if any */
+  protected readonly editingSlug = signal<string | null>(null);
+  protected readonly editDescriptionText = signal('');
+  protected readonly savingDescription = signal(false);
 
   constructor() {
     effect(() => {
@@ -80,16 +86,23 @@ export class SubCategoryPickerComponent {
   protected createSubCategory(): void {
     const category = this.category();
     const name = this.newName().trim();
-    if (!category || !name || this.creating()) return;
+    const description = this.newDescription().trim();
+    if (!category || !name || !description || this.creating()) return;
 
     this.creating.set(true);
     this.error.set(null);
     this.authService
-      .createSubCategory({ category, difficulty: this.difficulty(), name })
+      .createSubCategory({
+        category,
+        difficulty: this.difficulty(),
+        name,
+        description,
+      })
       .subscribe({
         next: (created) => {
           this.options.update((current) => [...current, created]);
           this.newName.set('');
+          this.newDescription.set('');
           this.creating.set(false);
           if (!this.readonlyMode()) {
             this.selectedChange.emit([...this.selected(), created.slug]);
@@ -102,5 +115,42 @@ export class SubCategoryPickerComponent {
           this.creating.set(false);
         },
       });
+  }
+
+  protected startEditDescription(option: SubCategoryItem, event: Event): void {
+    event.stopPropagation();
+    this.editingSlug.set(option.slug);
+    this.editDescriptionText.set(option.description ?? '');
+  }
+
+  protected cancelEditDescription(event: Event): void {
+    event.stopPropagation();
+    this.editingSlug.set(null);
+    this.editDescriptionText.set('');
+  }
+
+  protected saveDescription(option: SubCategoryItem, event: Event): void {
+    event.stopPropagation();
+    const description = this.editDescriptionText().trim();
+    if (!description || this.savingDescription()) return;
+
+    this.savingDescription.set(true);
+    this.error.set(null);
+    this.authService.updateSubCategory(option._id, description).subscribe({
+      next: (updated) => {
+        this.options.update((current) =>
+          current.map((o) => (o.slug === option.slug ? updated : o))
+        );
+        this.editingSlug.set(null);
+        this.editDescriptionText.set('');
+        this.savingDescription.set(false);
+      },
+      error: (err) => {
+        this.error.set(
+          err?.error?.message || 'Failed to save description.'
+        );
+        this.savingDescription.set(false);
+      },
+    });
   }
 }

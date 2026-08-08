@@ -5,7 +5,12 @@ import { IsIn, IsString, MinLength } from 'class-validator';
  *
  * @example
  * ```json
- * { "category": "number-operations", "difficulty": "medium", "name": "Skip Counting" }
+ * {
+ *   "category": "number-operations",
+ *   "difficulty": "medium",
+ *   "name": "Skip Counting",
+ *   "description": "Counting up or down in equal steps, e.g. 2s, 5s, 10s"
+ * }
  * ```
  */
 export class CreateSubCategoryDto {
@@ -21,4 +26,9 @@ export class CreateSubCategoryDto {
   @IsString()
   @MinLength(1)
   name: string;
+
+  /** Short explanation of what this sub-category covers, used to guide LLM question generation */
+  @IsString()
+  @MinLength(1)
+  description: string;
 }

@@ -28,6 +28,15 @@ export class SubCategory {
   @Prop({ required: true, type: String })
   slug: string;
 
+  /**
+   * Short free-text explanation of what this sub-category covers, used to
+   * guide LLM question generation. Required at creation, but optional at
+   * the schema level so sub-categories created before this field existed
+   * remain valid until backfilled via update.
+   */
+  @Prop({ type: String })
+  description?: string;
+
   /** Identifier of the admin/teacher who created this sub-category */
   @Prop({ type: String })
   createdBy: string;

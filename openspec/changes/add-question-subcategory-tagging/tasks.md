@@ -43,3 +43,16 @@
 - [x] 7.3 Update `scripts/test-semantic-search.ts` / `scripts/test-filters.ts` to cover `subCategory` filtering
 - [x] 7.4 Unit tests for round-robin distribution logic in the generation orchestration (even split, remainder handling, empty-sub-category-list fallback)
 - [x] 7.5 Admin UI test for tag add/remove/inline-create flow on the question form
+
+## 8. Sub-category description
+
+- [x] 8.1 Add `description?: string` to `SubCategory` schema (`api/src/app/subcategories/schemas/subcategory.schema.ts`) — optional at the schema level so pre-existing documents remain valid without a migration
+- [x] 8.2 Require `description` (non-empty) on `CreateSubCategoryDto`; reject creation with a validation error when missing/empty
+- [x] 8.3 Add `UpdateSubCategoryDto` (`description`, required non-empty) and `SubCategoriesService.update(id, description)`; add `PATCH /api/subcategories/:id` on `SubCategoriesController` (admin/teacher guarded), updating only `description` — `category`/`difficulty`/`name`/`slug` stay immutable
+- [x] 8.4 Update `SubCategoriesService.create` to persist `description`
+- [x] 8.5 Update admin-app `SubCategoryItem` (add `description`), `createSubCategory` (auth.service.ts), and add `updateSubCategory` (auth.service.ts)
+- [x] 8.6 Update `SubCategoryPickerComponent`'s inline "+ create new" flow to capture and submit a `description` alongside the name
+- [x] 8.7 Add an inline "add/edit description" affordance in `SubCategoryPickerComponent` for chips missing a description, calling the new `PATCH` endpoint — surfaced wherever the interactive (non-read-only) picker is used, most usefully on the question edit screen (`question-detail.ts`)
+- [x] 8.8 Pass the resolved sub-category's `name` + `description` (not just its slug) from `MathQuestionGenerator`'s round-robin assignment through to `OllamaService.generateMathQuestion`
+- [x] 8.9 Add a new "SUB-CATEGORY FOCUS" prompt section in `ollama.service.ts`, built from the assigned sub-category's name + description (name-only when description is empty), included even when no RAG examples are available for that sub-category
+- [x] 8.10 Unit tests: DTO validation (empty description rejected on create and update), `SubCategoriesService.update` (backfill + revise + immutability of other fields), prompt assembly includes the sub-category focus section with/without RAG examples and with/without a description

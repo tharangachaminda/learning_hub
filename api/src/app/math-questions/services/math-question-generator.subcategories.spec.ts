@@ -45,9 +45,17 @@ describe('MathQuestionGenerator — sub-category distribution', () => {
 
   it('distributes count evenly across sub-categories with remainder to the first ones', async () => {
     (mockSubCategoriesService.list as jest.Mock).mockResolvedValue([
-      { slug: 'skip-counting' },
-      { slug: 'word-problems' },
-      { slug: 'number-lines' },
+      {
+        slug: 'skip-counting',
+        name: 'Skip Counting',
+        description: 'Counting up or down in equal steps',
+      },
+      { slug: 'word-problems', name: 'Word Problems', description: undefined },
+      {
+        slug: 'number-lines',
+        name: 'Number Lines',
+        description: 'Using a number line to add or subtract',
+      },
     ]);
 
     const generator = buildGenerator();
@@ -73,11 +81,23 @@ describe('MathQuestionGenerator — sub-category distribution', () => {
       mockOllamaService.generateMathQuestion as jest.Mock
     ).mock.calls.map(([request]) => request.subCategory);
     expect(calledSubCategories).toEqual([
-      'skip-counting',
-      'word-problems',
-      'number-lines',
-      'skip-counting',
-      'word-problems',
+      {
+        slug: 'skip-counting',
+        name: 'Skip Counting',
+        description: 'Counting up or down in equal steps',
+      },
+      { slug: 'word-problems', name: 'Word Problems', description: undefined },
+      {
+        slug: 'number-lines',
+        name: 'Number Lines',
+        description: 'Using a number line to add or subtract',
+      },
+      {
+        slug: 'skip-counting',
+        name: 'Skip Counting',
+        description: 'Counting up or down in equal steps',
+      },
+      { slug: 'word-problems', name: 'Word Problems', description: undefined },
     ]);
   });
 

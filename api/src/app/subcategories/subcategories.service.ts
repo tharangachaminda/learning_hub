@@ -42,7 +42,12 @@ export class SubCategoriesService {
    * exists for the same category + difficulty pair
    */
   async create(
-    dto: { category: string; difficulty: 'easy' | 'medium' | 'hard'; name: string },
+    dto: {
+      category: string;
+      difficulty: 'easy' | 'medium' | 'hard';
+      name: string;
+      description: string;
+    },
     createdBy: string
   ): Promise<SubCategoryDocument> {
     if (!QUESTION_CATEGORIES[dto.category]) {
@@ -57,6 +62,7 @@ export class SubCategoriesService {
         difficulty: dto.difficulty,
         name: dto.name.trim(),
         slug,
+        description: dto.description.trim(),
         createdBy,
       });
     } catch (error) {
@@ -68,6 +74,24 @@ export class SubCategoriesService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Updates a sub-category's description — the only mutable field.
+   * `category`, `difficulty`, `name`, and `slug` are immutable after
+   * creation, since they define the sub-category's identity.
+   *
+   * @throws {NotFoundException} When no sub-category exists with the given id
+   */
+  async update(id: string, description: string): Promise<SubCategoryDocument> {
+    const subCategory = await this.subCategoryModel.findById(id).exec();
+    if (!subCategory) {
+      throw new NotFoundException(`Sub-category ${id} not found`);
+    }
+
+    subCategory.description = description.trim();
+    await subCategory.save();
+    return subCategory;
   }
 
   /**

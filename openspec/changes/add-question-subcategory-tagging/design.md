@@ -16,6 +16,7 @@ Admin/Teacher-facing question forms (`apps/admin-app/src/app/features/create-que
 - Auto-suggesting or LLM-generating sub-category names — creation is a manual admin/teacher action (a text name input), not inferred.
 - Retroactively back-filling sub-category tags onto existing questions/indexed documents — pre-existing questions simply have an empty `subCategories` list until manually re-tagged.
 - Hierarchical (nested) sub-categories — flat list scoped to (category, difficulty) only.
+- Auto-generating or validating the *quality* of sub-category descriptions — creation and update require a non-empty `description`, but the content is entirely the admin/teacher's responsibility; no linting, length minimums beyond non-empty, or LLM-assisted suggestions.
 - Changing the embedding model, vector index engine, or similarity metric.
 - A standalone "taxonomy management" admin screen — sub-category CRUD happens inline from the question create/edit and generate forms only (per proposal: "should be able to see the sub categories when they create/edit questions").
 
@@ -25,9 +26,11 @@ Admin/Teacher-facing question forms (`apps/admin-app/src/app/features/create-que
 New Mongo collection `subcategories` with schema:
 ```
 { _id, category: string, difficulty: 'easy'|'medium'|'hard', name: string, slug: string,
-  createdBy: ObjectId, createdAt, updatedAt }
+  description?: string, createdBy: ObjectId, createdAt, updatedAt }
 ```
 Compound unique index on `{ category, difficulty, slug }` — the same sub-category name can exist independently under different category/difficulty pairs (e.g. "Word Problems" under both easy and medium), but not duplicated within one pairing. `category` is validated against the existing `QUESTION_CATEGORIES` keys at the DTO layer (no new enum source of truth introduced).
+
+`description` is a short free-text explanation of what the sub-category covers (e.g. "Counting up or down in equal steps, e.g. 2s, 5s, 10s" for "Skip Counting"). It is **required at creation** (Decision 3) so the taxonomy can meaningfully guide LLM generation (Decision 9), but kept **optional at the schema level** so pre-existing `SubCategory` documents created before this field existed remain valid without a migration (Migration Plan).
 
 *Alternative considered*: Store sub-categories as a free-text array directly on `Question` with no separate collection (pure tags, no taxonomy). Rejected — the proposal requires sub-categories to be *discoverable and selectable* per category+difficulty in the UI ("Admin/Teacher should be able to see the sub categories") and requires retrieval to *enumerate all sub-categories for a category+difficulty*, both of which need a queryable list independent of which questions happen to reference them.
 
@@ -37,7 +40,8 @@ Mirrors how `category` is already stored as a plain string slug on `Question` (n
 ### 3. Sub-category CRUD API mirrors `questions` module conventions
 New `SubCategoriesController`/`SubCategoriesService`/`subcategory.schema.ts` under `api/src/app/subcategories/`, guarded with `JwtAuthGuard` + `RolesGuard` + `@Roles('admin', 'teacher')` (same as `questions.controller.ts`):
 - `GET /api/subcategories?category=&difficulty=` — list for a category+difficulty pair (powers both the tag picker and the RAG retrieval loop).
-- `POST /api/subcategories` — create `{ category, difficulty, name }`; slug derived server-side (kebab-case of `name`); 409 on duplicate within the same (category, difficulty).
+- `POST /api/subcategories` — create `{ category, difficulty, name, description }`; slug derived server-side (kebab-case of `name`); `description` required and non-empty (400 if missing/empty — see Decision 9 for why); 409 on duplicate within the same (category, difficulty).
+- `PATCH /api/subcategories/:id` — update `{ description }` on an existing sub-category; 400 if `description` is missing/empty. Scoped to `description` only — `category`, `difficulty`, `name`, and therefore `slug` are immutable after creation, since they define the sub-category's identity and are what retrieval/tagging key off; only the free-text guidance text is expected to need revision (e.g. backfilling a description onto a sub-category created before this field existed).
 - `DELETE /api/subcategories/:id` — remove a sub-category definition.
 
 **Delete semantics**: block deletion (409) if any `Question` currently references the sub-category's slug for that category+difficulty; the admin must untag affected questions first. *Alternative considered*: cascade-delete the tag from all referencing questions automatically. Rejected — silently mutating question data as a side effect of an unrelated taxonomy-management action is surprising and hard to audit; an explicit block keeps the two actions (untag questions, delete taxonomy entry) separate and visible.
@@ -61,7 +65,22 @@ Add `subCategory: { type: 'keyword' }` (singular per question-tag instance — s
 *Alternative considered*: Let the caller (batch-generate request) explicitly pick one sub-category per call instead of the system auto-distributing across all of them. Rejected per proposal wording ("the system should pickup questions from each subsection... Then LLM can generate questions for each sub category") — the intent is automatic breadth, not caller-driven selection. The public `POST /api/questions/batch-generate` request shape is therefore unchanged (still `{ grade, topic, count, difficulty }`); only the response's questions now carry a populated `subCategories` field when applicable. This is additive, not breaking, at the public API layer — the **BREAKING** note in the proposal applies only to the internal `SearchFilters` interface and `retrieveRAGContext` call signature.
 
 ### 7. Admin/Teacher UI: tag picker on question forms, inline creation
-`create-question.ts` and `generate-questions.ts` gain a sub-category multi-select (chip list) that: (a) loads options via `GET /api/subcategories?category=&difficulty=` whenever the derived category or selected difficulty changes, (b) lets the user toggle existing chips on/off (add/remove tags on the question being edited), and (c) offers a "+ create new" inline input that calls `POST /api/subcategories` and immediately adds the new chip to the current selection. No new admin route/page — this satisfies "see the sub categories when they create/edit questions" directly in the existing forms.
+`create-question.ts` and `generate-questions.ts` gain a sub-category multi-select (chip list) that: (a) loads options via `GET /api/subcategories?category=&difficulty=` whenever the derived category or selected difficulty changes, (b) lets the user toggle existing chips on/off (add/remove tags on the question being edited), and (c) offers a "+ create new" inline input — now capturing both `name` and `description` — that calls `POST /api/subcategories` and immediately adds the new chip to the current selection. No new admin route/page — this satisfies "see the sub categories when they create/edit questions" directly in the existing forms.
+
+The same shared picker component also surfaces an inline "add description" affordance on any chip whose sub-category has no `description` yet, calling the new `PATCH /api/subcategories/:id` endpoint (Decision 3). This appears wherever the interactive (non-read-only) picker is used, but is most impactful on the question edit screen, where an admin reviewing an existing question can backfill a description onto a sub-category that predates this field — including one already tagged on that question — without needing to delete and recreate it (delete is blocked while in use, per Decision 3).
+
+### 9. Sub-category description is injected directly into the generation prompt, not just used for retrieval filtering
+`MathQuestionGenerator` already resolves the full list of `SubCategory` documents (via `SubCategoriesService.list`) to build the round-robin assignment (Decision 6). Instead of passing just the assigned `slug` through to `OllamaService.generateMathQuestion`, it now passes the resolved `{ slug, name, description }`. `generateMathQuestion` builds a new prompt section from this — e.g.:
+```
+SUB-CATEGORY FOCUS: This question must be about "<name>" — <description>.
+```
+placed as an explicit instruction ahead of the existing RAG "STYLE REFERENCE" section (from `fix-rag-question-generation`), and included **even when no RAG examples exist yet for that sub-category** (unlike the RAG section, which is a no-op when the pool is empty).
+
+This directly targets the problem motivating this addition: RAG examples are deliberately framed as a style reference, not a hard constraint (`fix-rag-question-generation` Decision 2), and are entirely absent for any sub-category with a thin or empty indexed pool — which, immediately after sub-categories are introduced, is most of them. Without an explicit instruction, the LLM had no signal at all about which sub-category it was generating for beyond an opaque slug that never even reached the prompt, so generated content could easily drift from the intended sub-category.
+
+*Alternative considered*: Rely solely on RAG examples (already filtered by sub-category) to implicitly steer style, without adding an explicit instruction. Rejected — this is exactly the status quo that produces mismatched "wrong sub-category" content in practice, especially for sub-categories with few or zero indexed examples so far.
+
+Since `description` is optional at the schema level (Decision 1), a pre-existing sub-category that hasn't been backfilled yet has an empty description; the prompt section degrades to a name-only instruction (`SUB-CATEGORY FOCUS: This question must be about "<name>".`) rather than rendering a blank/awkward description clause.
 
 ## Risks / Trade-offs
 
@@ -69,10 +88,12 @@ Add `subCategory: { type: 'keyword' }` (singular per question-tag instance — s
 - [Round-robin distribution (Decision 6) can request very small pools per sub-category as N grows (e.g. count=5 across 8 sub-categories)] → Existing "use all available if fewer than `ragExampleLimit`" graceful-degradation behavior from `fix-rag-question-generation` already handles thin pools; a sub-category with zero indexed+tagged examples yet just falls back to the structural-constraints-only prompt (no RAG section) for its share, same as any cold-start topic today.
 - [Blocking delete on in-use sub-categories (Decision 3) could leave stale/unwanted taxonomy entries if admins don't bother untagging] → Acceptable default; can be revisited with a "force delete + cascade untag" option later if this proves to be friction in practice (explicitly listed as Open Question below).
 - [No back-fill of existing questions/indexed docs means early sub-category coverage will be sparse] → Intentional per Non-Goals; coverage improves organically as admins tag questions and new AI-generated ones are auto-tagged (Decision 6) going forward.
+- [A required-but-unvalidated description could still be low-quality (e.g. a single vague word) and fail to steer the LLM effectively] → Non-empty is a minimum bar, not a quality guarantee; acceptable starting point — revisit with description-quality guidance or examples in the admin UI if this proves insufficient in practice.
 
 ## Migration Plan
 
 - Mongo: new `subcategories` collection created on first write (no migration script needed, consistent with existing Mongoose auto-collection behavior); `Question.subCategories` defaults to `[]` for all existing documents (no explicit backfill migration required — Mongoose treats a missing array field as absent/empty).
+- `description` back-fill: `SubCategory` documents created before this field existed (this project's sub-category taxonomy has already shipped and is in use) simply have no `description` — the schema field is optional, so no migration script is needed. Admin/Teacher can backfill one at any time via the new `PATCH /api/subcategories/:id` endpoint, surfaced inline in the sub-category picker (Decision 7). Until backfilled, generation (Decision 9) falls back to a name-only "SUB-CATEGORY FOCUS" instruction for that sub-category (empty description omitted from the prompt rather than rendered as blank guidance).
 - OpenSearch: mapping update (additive field) applied via existing index-management path in `vector-index.service.ts`; no full reindex required for the change to deploy safely, though sub-category-filtered retrieval will only surface newly (re-)indexed, tagged documents.
 - Rollout: straightforward code deploy (API + admin-app); no destructive schema changes.
 - Rollback: revert the deploy; the `subcategories` collection and `subCategories` field can remain unused/ignored if rolled back (no cleanup required for a clean rollback).

@@ -19,6 +19,13 @@ import {
 import { QUESTION_TYPE_TO_CATEGORY } from '../../ai/curriculum.types';
 import { SubCategoriesService } from '../../subcategories/subcategories.service';
 
+/** Sub-category resolved for a single generation call within a round-robin batch. */
+interface SubCategoryAssignment {
+  slug: string;
+  name: string;
+  description?: string;
+}
+
 /**
  * Service responsible for generating mathematical questions for educational purposes
  * Implements AI-powered question generation with deterministic fallback
@@ -176,7 +183,7 @@ export class MathQuestionGenerator {
           // Pass already-generated questions so the LLM avoids duplicates
           const existingQuestions = questions.map((q) => q.question);
 
-          const subCategory = subCategoryAssignments[i];
+          const subCategoryAssignment = subCategoryAssignments[i];
 
           const aiQuestion = await this.ollamaService.generateMathQuestion({
             grade: gradeNumber,
@@ -186,7 +193,7 @@ export class MathQuestionGenerator {
             country: 'NZ',
             contextPlan: contextPlans[i],
             existingQuestions,
-            subCategory,
+            subCategory: subCategoryAssignment,
           });
 
           const visuals = this.normalizeQuestionVisuals(aiQuestion.visuals);
@@ -222,7 +229,7 @@ export class MathQuestionGenerator {
             aiQuestion.answerAssetId,
             aiQuestion.visualLayout
           );
-          mathQuestion.subCategory = subCategory;
+          mathQuestion.subCategory = subCategoryAssignment?.slug;
           questions.push(mathQuestion);
           lastError = null;
           break; // success — move to next question
@@ -506,19 +513,24 @@ export class MathQuestionGenerator {
     topic: string,
     questionDifficulty: 'easy' | 'medium' | 'hard',
     count: number
-  ): Promise<(string | undefined)[]> {
+  ): Promise<(SubCategoryAssignment | undefined)[]> {
     if (!this.subCategoriesService) {
       return new Array(count).fill(undefined);
     }
 
     const category = this.resolveCategory(topic);
 
-    let subCategories: Array<{ slug: string }> = [];
+    let subCategories: SubCategoryAssignment[] = [];
     try {
-      subCategories = await this.subCategoriesService.list(
+      const found = await this.subCategoriesService.list(
         category,
         questionDifficulty
       );
+      subCategories = found.map((subCategory) => ({
+        slug: subCategory.slug,
+        name: subCategory.name,
+        description: subCategory.description,
+      }));
     } catch (error) {
       this.logger.warn(
         `Failed to load sub-categories for ${category}/${questionDifficulty}: ${
@@ -534,7 +546,7 @@ export class MathQuestionGenerator {
 
     return Array.from(
       { length: count },
-      (_, index) => subCategories[index % subCategories.length].slug
+      (_, index) => subCategories[index % subCategories.length]
     );
   }
 

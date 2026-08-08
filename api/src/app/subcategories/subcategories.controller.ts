@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Request,
@@ -12,6 +13,7 @@ import {
 import { SubCategoriesService } from './subcategories.service';
 import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
 import { FindSubCategoriesDto } from './dto/find-subcategories.dto';
+import { UpdateSubCategoryDto } from './dto/update-subcategory.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,7 +26,8 @@ import { SubCategoryDocument } from './schemas/subcategory.schema';
  * @example
  * ```
  * GET    /api/subcategories?category=number-operations&difficulty=medium
- * POST   /api/subcategories  { category, difficulty, name }
+ * POST   /api/subcategories  { category, difficulty, name, description }
+ * PATCH  /api/subcategories/:id  { description }
  * DELETE /api/subcategories/:id
  * ```
  */
@@ -48,6 +51,14 @@ export class SubCategoriesController {
   ): Promise<SubCategoryDocument> {
     const createdBy = req.user?.email || req.user?.userId || 'unknown';
     return this.subCategoriesService.create(dto, createdBy);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubCategoryDto
+  ): Promise<SubCategoryDocument> {
+    return this.subCategoriesService.update(id, dto.description);
   }
 
   @Delete(':id')

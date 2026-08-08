@@ -26,6 +26,7 @@ describe('SubCategoriesService', () => {
     difficulty: 'medium',
     name: 'Skip Counting',
     slug: 'skip-counting',
+    description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
     createdBy: 'teacher@example.com',
   };
 
@@ -66,6 +67,7 @@ describe('SubCategoriesService', () => {
           category: 'number-operations',
           difficulty: 'medium',
           name: 'Skip Counting',
+          description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
         },
         'teacher@example.com'
       );
@@ -76,6 +78,7 @@ describe('SubCategoriesService', () => {
           difficulty: 'medium',
           name: 'Skip Counting',
           slug: 'skip-counting',
+          description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
           createdBy: 'teacher@example.com',
         })
       );
@@ -85,7 +88,12 @@ describe('SubCategoriesService', () => {
     it('rejects an unknown category', async () => {
       await expect(
         service.create(
-          { category: 'not-a-real-category', difficulty: 'medium', name: 'X' },
+          {
+            category: 'not-a-real-category',
+            difficulty: 'medium',
+            name: 'X',
+            description: 'Some description',
+          },
           'teacher@example.com'
         )
       ).rejects.toThrow(BadRequestException);
@@ -101,6 +109,7 @@ describe('SubCategoriesService', () => {
             category: 'number-operations',
             difficulty: 'medium',
             name: 'Skip Counting',
+            description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
           },
           'teacher@example.com'
         )
@@ -129,6 +138,71 @@ describe('SubCategoriesService', () => {
       const result = await service.list('number-operations', 'hard');
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('update', () => {
+    it('backfills a missing description', async () => {
+      const doc = {
+        ...mockSubCategory,
+        description: undefined,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      subCategoryModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
+      });
+
+      const result = await service.update(
+        'sc-001',
+        'Counting up or down in equal steps, e.g. 2s, 5s, 10s'
+      );
+
+      expect(doc.save).toHaveBeenCalled();
+      expect(result.description).toBe(
+        'Counting up or down in equal steps, e.g. 2s, 5s, 10s'
+      );
+    });
+
+    it('revises an existing description', async () => {
+      const doc = {
+        ...mockSubCategory,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      subCategoryModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
+      });
+
+      const result = await service.update('sc-001', 'A revised description');
+
+      expect(doc.save).toHaveBeenCalled();
+      expect(result.description).toBe('A revised description');
+    });
+
+    it('leaves category, difficulty, name, and slug unchanged', async () => {
+      const doc = {
+        ...mockSubCategory,
+        save: jest.fn().mockResolvedValue(undefined),
+      };
+      subCategoryModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(doc),
+      });
+
+      const result = await service.update('sc-001', 'A revised description');
+
+      expect(result.category).toBe(mockSubCategory.category);
+      expect(result.difficulty).toBe(mockSubCategory.difficulty);
+      expect(result.name).toBe(mockSubCategory.name);
+      expect(result.slug).toBe(mockSubCategory.slug);
+    });
+
+    it('throws NotFoundException when the sub-category does not exist', async () => {
+      subCategoryModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.update('missing-id', 'A description')
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

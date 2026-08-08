@@ -25,6 +25,21 @@ The system SHALL support filtering RAG retrieval results to only examples tagged
 - **WHEN** a sub-category has fewer indexed, tagged examples available than the configured sample size
 - **THEN** the system uses all available examples for that sub-category rather than erroring or blocking generation
 
+### Requirement: Sub-category description included in the generation prompt
+When generating a question for an assigned sub-category, the system SHALL include that sub-category's `name` in the prompt sent to the LLM as explicit guidance, and SHALL also include its `description` when one is set, independent of whether any RAG examples were retrieved for that sub-category.
+
+#### Scenario: Description included even with no RAG examples
+- **WHEN** the system generates a question for a sub-category that currently has zero indexed, tagged examples
+- **THEN** the assembled prompt still includes that sub-category's name and description as generation guidance
+
+#### Scenario: Description included alongside RAG examples
+- **WHEN** the system generates a question for a sub-category that has RAG examples available
+- **THEN** the assembled prompt includes both the sub-category name/description guidance and the retrieved RAG examples
+
+#### Scenario: Name-only guidance when description is not yet set
+- **WHEN** the system generates a question for a sub-category that has no `description` (e.g. created before descriptions existed and not yet backfilled)
+- **THEN** the assembled prompt includes the sub-category's name as guidance without an empty or malformed description clause
+
 ### Requirement: Generated question count distributed across sub-categories
 When sub-categories exist for the requested category+difficulty, the system SHALL distribute the total requested question count evenly across all available sub-categories (round-robin, with any remainder assigned to the first sub-categories in the list), so the resulting batch spans the full known taxonomy rather than a single mixed pool.
 

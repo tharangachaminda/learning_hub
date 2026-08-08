@@ -1219,4 +1219,100 @@ describe('OllamaService RAG prompt integration', () => {
     const [, body] = mockAxios.post.mock.calls[0];
     expect(body.prompt).not.toContain('REFERENCE EXAMPLES (from question bank)');
   });
+
+  it('includes a SUB-CATEGORY FOCUS instruction with name and description when a sub-category is assigned', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+      subCategory: {
+        slug: 'skip-counting',
+        name: 'Skip Counting',
+        description: 'Counting up or down in equal steps, e.g. 2s, 5s, 10s',
+      },
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).toContain(
+      'SUB-CATEGORY FOCUS: This question must be about "Skip Counting" — Counting up or down in equal steps, e.g. 2s, 5s, 10s.'
+    );
+  });
+
+  it('includes the SUB-CATEGORY FOCUS instruction even when no RAG examples exist for the sub-category', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+      subCategory: { slug: 'skip-counting', name: 'Skip Counting' },
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).not.toContain('REFERENCE EXAMPLES (from question bank)');
+    expect(body.prompt).toContain('SUB-CATEGORY FOCUS');
+  });
+
+  it('falls back to name-only guidance when the sub-category has no description', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+      subCategory: { slug: 'skip-counting', name: 'Skip Counting' },
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    const focusLine = body.prompt
+      .split('\n')
+      .find((line: string) => line.startsWith('SUB-CATEGORY FOCUS'));
+    expect(focusLine).toBe(
+      'SUB-CATEGORY FOCUS: This question must be about "Skip Counting".'
+    );
+    expect(focusLine).not.toContain('—');
+  });
+
+  it('omits the SUB-CATEGORY FOCUS section when no sub-category is assigned', async () => {
+    jest.spyOn(semanticSearchService, 'findSimilar').mockResolvedValue([]);
+
+    mockAxios.post.mockResolvedValue({
+      data: {
+        response: 'QUESTION: 5 + 3 = ?\nANSWER: 8\nEXPLANATION: Add 5 and 3.',
+      },
+    });
+
+    await service.generateMathQuestion({
+      grade: 3,
+      topic: 'addition',
+      difficulty: 'easy',
+      country: 'NZ',
+    });
+
+    const [, body] = mockAxios.post.mock.calls[0];
+    expect(body.prompt).not.toContain('SUB-CATEGORY FOCUS');
+  });
 });

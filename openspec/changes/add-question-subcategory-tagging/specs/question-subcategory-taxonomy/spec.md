@@ -1,11 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Sub-category creation scoped to category and difficulty
-The system SHALL allow an authenticated Admin or Teacher to create a sub-category defined by a `category` (must match an existing question category), a `difficulty` (`easy`, `medium`, or `hard`), and a `name`. The system SHALL derive a slug from `name` and SHALL reject creation with a conflict error when a sub-category with the same slug already exists for the same `category` + `difficulty` pair.
+The system SHALL allow an authenticated Admin or Teacher to create a sub-category defined by a `category` (must match an existing question category), a `difficulty` (`easy`, `medium`, or `hard`), a `name`, and a non-empty `description` explaining what the sub-category covers (used to guide LLM question generation — see the `subcategory-aware-rag-retrieval` capability). The system SHALL derive a slug from `name`, SHALL reject creation with a validation error when `description` is missing or empty, and SHALL reject creation with a conflict error when a sub-category with the same slug already exists for the same `category` + `difficulty` pair.
 
 #### Scenario: Successful sub-category creation
-- **WHEN** an Admin submits a new sub-category with `category: "number-operations"`, `difficulty: "medium"`, `name: "Skip Counting"`
+- **WHEN** an Admin submits a new sub-category with `category: "number-operations"`, `difficulty: "medium"`, `name: "Skip Counting"`, `description: "Counting up or down in equal steps, e.g. 2s, 5s, 10s"`
 - **THEN** the system creates the sub-category and returns it, available for future listing under that category+difficulty pair
+
+#### Scenario: Creation rejected without a description
+- **WHEN** an Admin submits a new sub-category with an empty or missing `description`
+- **THEN** the system rejects the request with a validation error and does not create the sub-category
 
 #### Scenario: Duplicate sub-category rejected
 - **WHEN** an Admin submits a new sub-category whose derived slug already exists for the same `category` + `difficulty` pair
@@ -36,6 +40,32 @@ The system SHALL reject deletion of a sub-category that is currently referenced 
 #### Scenario: Delete succeeds once unreferenced
 - **WHEN** an Admin attempts to delete a sub-category that no question currently references
 - **THEN** the system deletes the sub-category and it no longer appears in future listings for its category+difficulty pair
+
+### Requirement: Sub-category description can be updated
+The system SHALL allow an authenticated Admin or Teacher to update the `description` of an existing sub-category, including one that currently has none, without changing its `category`, `difficulty`, `name`, or `slug`. The system SHALL reject the update with a validation error when the new `description` is missing or empty.
+
+#### Scenario: Backfill a missing description
+- **WHEN** an Admin updates a sub-category that has no `description` yet, providing one
+- **THEN** the system saves the description and it is returned in future listings of that sub-category
+
+#### Scenario: Revise an existing description
+- **WHEN** an Admin updates a sub-category's existing `description` with new text
+- **THEN** the system replaces the stored description with the new text
+
+#### Scenario: Category, difficulty, name, and slug are immutable
+- **WHEN** an Admin submits an update request
+- **THEN** the system only applies changes to `description`, leaving `category`, `difficulty`, `name`, and `slug` unchanged regardless of what else is included in the request
+
+#### Scenario: Update rejected without a description
+- **WHEN** an Admin submits an update with an empty or missing `description`
+- **THEN** the system rejects the request with a validation error and leaves the stored description unchanged
+
+### Requirement: Missing descriptions surfaced for backfill while tagging a question
+The system SHALL indicate, wherever an editable sub-category picker is shown for tagging a question (including the question edit form), when a selectable sub-category has no description, and SHALL let the Admin/Teacher add one inline without leaving the form.
+
+#### Scenario: Add a missing description while editing a question
+- **WHEN** an Admin editing an existing question sees a taggable sub-category with no description
+- **THEN** the Admin can enter a description inline and save it, without navigating away from the question edit form
 
 ### Requirement: Question tagging with sub-categories
 The system SHALL allow an Admin or Teacher, while creating or editing a question, to view the sub-categories available for that question's category and difficulty, and to add or remove any number of them from the question's `subCategories`.
