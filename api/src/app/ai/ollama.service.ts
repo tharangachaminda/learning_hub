@@ -203,6 +203,7 @@ export class OllamaService {
     context?: string;
     contextPlan?: QuestionGenerationRequest['contextPlan'];
     existingQuestions?: string[];
+    subCategory?: { slug: string; name: string; description?: string };
   }): Promise<GeneratedQuestion> {
     const startTime = Date.now();
 
@@ -241,8 +242,14 @@ export class OllamaService {
       const ragContext = await this.retrieveRAGContext(
         request.grade,
         request.topic,
-        request.difficulty
+        request.difficulty,
+        requestData.subCategory?.slug
       );
+
+      // Explicit sub-category instruction — included even when no RAG
+      // examples exist yet for this sub-category (unlike the RAG section
+      // below, which is a no-op when the pool is empty).
+      prompt += this.buildSubCategoryPromptSection(requestData.subCategory);
 
       // Append RAG examples to prompt for style/complexity reference
       prompt += this.buildRAGPromptSection(ragContext.examples);
@@ -435,12 +442,14 @@ export class OllamaService {
    * @param grade - Student grade level
    * @param topic - Mathematical topic (ADDITION, etc.)
    * @param difficulty - Question difficulty level
+   * @param subCategory - Optional sub-category slug to scope retrieval to
    * @returns Object with example questions and duplicate detection flag
    */
   private async retrieveRAGContext(
     grade: number,
     topic: string,
-    difficulty: string
+    difficulty: string,
+    subCategory?: string
   ): Promise<{ examples: SearchResult[]; duplicateQuestions: string[] }> {
     if (!this.semanticSearchService) {
       return { examples: [], duplicateQuestions: [] };
@@ -452,6 +461,7 @@ export class OllamaService {
         grade,
         topic: topic.toLowerCase(),
         difficulty: difficulty.toLowerCase(),
+        subCategory,
         limit: this.ragPoolSize,
       });
 
@@ -506,6 +516,31 @@ export class OllamaService {
     }
 
     return shuffled.slice(0, sampleSize);
+  }
+
+  /**
+   * Builds an explicit "SUB-CATEGORY FOCUS" instruction from the assigned
+   * sub-category's name and description, so the LLM has direct generation
+   * guidance for which sub-category this question belongs to — unlike the
+   * RAG style-reference section, this is included even when no RAG examples
+   * exist yet for the sub-category (the case most likely to otherwise
+   * produce content that drifts from the intended sub-category).
+   *
+   * @param subCategory - The sub-category assigned to this generation call, if any
+   * @returns Formatted prompt section string, or empty if no sub-category was assigned
+   */
+  private buildSubCategoryPromptSection(subCategory?: {
+    slug: string;
+    name: string;
+    description?: string;
+  }): string {
+    if (!subCategory) return '';
+
+    const guidance = subCategory.description
+      ? `"${subCategory.name}" — ${subCategory.description}`
+      : `"${subCategory.name}"`;
+
+    return `\n\nSUB-CATEGORY FOCUS: This question must be about ${guidance}.`;
   }
 
   /**

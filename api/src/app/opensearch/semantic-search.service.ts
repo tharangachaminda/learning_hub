@@ -10,6 +10,7 @@ export interface SearchFilters {
   topic?: string;
   operation?: string;
   difficulty?: string;
+  subCategory?: string;
   excludeIds?: string[];
   limit?: number;
 }
@@ -292,6 +293,13 @@ export class SemanticSearchService {
     if (filters.difficulty) {
       must.push({
         term: { 'metadata.difficulty': filters.difficulty },
+      });
+    }
+
+    // Sub-category filter
+    if (filters.subCategory) {
+      must.push({
+        term: { 'metadata.sub_category': filters.subCategory },
       });
     }
 

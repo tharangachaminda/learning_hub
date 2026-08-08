@@ -16,6 +16,15 @@ import {
   getMathematicsYearPlan,
   MATHEMATICS_CURRICULUM,
 } from '../../ai/mathematics-curriculum.criteria';
+import { QUESTION_TYPE_TO_CATEGORY } from '../../ai/curriculum.types';
+import { SubCategoriesService } from '../../subcategories/subcategories.service';
+
+/** Sub-category resolved for a single generation call within a round-robin batch. */
+interface SubCategoryAssignment {
+  slug: string;
+  name: string;
+  description?: string;
+}
 
 /**
  * Service responsible for generating mathematical questions for educational purposes
@@ -39,7 +48,8 @@ export class MathQuestionGenerator {
    */
   constructor(
     private readonly ollamaService?: OllamaService,
-    private readonly questionsService?: QuestionsService
+    private readonly questionsService?: QuestionsService,
+    private readonly subCategoriesService?: SubCategoriesService
   ) {}
 
   /**
@@ -157,6 +167,11 @@ export class MathQuestionGenerator {
       topic,
       questionDifficulty
     );
+    const subCategoryAssignments = await this.resolveSubCategoryAssignments(
+      topic,
+      questionDifficulty,
+      count
+    );
 
     const maxRetries = 2;
 
@@ -168,6 +183,8 @@ export class MathQuestionGenerator {
           // Pass already-generated questions so the LLM avoids duplicates
           const existingQuestions = questions.map((q) => q.question);
 
+          const subCategoryAssignment = subCategoryAssignments[i];
+
           const aiQuestion = await this.ollamaService.generateMathQuestion({
             grade: gradeNumber,
             topic,
@@ -176,6 +193,7 @@ export class MathQuestionGenerator {
             country: 'NZ',
             contextPlan: contextPlans[i],
             existingQuestions,
+            subCategory: subCategoryAssignment,
           });
 
           const visuals = this.normalizeQuestionVisuals(aiQuestion.visuals);
@@ -184,35 +202,35 @@ export class MathQuestionGenerator {
           );
 
           // Convert AI question format to MathQuestion entity
-          questions.push(
-            new MathQuestion(
-              aiQuestion.question,
-              aiQuestion.answer,
-              topic,
-              difficulty,
-              [aiQuestion.explanation], // stepByStepSolution from AI
-              visuals,
-              visualSelections,
-              questionFormat,
-              (aiQuestion.options ?? []).reduce<
-                ConstructorParameters<typeof MathQuestion>[8]
-              >((acc, option) => {
-                if (!option?.value) {
-                  return acc;
-                }
-
-                acc.push({
-                  value: option.value,
-                  assetId: option.assetId,
-                  svgPath: option.svgPath,
-                });
-
+          const mathQuestion = new MathQuestion(
+            aiQuestion.question,
+            aiQuestion.answer,
+            topic,
+            difficulty,
+            [aiQuestion.explanation], // stepByStepSolution from AI
+            visuals,
+            visualSelections,
+            questionFormat,
+            (aiQuestion.options ?? []).reduce<
+              ConstructorParameters<typeof MathQuestion>[8]
+            >((acc, option) => {
+              if (!option?.value) {
                 return acc;
-              }, []),
-              aiQuestion.answerAssetId,
-              aiQuestion.visualLayout
-            )
+              }
+
+              acc.push({
+                value: option.value,
+                assetId: option.assetId,
+                svgPath: option.svgPath,
+              });
+
+              return acc;
+            }, []),
+            aiQuestion.answerAssetId,
+            aiQuestion.visualLayout
           );
+          mathQuestion.subCategory = subCategoryAssignment?.slug;
+          questions.push(mathQuestion);
           lastError = null;
           break; // success — move to next question
         } catch (error) {
@@ -436,6 +454,7 @@ export class MathQuestionGenerator {
         answerAssetId: q.answerAssetId,
         grade: gradeNumber,
         topic,
+        subCategories: q.subCategory ? [q.subCategory] : [],
         format: q.format ?? questionFormat,
         options: q.options ?? [],
         stepByStepSolution: q.stepByStepSolution,
@@ -477,6 +496,68 @@ export class MathQuestionGenerator {
         `Failed to persist ${questions.length} generated questions: ${error.message}`
       );
     }
+  }
+
+  /**
+   * Resolves which sub-category (if any) each of the `count` questions
+   * should be generated for, distributing round-robin (with remainder to
+   * the first sub-categories) across every sub-category defined for the
+   * topic's category + difficulty. Falls back to no sub-category
+   * assignment for all questions (today's single mixed-pool behavior)
+   * when no sub-categories are defined yet, or no `SubCategoriesService`
+   * is available.
+   *
+   * @private
+   */
+  private async resolveSubCategoryAssignments(
+    topic: string,
+    questionDifficulty: 'easy' | 'medium' | 'hard',
+    count: number
+  ): Promise<(SubCategoryAssignment | undefined)[]> {
+    if (!this.subCategoriesService) {
+      return new Array(count).fill(undefined);
+    }
+
+    const category = this.resolveCategory(topic);
+
+    let subCategories: SubCategoryAssignment[] = [];
+    try {
+      const found = await this.subCategoriesService.list(
+        category,
+        questionDifficulty
+      );
+      subCategories = found.map((subCategory) => ({
+        slug: subCategory.slug,
+        name: subCategory.name,
+        description: subCategory.description,
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to load sub-categories for ${category}/${questionDifficulty}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      return new Array(count).fill(undefined);
+    }
+
+    if (subCategories.length === 0) {
+      return new Array(count).fill(undefined);
+    }
+
+    return Array.from(
+      { length: count },
+      (_, index) => subCategories[index % subCategories.length]
+    );
+  }
+
+  /**
+   * Resolves the question category key for a topic, matching the fallback
+   * used server-side when persisting questions.
+   *
+   * @private
+   */
+  private resolveCategory(topic: string): string {
+    return QUESTION_TYPE_TO_CATEGORY[topic] ?? 'number-operations';
   }
 
   /**

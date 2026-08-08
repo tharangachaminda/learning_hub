@@ -121,6 +121,9 @@ export class VectorIndexService implements OnModuleInit {
             source_topic_key: {
               type: 'keyword',
             },
+            sub_category: {
+              type: 'keyword',
+            },
           },
         },
       },
@@ -273,6 +276,7 @@ export class VectorIndexService implements OnModuleInit {
       resolved_topic_label?: string;
       curriculum_phase?: string;
       source_topic_key?: string;
+      sub_category?: string;
     }
   ): Promise<void> {
     const document = {

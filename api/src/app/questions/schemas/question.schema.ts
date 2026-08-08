@@ -396,6 +396,13 @@ export class Question {
   category: string;
 
   /**
+   * Sub-category tags scoped to this question's category + difficulty
+   * (e.g. 'skip-counting'). Used to broaden RAG retrieval coverage.
+   */
+  @Prop({ type: [String], default: [] })
+  subCategories: string[];
+
+  /**
    * Presentation format of the question.
    * Defaults to `open-ended`.
    */
@@ -505,3 +512,4 @@ QuestionSchema.index({ 'metadata.resolvedTopicKey': 1 });
 QuestionSchema.index({ 'metadata.curriculumStrand': 1 });
 QuestionSchema.index({ 'vectorSync.status': 1 });
 QuestionSchema.index({ 'vectorSync.documentId': 1 }, { sparse: true });
+QuestionSchema.index({ category: 1, 'metadata.difficulty': 1, subCategories: 1 });

@@ -43,6 +43,7 @@
 .col-answer{width:80px;text-align:center;font-weight:600;color:#1e293b}
 .col-grade{width:70px;text-align:center}
 .col-topic{width:140px}
+.col-subcategories{width:160px}
 .col-difficulty{width:90px;text-align:center}
 .col-status{width:180px}
 .col-actions{width:120px;text-align:center}
@@ -60,6 +61,10 @@
 .diff-hard{background:#fee2e2;color:#991b1b}
 .question-meta{display:flex;gap:.35rem;margin-top:.35rem}
 .meta-tag{background:#f1f5f9;color:#64748b;padding:.1rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:500}
+
+td.col-subcategories{display:flex;flex-wrap:wrap;gap:.3rem}
+.subcategory-tag{background:#e0e7ff;color:#3730a3;text-transform:capitalize}
+.col-empty{color:#94a3b8}
 
 .status-badge{padding:.2rem .6rem;border-radius:9999px;font-size:.75rem;font-weight:600;text-transform:capitalize}
 .status-pending{background:#fef3c7;color:#92400e}
@@ -101,4 +106,4 @@
 
 @media(max-width:920px){.review-hero,.filter-panel-header,.list-header{align-items:stretch}.review-hero-actions,.filter-panel-meta,.bulk-actions{width:100%}.review-hero-actions .admin-btn,.bulk-actions .btn{flex:1 1 180px}}
 
-@media(max-width:768px){.q-table{font-size:.8rem}.col-topic{display:none}.pagination{flex-wrap:wrap}}
+@media(max-width:768px){.q-table{font-size:.8rem}.col-topic{display:none}.col-subcategories{display:none}.pagination{flex-wrap:wrap}}

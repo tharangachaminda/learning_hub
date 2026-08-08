@@ -10,6 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { switchMap } from 'rxjs/operators';
 import {
   AuthService,
   QuestionItem,
@@ -23,6 +24,7 @@ import {
   PickedVisualSelection,
   VisualPickerComponent,
 } from '../../shared/visual-picker/visual-picker';
+import { SubCategoryPickerComponent } from '../../shared/subcategory-picker/subcategory-picker';
 import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header-actions.service';
 
 @Component({
@@ -35,6 +37,7 @@ import { AdminHeaderActionsService } from '../../shared/admin-shell/admin-header
     KatexRenderComponent,
     LatexEditorComponent,
     VisualPickerComponent,
+    SubCategoryPickerComponent,
   ],
   templateUrl: './question-detail.html',
   styleUrl: './question-detail.scss',
@@ -69,6 +72,8 @@ export class QuestionDetailComponent
   editAnswerAssetId = '';
   editExplanation = '';
   editSteps: string[] = [];
+  editSubCategories: string[] = [];
+  editDifficulty: 'easy' | 'medium' | 'hard' = 'medium';
   editInitialVisualSelections: PickedVisualSelection[] = [];
   editVisualSelections: PickedVisualSelection[] = [];
 
@@ -340,6 +345,12 @@ export class QuestionDetailComponent
     this.editSteps = this.question.stepByStepSolution
       ? [...this.question.stepByStepSolution]
       : [];
+    this.editSubCategories = this.question.subCategories
+      ? [...this.question.subCategories]
+      : [];
+    this.editDifficulty = this.normalizeDifficulty(
+      this.question.metadata.difficulty
+    );
     this.editInitialVisualSelections = this.toEditableVisualSelections(
       this.question
     );
@@ -354,6 +365,8 @@ export class QuestionDetailComponent
     this.editAnswerAssetId = '';
     this.editExplanation = '';
     this.editSteps = [];
+    this.editSubCategories = [];
+    this.editDifficulty = 'medium';
     this.editInitialVisualSelections = [];
     this.editVisualSelections = [];
   }
@@ -362,32 +375,42 @@ export class QuestionDetailComponent
     if (!this.question) return;
     this.isSaving = true;
     this.error = null;
+    this.authService.updateQuestion(this.questionId, this.buildUpdatePayload()).subscribe({
+      next: () => {
+        this.success = 'Question updated. Status reset to pending for re-review.';
+        this.isSaving = false;
+        this.isEditing = false;
+        this.loadQuestion();
+      },
+      error: () => {
+        this.error = 'Failed to save changes.';
+        this.isSaving = false;
+      },
+    });
+  }
+
+  /** Saves the current edits, then approves and re-indexes the question in one step. */
+  saveAndApprove(): void {
+    if (!this.question) return;
+    if (!confirm('Save changes and approve this question?')) return;
+    this.isSaving = true;
+    this.error = null;
     this.authService
-      .updateQuestion(this.questionId, {
-        questionText: this.editQuestionText,
-        answer: this.toAnswerValue(this.editAnswer),
-        answerAssetId: this.editAnswerAssetId.trim() || undefined,
-        explanation: this.editExplanation,
-        stepByStepSolution: this.editSteps,
-        visualSelections: this.editVisualSelections.map((selection) => ({
-          assetId: selection.assetId,
-          role: selection.role,
-          placement: selection.placement,
-          render: selection.render,
-          layout: selection.layout,
-        })),
-        visualLayout: this.question.visualLayout,
-      })
+      .updateQuestion(this.questionId, this.buildUpdatePayload())
+      .pipe(switchMap(() => this.authService.reviewQuestion(this.questionId, 'approved')))
       .subscribe({
         next: () => {
           this.success =
-            'Question updated. Status reset to pending for re-review.';
+            'Question updated, approved, and indexed successfully.';
           this.isSaving = false;
           this.isEditing = false;
           this.loadQuestion();
         },
-        error: () => {
-          this.error = 'Failed to save changes.';
+        error: (err) => {
+          this.error =
+            err?.error?.message ||
+            err?.error?.error ||
+            'Question was saved, but approval and indexing failed.';
           this.isSaving = false;
         },
       });
@@ -415,6 +438,50 @@ export class QuestionDetailComponent
 
   onEditVisualSelectionChange(selections: PickedVisualSelection[]): void {
     this.editVisualSelections = selections;
+  }
+
+  onEditSubCategoriesChange(slugs: string[]): void {
+    this.editSubCategories = slugs;
+  }
+
+  /**
+   * Sub-categories are scoped to (category, difficulty), so a difficulty
+   * change invalidates the current selection — clear it rather than risk
+   * submitting slugs that don't exist for the newly selected difficulty.
+   */
+  onEditDifficultyChange(): void {
+    this.editSubCategories = [];
+  }
+
+  private normalizeDifficulty(
+    difficulty: string | undefined
+  ): 'easy' | 'medium' | 'hard' {
+    return difficulty === 'easy' || difficulty === 'hard'
+      ? difficulty
+      : 'medium';
+  }
+
+  private buildUpdatePayload() {
+    if (!this.question) {
+      throw new Error('No question loaded');
+    }
+    return {
+      questionText: this.editQuestionText,
+      answer: this.toAnswerValue(this.editAnswer),
+      answerAssetId: this.editAnswerAssetId.trim() || undefined,
+      explanation: this.editExplanation,
+      stepByStepSolution: this.editSteps,
+      subCategories: this.editSubCategories,
+      difficulty: this.editDifficulty,
+      visualSelections: this.editVisualSelections.map((selection) => ({
+        assetId: selection.assetId,
+        role: selection.role,
+        placement: selection.placement,
+        render: selection.render,
+        layout: selection.layout,
+      })),
+      visualLayout: this.question.visualLayout,
+    };
   }
 
   backToQueue(): void {

@@ -133,6 +133,7 @@ export class QuestionsController {
         strand: topic.strand,
         overview: topic.overview,
         legacyTopicKeys: topic.legacyTopicKeys ?? [],
+        category: this.topicToCategory(topic.key, topic),
       })),
     }));
 
@@ -261,6 +262,7 @@ export class QuestionsController {
       grade: dto.grade,
       topic: dto.topic,
       category: dto.category ?? this.topicToCategory(dto.topic, resolvedTopic),
+      subCategories: dto.subCategories ?? [],
       format: dto.format ?? QuestionFormat.OPEN_ENDED,
       options: dto.options ?? [],
       stepByStepSolution: dto.stepByStepSolution ?? [],
@@ -349,6 +351,7 @@ export class QuestionsController {
       grade: dto.grade,
       topic: dto.topic,
       category: this.topicToCategory(dto.topic, resolvedTopic),
+      subCategories: q.subCategory ? [q.subCategory] : [],
       format: q.format ?? dto.format ?? QuestionFormat.OPEN_ENDED,
       options: q.options ?? [],
       stepByStepSolution: q.stepByStepSolution || [],

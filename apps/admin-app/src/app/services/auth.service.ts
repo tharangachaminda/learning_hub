@@ -81,6 +81,18 @@ export interface GradeTopic {
   strand?: string;
   overview?: string;
   legacyTopicKeys?: string[];
+  category?: string;
+}
+
+export interface SubCategoryItem {
+  _id: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  name: string;
+  slug: string;
+  description?: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface GradeInfo {
@@ -111,6 +123,7 @@ export interface QuestionItem {
   grade: number;
   topic: string;
   category: string;
+  subCategories?: string[];
   format: string;
   options: Array<string | QuestionAnswerOption>;
   answerAssetId?: string;
@@ -245,6 +258,7 @@ export interface CreateQuestionRequest {
   format?: string;
   options?: Array<string | QuestionAnswerOption>;
   stepByStepSolution?: string[];
+  subCategories?: string[];
   visualSelections?: QuestionVisualSelection[];
   visualLayout?: QuestionVisualContainerLayout;
   metadata?: {
@@ -366,6 +380,7 @@ const AUTH_USER_KEY = 'admin_auth_user';
 export class AuthService {
   private readonly authApiUrl = '/api/auth';
   private readonly questionsApiUrl = '/api/questions';
+  private readonly subCategoriesApiUrl = '/api/subcategories';
   private readonly http = inject(HttpClient);
 
   login(request: AdminLoginRequest): Observable<AdminLoginResponse> {
@@ -589,11 +604,52 @@ export class AuthService {
       answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
+      subCategories?: string[];
+      difficulty?: 'easy' | 'medium' | 'hard';
       visualSelections?: QuestionVisualSelection[];
       visualLayout?: QuestionVisualContainerLayout;
     }
   ): Observable<QuestionItem> {
     return this.http.patch<QuestionItem>(`${this.questionsApiUrl}/${id}`, data);
+  }
+
+  // ── Sub-categories ──────────────────────────────────────────
+
+  listSubCategories(
+    category: string,
+    difficulty: 'easy' | 'medium' | 'hard'
+  ): Observable<SubCategoryItem[]> {
+    const params = new HttpParams()
+      .set('category', category)
+      .set('difficulty', difficulty);
+    return this.http.get<SubCategoryItem[]>(this.subCategoriesApiUrl, {
+      params,
+    });
+  }
+
+  createSubCategory(dto: {
+    category: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    name: string;
+    description: string;
+  }): Observable<SubCategoryItem> {
+    return this.http.post<SubCategoryItem>(this.subCategoriesApiUrl, dto);
+  }
+
+  updateSubCategory(
+    id: string,
+    description: string
+  ): Observable<SubCategoryItem> {
+    return this.http.patch<SubCategoryItem>(
+      `${this.subCategoriesApiUrl}/${id}`,
+      { description }
+    );
+  }
+
+  deleteSubCategory(id: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(
+      `${this.subCategoriesApiUrl}/${id}`
+    );
   }
 
   // ── Lessons Learned ────────────────────────────────────────

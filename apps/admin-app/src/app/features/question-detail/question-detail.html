@@ -35,6 +35,11 @@
             [ngClass]="'diff-' + question.metadata.difficulty"
             >{{ question.metadata.difficulty }}</span
           >
+          <span
+            class="badge subcategory-badge"
+            *ngFor="let subCategory of question.subCategories"
+            >{{ subCategory }}</span
+          >
         </div>
         <button
           *ngIf="!isEditing"
@@ -54,6 +59,29 @@
       </div>
 
       <div class="card-body">
+        <div class="field-group" *ngIf="isEditing">
+          <span class="field-label">Difficulty</span>
+          <select
+            class="form-select"
+            [(ngModel)]="editDifficulty"
+            (ngModelChange)="onEditDifficultyChange()"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <div class="field-group" *ngIf="isEditing">
+          <span class="field-label">Sub-categories</span>
+          <app-subcategory-picker
+            [category]="question.category"
+            [difficulty]="editDifficulty"
+            [selected]="editSubCategories"
+            (selectedChange)="onEditSubCategoriesChange($event)"
+          />
+        </div>
+
         <!-- Question Text -->
         <div class="field-group">
           <span class="field-label">Question</span>
@@ -232,6 +260,13 @@
             [disabled]="isSaving"
           >
             {{ isSaving ? 'Saving…' : 'Save Changes' }}
+          </button>
+          <button
+            class="btn btn-approve"
+            (click)="saveAndApprove()"
+            [disabled]="isSaving"
+          >
+            {{ isSaving ? 'Saving…' : 'Save and Approve' }}
           </button>
           <button
             class="btn btn-secondary"

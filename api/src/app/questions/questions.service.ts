@@ -1243,6 +1243,8 @@ export class QuestionsService {
       answerAssetId?: string;
       explanation?: string;
       stepByStepSolution?: string[];
+      subCategories?: string[];
+      difficulty?: string;
       visualSelections?: Question['visualSelections'];
       visuals?: Question['visuals'];
       visualLayout?: Question['visualLayout'];
@@ -1282,6 +1284,12 @@ export class QuestionsService {
     }
     if (updates.stepByStepSolution !== undefined) {
       question.stepByStepSolution = updates.stepByStepSolution;
+    }
+    if (updates.subCategories !== undefined) {
+      question.subCategories = updates.subCategories;
+    }
+    if (updates.difficulty !== undefined) {
+      question.set('metadata.difficulty', updates.difficulty);
     }
     if (updates.visualSelections !== undefined) {
       question.visualSelections = updates.visualSelections;

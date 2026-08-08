@@ -9,6 +9,7 @@ import { OpenSearchModule } from './opensearch/opensearch.module';
 import { ProgressModule } from './progress/progress.module';
 import { AuthModule } from './auth/auth.module';
 import { StudentsModule } from './students/students.module';
+import { SubCategoriesModule } from './subcategories/subcategories.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { StudentsModule } from './students/students.module';
     ProgressModule,
     AuthModule,
     StudentsModule,
+    SubCategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
